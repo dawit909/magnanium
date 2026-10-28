@@ -17,7 +17,7 @@ export function getResolvedApiKey(clientKey?: string | null): string {
   return (clientKey && clientKey.trim()) || SERVER_API_KEY;
 }
 
-export function mapReleaseType(type: number): { category: "cinema" | "home"; label: string } {
+export function mapReleaseType(type: number): { category: "cinema" | "home"; label: string } | null {
   switch (type) {
     case 2:
     case 3:
@@ -26,12 +26,13 @@ export function mapReleaseType(type: number): { category: "cinema" | "home"; lab
       return { category: "home", label: "Digital" };
     case 5:
       return { category: "home", label: "Physical" };
-    case 6:
-      return { category: "home", label: "TV Broadcast" };
     case 1:
       return { category: "home", label: "Premiere" };
+    case 6:
+      // Skip television broadcast premieres of movies
+      return null;
     default:
-      return { category: "home", label: "Home" };
+      return null;
   }
 }
 
@@ -374,7 +375,9 @@ export async function getPersonReleases(
               const dateStr = rd.release_date ? rd.release_date.split("T")[0] : "";
               if (!dateStr) continue;
 
-              const { category, label } = mapReleaseType(rd.type);
+              const mapped = mapReleaseType(rd.type);
+              if (!mapped) continue;
+              const { category, label } = mapped;
 
               // Window filter
               if (window === "upcoming" && dateStr < nowStr) continue;

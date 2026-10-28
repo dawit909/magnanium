@@ -217,7 +217,6 @@ export default function FeedApp({
             "Theatrical",
             "Digital",
             "Physical",
-            "TV Broadcast",
             "Premiere",
             "Season Premiere",
             "Series Premiere",
