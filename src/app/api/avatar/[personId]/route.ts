@@ -86,11 +86,11 @@ export async function GET(
 
     const sourceBuffer = Buffer.from(await imgRes.arrayBuffer());
 
-    // 4. Crop to 1:1 square focused on top (headshot) and encode as JPEG
+    // 4. Crop to 1:1 square centered and encode as JPEG
     const squareBuffer = await sharp(sourceBuffer)
       .resize(300, 300, {
         fit: "cover",
-        position: "top",
+        position: "center",
       })
       .jpeg({ quality: 90 })
       .toBuffer();
