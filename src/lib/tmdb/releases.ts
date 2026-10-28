@@ -124,6 +124,53 @@ export function formatRuntime(minutes?: number | null): string | null {
   return `${m}m`;
 }
 
+const PROVIDER_NAME_PATTERNS: Array<[RegExp, string]> = [
+  [/^Paramount/i, "Paramount+"],
+  [/^Amazon Prime Video/i, "Prime Video"],
+  [/^Amazon Video/i, "Amazon Video"],
+  [/^Apple TV/i, "Apple TV"],
+  [/^Disney/i, "Disney+"],
+  [/^(HBO|Max)/i, "Max"],
+  [/^Netflix/i, "Netflix"],
+  [/^Hulu/i, "Hulu"],
+  [/^Peacock/i, "Peacock"],
+  [/^Google Play/i, "Google Play"],
+  [/^YouTube/i, "YouTube"],
+];
+const PROVIDER_TIER_SUFFIX_REGEX =
+  /\s+(Standard with Ads|with Ads|Premium|Essential|Channel|Basic with Ads|Store)$/i;
+
+function cleanProviderName(name: string): string {
+  const trimmed = name.trim();
+  for (const [pattern, replacement] of PROVIDER_NAME_PATTERNS) {
+    if (pattern.test(trimmed)) return replacement;
+  }
+  return trimmed.replace(PROVIDER_TIER_SUFFIX_REGEX, "").trim();
+}
+
+function getDeduplicatedProviderNames(
+  entries?: RawProviderEntry[],
+  limit = 4
+): string[] {
+  if (!entries || entries.length === 0) return [];
+  const seen = new Set<string>();
+  const names: string[] = [];
+
+  const sorted = [...entries].sort(
+    (a, b) => (a.display_priority ?? 99) - (b.display_priority ?? 99)
+  );
+
+  for (const item of sorted) {
+    const cleaned = cleanProviderName(item.provider_name);
+    if (cleaned && !seen.has(cleaned.toLowerCase())) {
+      seen.add(cleaned.toLowerCase());
+      names.push(cleaned);
+      if (names.length >= limit) break;
+    }
+  }
+  return names;
+}
+
 export function extractWatchProviders(
   rawProvidersData: RawWatchProvidersResponse | undefined,
   targetCountry: string
@@ -138,47 +185,9 @@ export function extractWatchProviders(
 
   if (!countryData) return null;
 
-  const cleanName = (name: string): string => {
-    const trimmed = name.trim();
-    if (/^Paramount/i.test(trimmed)) return "Paramount+";
-    if (/^Amazon Prime Video/i.test(trimmed)) return "Prime Video";
-    if (/^Amazon Video/i.test(trimmed)) return "Amazon Video";
-    if (/^Apple TV/i.test(trimmed)) return "Apple TV";
-    if (/^Disney/i.test(trimmed)) return "Disney+";
-    if (/^HBO/i.test(trimmed) || /^Max/i.test(trimmed)) return "Max";
-    if (/^Netflix/i.test(trimmed)) return "Netflix";
-    if (/^Hulu/i.test(trimmed)) return "Hulu";
-    if (/^Peacock/i.test(trimmed)) return "Peacock";
-    if (/^Google Play/i.test(trimmed)) return "Google Play";
-    if (/^YouTube/i.test(trimmed)) return "YouTube";
-    return trimmed
-      .replace(/\s+(Standard with Ads|with Ads|Premium|Essential|Channel|Basic with Ads|Store)$/i, "")
-      .trim();
-  };
-
-  const getDeduplicatedNames = (entries?: RawProviderEntry[], limit = 4): string[] => {
-    if (!entries || entries.length === 0) return [];
-    const seen = new Set<string>();
-    const names: string[] = [];
-
-    const sorted = [...entries].sort(
-      (a, b) => (a.display_priority ?? 99) - (b.display_priority ?? 99)
-    );
-
-    for (const item of sorted) {
-      const cleaned = cleanName(item.provider_name);
-      if (cleaned && !seen.has(cleaned.toLowerCase())) {
-        seen.add(cleaned.toLowerCase());
-        names.push(cleaned);
-        if (names.length >= limit) break;
-      }
-    }
-    return names;
-  };
-
-  const stream = getDeduplicatedNames(countryData.flatrate, 4);
-  const rent = getDeduplicatedNames(countryData.rent, 3);
-  const buy = getDeduplicatedNames(countryData.buy, 3);
+  const stream = getDeduplicatedProviderNames(countryData.flatrate, 4);
+  const rent = getDeduplicatedProviderNames(countryData.rent, 3);
+  const buy = getDeduplicatedProviderNames(countryData.buy, 3);
 
   if (stream.length === 0 && rent.length === 0 && buy.length === 0) {
     return null;
@@ -189,6 +198,72 @@ export function extractWatchProviders(
     stream: stream.length > 0 ? stream : undefined,
     rent: rent.length > 0 ? rent : undefined,
     buy: buy.length > 0 ? buy : undefined,
+  };
+}
+
+export function extractMovieCredits(credits?: MovieDetailsWithReleases["credits"]): {
+  director: string | null;
+  writer: string | null;
+  stars: string[] | null;
+} {
+  if (!credits) {
+    return { director: null, writer: null, stars: null };
+  }
+
+  const directors: string[] = [];
+  const writers: string[] = [];
+  const seenDirectors = new Set<string>();
+  const seenWriters = new Set<string>();
+
+  if (credits.crew) {
+    for (const c of credits.crew) {
+      const name = c.name?.trim();
+      if (!name) continue;
+
+      if (c.job === "Director" && !seenDirectors.has(name)) {
+        seenDirectors.add(name);
+        directors.push(name);
+      } else if (
+        (c.job === "Screenplay" || c.job === "Writer") &&
+        !seenWriters.has(name)
+      ) {
+        seenWriters.add(name);
+        writers.push(name);
+      }
+    }
+  }
+
+  const stars = credits.cast
+    ?.slice(0, 3)
+    .map((c) => c.name?.trim())
+    .filter(Boolean) as string[] | undefined;
+
+  return {
+    director: directors.length > 0 ? directors.join(", ") : null,
+    writer: writers.length > 0 ? writers.join(", ") : null,
+    stars: stars && stars.length > 0 ? stars : null,
+  };
+}
+
+export function extractTvCredits(
+  createdBy?: { id?: number; name: string }[],
+  credits?: { cast?: { name: string; order?: number }[] }
+): {
+  creator: string | null;
+  stars: string[] | null;
+} {
+  const creators = createdBy
+    ?.map((c) => c.name?.trim())
+    .filter(Boolean) as string[] | undefined;
+
+  const stars = credits?.cast
+    ?.slice(0, 3)
+    .map((c) => c.name?.trim())
+    .filter(Boolean) as string[] | undefined;
+
+  return {
+    creator: creators && creators.length > 0 ? creators.join(", ") : null,
+    stars: stars && stars.length > 0 ? stars : null,
   };
 }
 
@@ -268,27 +343,8 @@ export async function extractMovieReleases(
     ctx.country
   );
 
-  // Extract Director, Writer, Stars, Runtime
-  const directors = [
-    ...new Set(
-      movieDetails?.credits?.crew
-        ?.filter((c) => c.job === "Director")
-        .map((c) => c.name.trim())
-    ),
-  ];
-  const writers = [
-    ...new Set(
-      movieDetails?.credits?.crew
-        ?.filter((c) => c.job === "Screenplay" || c.job === "Writer")
-        .map((c) => c.name.trim())
-    ),
-  ];
-  const stars = movieDetails?.credits?.cast
-    ?.slice(0, 3)
-    .map((c) => c.name.trim());
+  const { director, writer, stars } = extractMovieCredits(movieDetails?.credits);
   const runtime = formatRuntime(movieDetails?.runtime);
-  const director = directors.length > 0 ? directors.join(", ") : null;
-  const writer = writers.length > 0 ? writers.join(", ") : null;
 
   const candidates: FormattedRelease[] = [];
   const releaseDatesData = movieDetails?.release_dates;
@@ -419,14 +475,14 @@ export async function extractTvReleases(
     ctx.country
   );
 
-  // Extract Creator, Stars, Runtime
-  const creators = tvDetails?.created_by?.map((c) => c.name.trim());
-  const tvStars = tvDetails?.credits?.cast?.slice(0, 3).map((c) => c.name.trim());
-  const tvRuntime =
+  const { creator: director, stars } = extractTvCredits(
+    tvDetails?.created_by,
+    tvDetails?.credits
+  );
+  const runtime =
     tvDetails?.episode_run_time && tvDetails.episode_run_time.length > 0
       ? formatRuntime(tvDetails.episode_run_time[0])
       : null;
-  const creator = creators && creators.length > 0 ? creators.join(", ") : null;
 
   const candidates: FormattedRelease[] = [];
   const showCountry = tvDetails?.origin_country?.[0] || ctx.country;
@@ -471,9 +527,9 @@ export async function extractTvReleases(
           country: showCountry,
           role: roleStr,
           watchProviders,
-          director: creator,
-          stars: tvStars,
-          runtime: tvRuntime,
+          director,
+          stars,
+          runtime,
         })
       );
     }
@@ -506,9 +562,9 @@ export async function extractTvReleases(
           country: showCountry,
           role: roleStr,
           watchProviders,
-          director: creator,
-          stars: tvStars,
-          runtime: tvRuntime,
+          director,
+          stars,
+          runtime,
         })
       );
     }

@@ -14,6 +14,22 @@ export interface TMDBPersonSearchResult {
   }>;
 }
 
+export interface TMDBPersonDetails {
+  id: number;
+  name: string;
+  biography?: string;
+  birthday?: string | null;
+  deathday?: string | null;
+  place_of_birth?: string | null;
+  profile_path: string | null;
+  known_for_department?: string;
+  original_name?: string;
+  popularity?: number;
+  gender?: number;
+  imdb_id?: string;
+  homepage?: string | null;
+}
+
 export interface TMDBCreditItem {
   id: number;
   media_type?: "movie" | "tv";

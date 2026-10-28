@@ -1,6 +1,7 @@
 import {
   TMDBPersonSearchResult,
   TMDBPersonCreditsResponse,
+  TMDBPersonDetails,
   FormattedRelease,
   FeedFilterOptions,
   TMDBCreditItem,
@@ -91,12 +92,15 @@ export async function searchPerson(
 /**
  * Get artist details
  */
-export async function getPersonDetails(personId: number, customApiKey?: string) {
+export async function getPersonDetails(
+  personId: number,
+  customApiKey?: string
+): Promise<TMDBPersonDetails | null> {
   if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {
     return null;
   }
 
-  const { data, status } = await tmdbFetch<any>(
+  const { data, status } = await tmdbFetch<TMDBPersonDetails>(
     `/person/${personId}`,
     {},
     86400,
@@ -154,7 +158,12 @@ export async function getPersonReleases(
     return { personName: "", releases: [], profilePath: null, notFound: true };
   }
 
-  const person = await getPersonDetails(personId, customApiKey);
+  // Fetch person profile and combined credits concurrently
+  const [person, credits] = await Promise.all([
+    getPersonDetails(personId, customApiKey),
+    getPersonCredits(personId, customApiKey),
+  ]);
+
   if (!person || !person.id) {
     markPersonNotFound(personId);
     return { personName: "", releases: [], profilePath: null, notFound: true };
@@ -172,7 +181,6 @@ export async function getPersonReleases(
   });
   const isEarliestOnly = normalizedTypes.includes("earliest");
 
-  const credits = await getPersonCredits(personId, customApiKey);
   const personName = person.name || "Artist";
 
   const isActorSelected = roles.includes("all") || roles.includes("actor");
