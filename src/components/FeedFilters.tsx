@@ -160,7 +160,9 @@ export default function FeedFilters({
           width="w-64"
           content={
             <div className="space-y-1.5 text-left">
-              <p>If you choose only Theatrical, TV shows will not appear.</p>
+              <p>
+                If you choose only <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Theatrical&rdquo;</strong>, TV shows will not appear.
+              </p>
               <p>
                 <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Earliest&rdquo;</strong> notifies only once per project on its first available release format.
               </p>
