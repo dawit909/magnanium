@@ -29,6 +29,7 @@ export default function HomePage() {
   const [types, setTypes] = useState<string[]>(["theatrical", "digital"]);
   const [country, setCountry] = useState("US");
   const [windowFilter, setWindowFilter] = useState<"upcoming" | "all">("all");
+  const [excludeShorts, setExcludeShorts] = useState(true);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -90,7 +91,7 @@ export default function HomePage() {
 
   // Construct RSS Feed URL
   const feedUrl = selectedPerson
-    ? `${origin}/api/feed/${selectedPerson.id}?roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&window=${windowFilter}`
+    ? `${origin}/api/feed/${selectedPerson.id}?roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&window=${windowFilter}&exclude_shorts=${excludeShorts}`
     : "";
 
   // Fetch preview items when artist or filters change
@@ -110,6 +111,7 @@ export default function HomePage() {
           types: types.join(","),
           country,
           window: windowFilter,
+          exclude_shorts: String(excludeShorts),
         });
 
         const res = await fetch(`/api/feed/${selectedPerson.id}?${params.toString()}`);
@@ -158,7 +160,7 @@ export default function HomePage() {
     return () => {
       isCurrent = false;
     };
-  }, [selectedPerson, roles, types, country, windowFilter]);
+  }, [selectedPerson, roles, types, country, windowFilter, excludeShorts]);
 
   const toggleRole = (r: string) => {
     setRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
@@ -349,6 +351,16 @@ export default function HomePage() {
                 <option value="all">Recent & Upcoming</option>
                 <option value="upcoming">Upcoming Only</option>
               </select>
+
+              <label className="flex items-center gap-1.5 cursor-pointer text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300 text-xs ml-3 select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeShorts}
+                  onChange={(e) => setExcludeShorts(e.target.checked)}
+                  className="rounded accent-neutral-800 dark:accent-neutral-200"
+                />
+                <span>Exclude shorts</span>
+              </label>
             </div>
           </div>
 

@@ -47,9 +47,7 @@ function getFetchOptions(customKey?: string): { url: (endpoint: string, params?:
 
   const buildUrl = (endpoint: string, params: Record<string, string> = {}) => {
     const url = new URL(`${TMDB_API_BASE}${endpoint}`);
-    if (apiKey && !headers["Authorization"]) {
-      url.searchParams.set("api_key", apiKey);
-    } else if (apiKey) {
+    if (apiKey) {
       url.searchParams.set("api_key", apiKey);
     }
     for (const [key, value] of Object.entries(params)) {
@@ -131,14 +129,20 @@ export async function getPersonCredits(personId: number, customApiKey?: string):
   }
 }
 
+interface MovieDetailsWithReleases {
+  runtime?: number;
+  genres?: Array<{ id: number; name: string }>;
+  release_dates?: TMDBReleaseDatesResponse;
+}
+
 /**
- * Fetch detailed release dates for a movie
+ * Fetch movie details along with release dates in a single API call
  */
-export async function getMovieReleaseDates(movieId: number, customApiKey?: string): Promise<TMDBReleaseDatesResponse | null> {
+export async function getMovieDetails(movieId: number, customApiKey?: string): Promise<MovieDetailsWithReleases | null> {
   const { url, headers } = getFetchOptions(customApiKey);
 
   try {
-    const res = await fetch(url(`/movie/${movieId}/release_dates`), {
+    const res = await fetch(url(`/movie/${movieId}`, { append_to_response: "release_dates" }), {
       headers,
       next: { revalidate: 43200 },
     });
@@ -157,7 +161,14 @@ export async function getPersonReleases(
   options: FeedFilterOptions,
   customApiKey?: string
 ): Promise<{ personName: string; releases: FormattedRelease[] }> {
-  const { personId, roles = ["director", "actor"], types = ["theatrical", "digital"], country = "US", window = "all" } = options;
+  const {
+    personId,
+    roles = ["director", "actor"],
+    types = ["theatrical", "digital"],
+    country = "US",
+    window = "all",
+    excludeShorts = true,
+  } = options;
 
   const [person, credits] = await Promise.all([
     getPersonDetails(personId, customApiKey),
@@ -183,6 +194,10 @@ export async function getPersonReleases(
     for (const item of credits.crew) {
       const job = (item.job || "").toLowerCase();
       const dept = (item.department || "").toLowerCase();
+
+      // Skip passive "Thanks" or "Special Thanks" credits
+      if (job.includes("thanks") || dept === "crew") continue;
+
       if (checkRole("director") && (job.includes("director") || dept === "directing")) {
         addCandidate(item, "Director");
       } else if (checkRole("writer") && (job.includes("writer") || job.includes("screenplay") || dept === "writing")) {
@@ -195,6 +210,9 @@ export async function getPersonReleases(
 
   if (credits.cast && checkRole("actor")) {
     for (const item of credits.cast) {
+      const char = (item.character || "").toLowerCase();
+      // Skip "Self" appearances in behind-the-scenes / documentaries if looking for acting
+      if (char === "self" || char.startsWith("self -")) continue;
       addCandidate(item, item.character ? `Actor (${item.character})` : "Actor");
     }
   }
@@ -214,8 +232,20 @@ export async function getPersonReleases(
 
   await Promise.all(
     sliceCandidates.map(async ({ movie, roles: movieRoles }) => {
-      const releaseDatesData = await getMovieReleaseDates(movie.id, customApiKey);
+      // Check for title-based shorts
+      if (excludeShorts && /\b(short|short film)\b/i.test(movie.title)) {
+        return;
+      }
+
+      const movieDetails = await getMovieDetails(movie.id, customApiKey);
+
+      // Exclude short films: runtime between 1 and 39 minutes
+      if (excludeShorts && movieDetails?.runtime && movieDetails.runtime > 0 && movieDetails.runtime < 40) {
+        return;
+      }
+
       let foundSpecific = false;
+      const releaseDatesData = movieDetails?.release_dates;
 
       if (releaseDatesData && releaseDatesData.results) {
         const countryData =

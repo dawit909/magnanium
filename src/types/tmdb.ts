@@ -2,7 +2,7 @@ export interface TMDBPersonSearchResult {
   id: number;
   name: string;
   original_name: string;
-  known_for_department: string; // e.g. "Directing", "Acting", "Writing"
+  known_for_department: string;
   profile_path: string | null;
   popularity: number;
   known_for?: Array<{
@@ -23,9 +23,9 @@ export interface TMDBCreditItem {
   backdrop_path: string | null;
   release_date: string;
   vote_average: number;
-  character?: string; // If acting
-  department?: string; // If crew (e.g. "Directing", "Writing")
-  job?: string; // If crew (e.g. "Director", "Screenplay")
+  character?: string;
+  department?: string;
+  job?: string;
 }
 
 export interface TMDBPersonCreditsResponse {
@@ -39,14 +39,14 @@ export interface TMDBReleaseDateItem {
   descriptors: string[];
   iso_639_1: string;
   note: string;
-  release_date: string; // ISO string e.g. "2024-11-22T00:00:00.000Z"
-  type: number; // 1: Premiere, 2: Theatrical (limited), 3: Theatrical, 4: Digital, 5: Physical, 6: TV
+  release_date: string;
+  type: number;
 }
 
 export interface TMDBReleaseDatesResponse {
   id: number;
   results: Array<{
-    iso_3166_1: string; // e.g. "US", "GB", "KR"
+    iso_3166_1: string;
     release_dates: TMDBReleaseDateItem[];
   }>;
 }
@@ -54,23 +54,24 @@ export interface TMDBReleaseDatesResponse {
 export type ReleaseTypeCategory = "theatrical" | "digital" | "physical" | "premiere" | "other";
 
 export interface FormattedRelease {
-  id: string; // Unique GUID for RSS
+  id: string;
   movieId: number;
   movieTitle: string;
   overview: string;
   posterPath: string | null;
-  releaseDate: string; // YYYY-MM-DD
+  releaseDate: string;
   releaseType: ReleaseTypeCategory;
   releaseTypeLabel: string;
   country: string;
-  role: string; // e.g. "Director", "Actor (as Bruce Wayne)"
+  role: string;
   tmdbUrl: string;
 }
 
 export interface FeedFilterOptions {
   personId: number;
-  roles?: string[]; // "director", "actor", "writer", "producer", "all"
-  types?: ReleaseTypeCategory[]; // ["theatrical", "digital", "physical"]
-  country?: string; // "US", "GB", etc.
-  window?: "upcoming" | "all"; // "upcoming" = today onward, "all" = past year + upcoming
+  roles?: string[];
+  types?: ReleaseTypeCategory[];
+  country?: string;
+  window?: "upcoming" | "all";
+  excludeShorts?: boolean;
 }
