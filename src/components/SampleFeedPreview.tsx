@@ -503,12 +503,9 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
               className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] cursor-pointer hover:opacity-80 transition-opacity"
             />
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
-            <span>RSS Reader — Preview</span>
-            <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-normal hidden sm:inline">
-              (drag to move)
-            </span>
-          </div>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+            RSS Reader — Preview
+          </span>
           <div className="w-12 text-right">
             {(offset.x !== 0 || offset.y !== 0) && (
               <button
