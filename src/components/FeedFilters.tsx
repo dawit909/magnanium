@@ -50,7 +50,17 @@ function FilterPill({
   );
 }
 
-function InfoTooltip({ text, ariaLabel }: { text: string; ariaLabel: string }) {
+function InfoTooltip({
+  text,
+  ariaLabel,
+  content,
+  width = "w-56",
+}: {
+  text?: string;
+  ariaLabel: string;
+  content?: React.ReactNode;
+  width?: string;
+}) {
   return (
     <div className="relative group/info inline-flex items-center ml-1">
       <div
@@ -61,8 +71,10 @@ function InfoTooltip({ text, ariaLabel }: { text: string; ariaLabel: string }) {
       >
         <Info className="w-3.5 h-3.5" />
       </div>
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 px-2.5 py-1.5 rounded-xl bg-neutral-900 text-neutral-100 dark:bg-neutral-800 dark:text-neutral-200 text-[11px] leading-snug shadow-xl border border-neutral-800 dark:border-neutral-700 text-center opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-150 pointer-events-none z-50">
-        {text}
+      <div
+        className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 ${width} p-2.5 rounded-xl bg-neutral-900 text-neutral-100 dark:bg-neutral-800 dark:text-neutral-200 text-[11px] leading-snug shadow-xl border border-neutral-800 dark:border-neutral-700 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-150 pointer-events-none z-50`}
+      >
+        {content || text}
       </div>
     </div>
   );
@@ -144,7 +156,15 @@ export default function FeedFilters({
         ))}
         <InfoTooltip
           ariaLabel="Format info"
-          text="TV shows do not have theatrical releases. If you choose only Theatrical, TV shows will not appear."
+          width="w-64"
+          content={
+            <div className="space-y-1.5 text-left">
+              <p>If you choose only Theatrical, TV shows will not appear.</p>
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Earliest&rdquo;</strong> notifies only once per project on its first available release format.
+              </p>
+            </div>
+          }
         />
       </FilterRow>
 
