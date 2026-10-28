@@ -23,13 +23,13 @@ export function mapReleaseType(type: number): { category: "cinema" | "home"; lab
     case 3:
       return { category: "cinema", label: "Theatrical" };
     case 4:
-      return { category: "home", label: "Home (Digital)" };
+      return { category: "home", label: "Digital" };
     case 5:
-      return { category: "home", label: "Home (Physical)" };
+      return { category: "home", label: "Physical" };
     case 6:
-      return { category: "home", label: "Home (TV)" };
+      return { category: "home", label: "TV Broadcast" };
     case 1:
-      return { category: "home", label: "Home (Premiere)" };
+      return { category: "home", label: "Premiere" };
     default:
       return { category: "home", label: "Home" };
   }

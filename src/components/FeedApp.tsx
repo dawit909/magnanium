@@ -27,6 +27,7 @@ export default function FeedApp({
 
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<TMDBPersonSearchResult[]>([]);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<TMDBPersonSearchResult | null>(initialPerson);
   const [recentArtists, setRecentArtists] = useState<Array<{ id: number; name: string; slug: string }>>([]);
@@ -111,15 +112,30 @@ export default function FeedApp({
   const goHome = () => {
     setQuery("");
     setSearchResults([]);
+    setActiveIndex(-1);
     router.push("/");
   };
 
   const selectPerson = (person: TMDBPersonSearchResult) => {
     setQuery("");
     setSearchResults([]);
+    setActiveIndex(-1);
     const slug = createPersonSlug(person.id, person.name);
     router.push(`/${slug}`);
   };
+
+  // Reset active index when query or search results change
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [query, searchResults]);
+
+  // Scroll active item into view
+  useEffect(() => {
+    if (activeIndex >= 0) {
+      const el = document.getElementById(`search-result-${activeIndex}`);
+      el?.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeIndex]);
 
   // Debounced search
   useEffect(() => {
@@ -197,22 +213,28 @@ export default function FeedApp({
           const isTv = categories.includes("TV") || link.includes("/tv/");
           const mediaType: "movie" | "tv" = isTv ? "tv" : "movie";
 
+          const KNOWN_FORMATS = [
+            "Theatrical",
+            "Digital",
+            "Physical",
+            "TV Broadcast",
+            "Premiere",
+            "Season Premiere",
+            "Series Premiere",
+            "Cinema",
+            "Home",
+            "TV",
+          ];
+
           const formatLabel =
-            categories.find((c) =>
-              ["Theatrical", "Cinema", "Home", "Season Premiere", "Series Premiere", "TV"].some((k) =>
-                c.startsWith(k)
-              )
-            ) || (isTv ? "Season Premiere" : "Release");
+            categories.find((c) => KNOWN_FORMATS.some((k) => c.startsWith(k))) ||
+            (isTv ? "Season Premiere" : "Release");
 
           const roleLabel =
             categories.find(
               (c) =>
                 !["Movie", "TV"].includes(c) &&
-                !c.startsWith("Theatrical") &&
-                !c.startsWith("Cinema") &&
-                !c.startsWith("Home") &&
-                !c.startsWith("Season Premiere") &&
-                !c.startsWith("Series Premiere") &&
+                !KNOWN_FORMATS.some((k) => c.startsWith(k)) &&
                 c !== "TV"
             ) || "";
 
@@ -306,6 +328,26 @@ export default function FeedApp({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (searchResults.length === 0) return;
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setActiveIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : 0));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setActiveIndex((prev) => (prev > 0 ? prev - 1 : searchResults.length - 1));
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (activeIndex >= 0 && activeIndex < searchResults.length) {
+                    selectPerson(searchResults[activeIndex]);
+                  } else if (searchResults.length > 0) {
+                    selectPerson(searchResults[0]);
+                  }
+                } else if (e.key === "Escape") {
+                  setSearchResults([]);
+                  setActiveIndex(-1);
+                }
+              }}
               placeholder="Search director, actor, artist..."
               className="w-full pl-8 pr-3 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors"
             />
@@ -316,34 +358,43 @@ export default function FeedApp({
             {/* Autocomplete Dropdown */}
             {searchResults.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60 max-h-80 overflow-y-auto">
-                {searchResults.map((person) => (
-                  <button
-                    key={person.id}
-                    onClick={() => selectPerson(person)}
-                    className="w-full text-left px-3.5 py-2.5 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-xs transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {person.profile_path ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
-                          alt={person.name}
-                          className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
-                          <User className="w-3.5 h-3.5" />
-                        </div>
-                      )}
-                      <span className="text-neutral-900 dark:text-neutral-100 font-medium truncate">
-                        {person.name}
+                {searchResults.map((person, index) => {
+                  const isActive = activeIndex === index;
+                  return (
+                    <button
+                      key={person.id}
+                      id={`search-result-${index}`}
+                      onClick={() => selectPerson(person)}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      className={`w-full text-left px-3.5 py-2.5 flex items-center justify-between text-xs transition-colors ${
+                        isActive
+                          ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium ring-1 ring-inset ring-neutral-300 dark:ring-neutral-700"
+                          : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {person.profile_path ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
+                            alt={person.name}
+                            className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                            <User className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                        <span className="font-medium truncate">
+                          {person.name}
+                        </span>
+                      </div>
+                      <span className="text-neutral-400 dark:text-neutral-500 text-[11px] ml-2 flex-shrink-0">
+                        {person.known_for_department}
                       </span>
-                    </div>
-                    <span className="text-neutral-400 dark:text-neutral-500 text-[11px] ml-2 flex-shrink-0">
-                      {person.known_for_department}
-                    </span>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
