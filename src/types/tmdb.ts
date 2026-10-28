@@ -79,6 +79,13 @@ export interface TvDetails {
   status?: string;
   in_production?: boolean;
   origin_country?: string[];
+  next_episode_to_air?: {
+    id: number;
+    name: string;
+    air_date: string;
+    episode_number: number;
+    season_number: number;
+  } | null;
   seasons?: TvSeasonItem[];
 }
 

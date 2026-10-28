@@ -197,8 +197,9 @@ export default function FeedApp({
           const mediaType: "movie" | "tv" = isTv ? "tv" : "movie";
 
           const formatLabel =
-            categories.find((c) => ["Cinema", "Home", "TV"].some((k) => c.startsWith(k))) ||
-            (isTv ? "TV" : "Release");
+            categories.find((c) =>
+              ["Cinema", "Home", "Season Premiere", "Series Premiere", "TV"].some((k) => c.startsWith(k))
+            ) || (isTv ? "Season Premiere" : "Release");
 
           const roleLabel =
             categories.find(
@@ -206,6 +207,8 @@ export default function FeedApp({
                 !["Movie", "TV"].includes(c) &&
                 !c.startsWith("Cinema") &&
                 !c.startsWith("Home") &&
+                !c.startsWith("Season Premiere") &&
+                !c.startsWith("Series Premiere") &&
                 c !== "TV"
             ) || "";
 

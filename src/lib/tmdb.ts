@@ -451,18 +451,22 @@ export async function getPersonReleases(
         const showCountry = tvDetails?.origin_country?.[0] || country;
 
         if (tvDetails?.seasons && tvDetails.seasons.length > 0) {
-          const validSeasons = tvDetails.seasons.filter((s) => s.season_number > 0 && s.air_date);
+          const validSeasons = tvDetails.seasons.filter((s) => s.season_number > 0);
           for (const season of validSeasons) {
-            const dateStr = season.air_date;
+            const dateStr =
+              season.air_date ||
+              (tvDetails.next_episode_to_air?.season_number === season.season_number
+                ? tvDetails.next_episode_to_air.air_date
+                : null);
+
             if (!dateStr) continue;
 
             // Window filter
             if (window === "upcoming" && dateStr < nowStr) continue;
             if (window === "all" && dateStr < oneYearAgoStr) continue;
 
-            const seasonTitle = validSeasons.length > 1
-              ? `${tvDetails.name}: ${season.name}`
-              : tvDetails.name;
+            const seasonTitle = `${tvDetails.name}: ${season.name}`;
+            const premiereLabel = season.season_number === 1 ? "Series Premiere" : "Season Premiere";
 
             tvCandidateReleases.push({
               id: `${tvShow.id}-s${season.season_number}-${dateStr}`,
@@ -473,7 +477,7 @@ export async function getPersonReleases(
               posterPath: season.poster_path || tvDetails.poster_path || tvShow.poster_path,
               releaseDate: dateStr,
               releaseType: "home",
-              releaseTypeLabel: "TV",
+              releaseTypeLabel: premiereLabel,
               country: showCountry,
               role: combinedRole,
               tmdbUrl: `https://www.themoviedb.org/tv/${tvShow.id}`,
@@ -496,7 +500,7 @@ export async function getPersonReleases(
               posterPath: tvShow.poster_path,
               releaseDate: dateStr,
               releaseType: "home",
-              releaseTypeLabel: "TV",
+              releaseTypeLabel: "Series Premiere",
               country: showCountry,
               role: combinedRole,
               tmdbUrl: `https://www.themoviedb.org/tv/${tvShow.id}`,
@@ -511,7 +515,7 @@ export async function getPersonReleases(
           const earliest = tvCandidateReleases[0];
           formattedReleases.push({
             ...earliest,
-            releaseTypeLabel: "TV (Earliest)",
+            releaseTypeLabel: `${earliest.releaseTypeLabel} (Earliest)`,
           });
         } else {
           for (const rel of tvCandidateReleases) {
