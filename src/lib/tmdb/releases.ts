@@ -588,10 +588,14 @@ export async function extractTvReleases(
     tvDetails?.created_by,
     tvDetails?.credits
   );
-  const episodeRuntime =
-    tvDetails?.episode_run_time && tvDetails.episode_run_time.length > 0
-      ? formatRuntime(tvDetails.episode_run_time[0])
-      : null;
+  const rawMinutes =
+    (tvDetails?.episode_run_time && tvDetails.episode_run_time.length > 0
+      ? tvDetails.episode_run_time[0]
+      : null) ||
+    tvDetails?.last_episode_to_air?.runtime ||
+    tvDetails?.next_episode_to_air?.runtime ||
+    null;
+  const episodeRuntime = formatRuntime(rawMinutes);
   const runtime = episodeRuntime ? `${episodeRuntime}/ep` : null;
   const language = formatLanguage(
     tvDetails?.spoken_languages,

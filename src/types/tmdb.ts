@@ -107,6 +107,15 @@ export interface TvDetails {
     air_date: string;
     episode_number: number;
     season_number: number;
+    runtime?: number | null;
+  } | null;
+  last_episode_to_air?: {
+    id: number;
+    name: string;
+    air_date: string;
+    episode_number: number;
+    season_number: number;
+    runtime?: number | null;
   } | null;
   seasons?: TvSeasonItem[];
 }
