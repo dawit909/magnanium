@@ -20,7 +20,7 @@ export async function GET(
 
     // 1. IP Rate Limiting (10 requests per minute)
     const clientIp = getClientIp(request);
-    const rateCheck = checkRateLimit(clientIp, 10, 60 * 1000);
+    const rateCheck = checkRateLimit(`feed:${clientIp}`, 10, 60 * 1000);
 
     if (!rateCheck.success) {
       return new NextResponse(

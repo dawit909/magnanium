@@ -3,8 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 
-// In-memory LRU-style cache for search queries
+// In-memory cache for search queries to avoid repeated network calls
 const searchCache = new Map<string, TMDBPersonSearchResult[]>();
+
+// 600ms delay: ensures search results only update after user stops typing
+const SEARCH_DEBOUNCE_MS = 600;
 
 export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
   const [query, setQuery] = useState("");
@@ -48,7 +51,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Delay updating search results while typing with debounce, abort controller, and cache
+  // Delay updating search results while typing (600ms debounce)
   useEffect(() => {
     const trimmed = query.trim();
 
@@ -64,10 +67,9 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
       return;
     }
 
-    // Set searching indicator while typing
+    // Indicate that search is queued while user is typing
     setIsSearching(true);
 
-    // 400ms debounce delay while typing
     const timer = setTimeout(async () => {
       const cacheKey = trimmed.toLowerCase();
       if (searchCache.has(cacheKey)) {
@@ -106,7 +108,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
           setIsSearching(false);
         }
       }
-    }, 400);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timer);
@@ -138,30 +140,60 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
   }, []);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (searchResults.length === 0) return;
-
+    async (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "ArrowDown") {
+        if (searchResults.length === 0) return;
         e.preventDefault();
         setActiveIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : 0));
       } else if (e.key === "ArrowUp") {
+        if (searchResults.length === 0) return;
         e.preventDefault();
         setActiveIndex((prev) => (prev > 0 ? prev - 1 : searchResults.length - 1));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        const target =
-          activeIndex >= 0 && activeIndex < searchResults.length
-            ? searchResults[activeIndex]
-            : searchResults[0];
-        if (target) {
-          onSelect(target);
+        // If an item in dropdown was navigated to by arrow keys, select it
+        if (activeIndex >= 0 && activeIndex < searchResults.length) {
+          onSelect(searchResults[activeIndex]);
+          resetSearch();
+          return;
+        }
+
+        // If user pressed Enter before the debounce timer finished, execute immediate search
+        const trimmed = query.trim();
+        if (trimmed.length >= 2) {
+          setIsSearching(true);
+          const cacheKey = trimmed.toLowerCase();
+          let results = searchCache.get(cacheKey);
+
+          if (!results) {
+            try {
+              const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
+              if (res.ok) {
+                const data = await res.json();
+                const fetchedResults: TMDBPersonSearchResult[] = data.results || [];
+                searchCache.set(cacheKey, fetchedResults);
+                results = fetchedResults;
+              }
+            } catch {}
+          }
+
+          setIsSearching(false);
+          if (results && results.length > 0) {
+            onSelect(results[0]);
+            resetSearch();
+            return;
+          }
+        }
+
+        if (searchResults.length > 0) {
+          onSelect(searchResults[0]);
           resetSearch();
         }
       } else if (e.key === "Escape") {
         resetSearch();
       }
     },
-    [searchResults, activeIndex, onSelect, resetSearch]
+    [query, searchResults, activeIndex, onSelect, resetSearch]
   );
 
   return {

@@ -5,13 +5,13 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  // 1. IP Rate Limiting (10 requests per minute)
+  // 1. IP Rate Limiting (30 requests per minute for search)
   const clientIp = getClientIp(request);
-  const rateCheck = checkRateLimit(clientIp, 10, 60 * 1000);
+  const rateCheck = checkRateLimit(`search:${clientIp}`, 30, 60 * 1000);
 
   if (!rateCheck.success) {
     return NextResponse.json(
-      { error: "Too many requests. Limit is 10 requests per minute.", results: [] },
+      { error: "Too many search requests. Please slow down.", results: [] },
       {
         status: 429,
         headers: {
