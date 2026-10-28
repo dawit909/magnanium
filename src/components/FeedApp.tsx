@@ -303,7 +303,7 @@ export default function FeedApp({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search director, actor, artist..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/20 dark:focus:ring-neutral-600/30 focus:border-neutral-400 dark:focus:border-neutral-600 transition-all"
+              className="w-full pl-8 pr-3 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors"
             />
             {isSearching && (
               <div className="w-3 h-3 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-3 top-1/2 -translate-y-1/2" />

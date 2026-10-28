@@ -25,5 +25,7 @@ body {
 
 /* Smooth transitions */
 button, input, select {
-  transition: all 0.15s ease-in-out;
+  transition-property: color, background-color, border-color, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
