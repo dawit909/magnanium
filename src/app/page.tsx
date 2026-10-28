@@ -352,8 +352,11 @@ export default function HomePage() {
                   </option>
                 ))}
               </select>
+            </div>
 
-              <label className="flex items-center gap-1.5 cursor-pointer text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300 text-xs ml-3 select-none">
+            <div className="flex items-center gap-2">
+              <span className="w-14"></span>
+              <label className="flex items-center gap-1.5 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
                 <input
                   type="checkbox"
                   checked={excludeShorts}
