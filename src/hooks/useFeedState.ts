@@ -2,53 +2,167 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
+import { COUNTRIES } from "@/lib/constants";
+
+export interface FeedOptionsSettings {
+  media: string[];
+  roles: string[];
+  types: string[];
+  country: string;
+  alert: "announced" | "release_day" | "week_before";
+  excludeShorts: boolean;
+}
+
+const STORAGE_KEY = "magnanium_feed_options";
+
+const DEFAULT_OPTIONS: FeedOptionsSettings = {
+  media: ["movie", "tv"],
+  roles: ["actor", "crew"],
+  types: ["cinema", "home"],
+  country: "US",
+  alert: "announced",
+  excludeShorts: false,
+};
+
+// Global in-memory cache to preserve options instantly across client navigation
+let inMemoryOptions: FeedOptionsSettings = { ...DEFAULT_OPTIONS };
+
+function persistOption<K extends keyof FeedOptionsSettings>(
+  key: K,
+  value: FeedOptionsSettings[K]
+) {
+  inMemoryOptions = {
+    ...inMemoryOptions,
+    [key]: value,
+  };
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryOptions));
+    } catch {}
+  }
+}
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
-  const [media, setMedia] = useState<string[]>(["movie", "tv"]);
-  const [roles, setRoles] = useState<string[]>(["actor", "crew"]);
-  const [types, setTypes] = useState<string[]>(["cinema", "home"]);
-  const [country, setCountry] = useState("US");
-  const [alert, setAlert] = useState<"announced" | "release_day" | "week_before">("announced");
-  const [excludeShorts, setExcludeShorts] = useState(false);
+  const [media, setMedia] = useState<string[]>(() => inMemoryOptions.media);
+  const [roles, setRoles] = useState<string[]>(() => inMemoryOptions.roles);
+  const [types, setTypes] = useState<string[]>(() => inMemoryOptions.types);
+  const [country, setCountryState] = useState<string>(() => inMemoryOptions.country);
+  const [alert, setAlertState] = useState<"announced" | "release_day" | "week_before">(
+    () => inMemoryOptions.alert
+  );
+  const [excludeShorts, setExcludeShortsState] = useState<boolean>(
+    () => inMemoryOptions.excludeShorts
+  );
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [origin, setOrigin] = useState("");
 
+  // Sync with localStorage on initial client mount
   useEffect(() => {
     setOrigin(window.location.origin);
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const validMedia =
+          Array.isArray(parsed.media) && parsed.media.length > 0
+            ? parsed.media
+            : inMemoryOptions.media;
+        const validRoles =
+          Array.isArray(parsed.roles) && parsed.roles.length > 0
+            ? parsed.roles
+            : inMemoryOptions.roles;
+        const validTypes =
+          Array.isArray(parsed.types) && parsed.types.length > 0
+            ? parsed.types
+            : inMemoryOptions.types;
+        const validCountry =
+          typeof parsed.country === "string" && COUNTRIES.some((c) => c.code === parsed.country)
+            ? parsed.country
+            : inMemoryOptions.country;
+        const validAlert =
+          ["announced", "release_day", "week_before"].includes(parsed.alert)
+            ? (parsed.alert as "announced" | "release_day" | "week_before")
+            : inMemoryOptions.alert;
+        const validExcludeShorts =
+          typeof parsed.excludeShorts === "boolean"
+            ? parsed.excludeShorts
+            : inMemoryOptions.excludeShorts;
+
+        inMemoryOptions = {
+          media: validMedia,
+          roles: validRoles,
+          types: validTypes,
+          country: validCountry,
+          alert: validAlert,
+          excludeShorts: validExcludeShorts,
+        };
+
+        setMedia(validMedia);
+        setRoles(validRoles);
+        setTypes(validTypes);
+        setCountryState(validCountry);
+        setAlertState(validAlert);
+        setExcludeShortsState(validExcludeShorts);
+      }
+    } catch {}
   }, []);
 
   const toggleMedia = useCallback((m: string) => {
     setMedia((prev) => {
-      if (prev.includes(m)) {
-        return prev.length > 1 ? prev.filter((x) => x !== m) : prev;
-      }
-      return [...prev, m];
+      const next = prev.includes(m)
+        ? prev.length > 1
+          ? prev.filter((x) => x !== m)
+          : prev
+        : [...prev, m];
+      persistOption("media", next);
+      return next;
     });
   }, []);
 
   const toggleRole = useCallback((r: string) => {
     setRoles((prev) => {
-      if (prev.includes(r)) {
-        return prev.length > 1 ? prev.filter((x) => x !== r) : prev;
-      }
-      return [...prev, r];
+      const next = prev.includes(r)
+        ? prev.length > 1
+          ? prev.filter((x) => x !== r)
+          : prev
+        : [...prev, r];
+      persistOption("roles", next);
+      return next;
     });
   }, []);
 
   const toggleType = useCallback((t: string) => {
-    if (t === "earliest") {
-      setTypes(["earliest"]);
-      return;
-    }
     setTypes((prev) => {
-      if (prev.includes("earliest")) {
-        return [t];
+      let next: string[];
+      if (t === "earliest") {
+        next = ["earliest"];
+      } else if (prev.includes("earliest")) {
+        next = [t];
+      } else {
+        const filtered = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
+        next = filtered.length > 0 ? filtered : ["cinema", "home"];
       }
-      const next = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
-      return next.length > 0 ? next : ["cinema", "home"];
+      persistOption("types", next);
+      return next;
     });
+  }, []);
+
+  const setCountry = useCallback((c: string) => {
+    setCountryState(c);
+    persistOption("country", c);
+  }, []);
+
+  const setAlert = useCallback((a: "announced" | "release_day" | "week_before") => {
+    setAlertState(a);
+    persistOption("alert", a);
+  }, []);
+
+  const setExcludeShorts = useCallback((exclude: boolean) => {
+    setExcludeShortsState(exclude);
+    persistOption("excludeShorts", exclude);
   }, []);
 
   // Construct RSS Feed URL (memoized to avoid reallocations)
