@@ -28,7 +28,6 @@ export default function HomePage() {
   const [roles, setRoles] = useState<string[]>(["director", "actor"]);
   const [types, setTypes] = useState<string[]>(["theatrical", "digital"]);
   const [country, setCountry] = useState("US");
-  const [windowFilter, setWindowFilter] = useState<"upcoming" | "all">("all");
   const [excludeShorts, setExcludeShorts] = useState(true);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
@@ -91,7 +90,7 @@ export default function HomePage() {
 
   // Construct RSS Feed URL
   const feedUrl = selectedPerson
-    ? `${origin}/api/feed/${selectedPerson.id}?roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&window=${windowFilter}&exclude_shorts=${excludeShorts}`
+    ? `${origin}/api/feed/${selectedPerson.id}?roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&exclude_shorts=${excludeShorts}`
     : "";
 
   // Fetch preview items when artist or filters change
@@ -110,7 +109,6 @@ export default function HomePage() {
           roles: roles.join(","),
           types: types.join(","),
           country,
-          window: windowFilter,
           exclude_shorts: String(excludeShorts),
         });
 
@@ -160,7 +158,7 @@ export default function HomePage() {
     return () => {
       isCurrent = false;
     };
-  }, [selectedPerson, roles, types, country, windowFilter, excludeShorts]);
+  }, [selectedPerson, roles, types, country, excludeShorts]);
 
   const toggleRole = (r: string) => {
     setRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
@@ -341,15 +339,6 @@ export default function HomePage() {
                     {c.name}
                   </option>
                 ))}
-              </select>
-
-              <select
-                value={windowFilter}
-                onChange={(e) => setWindowFilter(e.target.value as "upcoming" | "all")}
-                className="px-2 py-1 rounded bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-300 text-xs focus:outline-none ml-1"
-              >
-                <option value="all">Recent & Upcoming</option>
-                <option value="upcoming">Upcoming Only</option>
               </select>
 
               <label className="flex items-center gap-1.5 cursor-pointer text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300 text-xs ml-3 select-none">
