@@ -91,9 +91,11 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     saveFeedOption("excludeShorts", exclude);
   }, []);
 
-  // Construct RSS Feed URL
-  const feedUrl = useMemo(() => {
-    if (!selectedPerson || !origin) return "";
+  // Construct RSS & iCal Feed URLs
+  const { feedUrl, calUrl, webcalUrl, googleCalUrl } = useMemo(() => {
+    if (!selectedPerson || !origin) {
+      return { feedUrl: "", calUrl: "", webcalUrl: "", googleCalUrl: "" };
+    }
     const params = new URLSearchParams({
       media: media.join(","),
       roles: roles.join(","),
@@ -102,7 +104,19 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       alert,
       exclude_shorts: String(excludeShorts),
     });
-    return `${origin}/api/feed/${selectedPerson.id}?${params.toString()}`;
+    const queryString = params.toString();
+    const feed = `${origin}/api/feed/${selectedPerson.id}?${queryString}`;
+    const cal = `${origin}/api/cal/${selectedPerson.id}?${queryString}`;
+    const hostWithPort = origin.replace(/^https?:\/\//, "");
+    const webcal = `webcal://${hostWithPort}/api/cal/${selectedPerson.id}?${queryString}`;
+    const googleCal = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`;
+
+    return {
+      feedUrl: feed,
+      calUrl: cal,
+      webcalUrl: webcal,
+      googleCalUrl: googleCal,
+    };
   }, [selectedPerson, origin, media, roles, types, country, alert, excludeShorts]);
 
   // Fetch preview items with AbortController to cancel stale in-flight requests
@@ -182,5 +196,8 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     previewReleases,
     isLoadingPreview,
     feedUrl,
+    calUrl,
+    webcalUrl,
+    googleCalUrl,
   };
 }

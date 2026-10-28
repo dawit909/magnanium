@@ -79,7 +79,8 @@ export function generateRssFeed({
 }): string {
   const channelTitle = personName;
   const channelDesc = `Movie & TV release dates for ${personName}`;
-  const buildDate = new Date().toUTCString();
+  const hourBucket = new Date(Math.floor(Date.now() / 3600000) * 3600000);
+  const buildDate = hourBucket.toUTCString();
   const itemsXml = releases.map((item) => renderRssItem(item, buildDate)).join("\n");
 
   const imageUrl =
