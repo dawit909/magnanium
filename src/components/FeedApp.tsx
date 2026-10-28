@@ -245,77 +245,79 @@ export default function FeedApp({
 
   return (
     <div className="space-y-6 text-sm">
-      {/* Top Header: Magnanium, Search in middle, Dark mode toggle */}
-      <div className="flex items-center justify-between gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-4">
-        {/* Left: Home button */}
-        <button
-          onClick={goHome}
-          className="font-medium text-sm text-neutral-900 dark:text-neutral-100 hover:opacity-75 transition-opacity flex-shrink-0"
-        >
-          Magnanium
-        </button>
+      {/* Sticky Top Header */}
+      <div className="sticky top-0 z-40 bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200 dark:border-neutral-800 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: Home button */}
+          <button
+            onClick={goHome}
+            className="font-medium text-sm text-neutral-900 dark:text-neutral-100 hover:opacity-75 transition-opacity flex-shrink-0"
+          >
+            Magnanium
+          </button>
 
-        {/* Middle: Persistent Search Bar */}
-        <div ref={searchContainerRef} className="flex-1 max-w-xs sm:max-w-sm relative">
-          <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search actor or director..."
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 transition-colors"
-          />
-          {isSearching && (
-            <div className="w-3 h-3 border border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
-          )}
+          {/* Middle: Persistent Search Bar */}
+          <div ref={searchContainerRef} className="flex-1 max-w-xs sm:max-w-sm relative">
+            <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search actor or director..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 transition-colors"
+            />
+            {isSearching && (
+              <div className="w-3 h-3 border border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
+            )}
 
-          {/* Autocomplete Dropdown under Search Bar */}
-          {searchResults.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800/50 shadow-xl z-50 max-h-80 overflow-y-auto">
-              {searchResults.map((person) => (
-                <button
-                  key={person.id}
-                  onClick={() => selectPerson(person)}
-                  className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-xs transition-colors"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    {person.profile_path ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
-                        alt={person.name}
-                        className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
-                        <User className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-                    <span className="text-neutral-900 dark:text-neutral-200 font-medium truncate">{person.name}</span>
-                  </div>
-                  <span className="text-neutral-400 dark:text-neutral-500 text-[11px] ml-2 flex-shrink-0">
-                    {person.known_for_department}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+            {/* Autocomplete Dropdown under Search Bar */}
+            {searchResults.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800/50 shadow-xl z-50 max-h-80 overflow-y-auto">
+                {searchResults.map((person) => (
+                  <button
+                    key={person.id}
+                    onClick={() => selectPerson(person)}
+                    className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-xs transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {person.profile_path ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
+                          alt={person.name}
+                          className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                          <User className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                      <span className="text-neutral-900 dark:text-neutral-200 font-medium truncate">{person.name}</span>
+                    </div>
+                    <span className="text-neutral-400 dark:text-neutral-500 text-[11px] ml-2 flex-shrink-0">
+                      {person.known_for_department}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
 
-          {query.trim().length > 1 && !isSearching && searchResults.length === 0 && (
-            <div className="absolute left-0 right-0 top-full mt-1.5 p-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-400 dark:text-neutral-500 shadow-xl z-50">
-              No results found.
-            </div>
-          )}
+            {query.trim().length > 1 && !isSearching && searchResults.length === 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 p-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-400 dark:text-neutral-500 shadow-xl z-50">
+                No results found.
+              </div>
+            )}
+          </div>
+
+          {/* Right: Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors flex-shrink-0"
+          >
+            {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
         </div>
-
-        {/* Right: Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          aria-label="Toggle theme"
-          className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors flex-shrink-0"
-        >
-          {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-        </button>
       </div>
 
       {/* Main Body */}
