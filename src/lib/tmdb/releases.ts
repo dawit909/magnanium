@@ -7,14 +7,24 @@ import {
 import { tmdbFetch } from "./client";
 
 export function mapReleaseType(
-  type: number
+  type: number,
+  note?: string
 ): { category: "cinema" | "home"; label: string } | null {
+  const cleanNote = note ? note.trim() : "";
   switch (type) {
     case 2:
     case 3:
       return { category: "cinema", label: "Theatrical" };
-    case 4:
-      return { category: "home", label: "Digital" };
+    case 4: {
+      const isRedundant =
+        !cleanNote ||
+        cleanNote.toLowerCase() === "digital" ||
+        cleanNote.toLowerCase() === "digital release";
+      return {
+        category: "home",
+        label: isRedundant ? "Digital" : `Digital (${cleanNote})`,
+      };
+    }
     case 5:
       return { category: "home", label: "Physical" };
     case 1:
@@ -121,14 +131,16 @@ export async function extractMovieReleases(
     if (countryData?.release_dates) {
       for (const rd of countryData.release_dates) {
         const dateStr = rd.release_date ? rd.release_date.split("T")[0] : "";
-        const mapped = mapReleaseType(rd.type);
+        const mapped = mapReleaseType(rd.type, rd.note);
 
         if (!mapped || !isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr)) {
           continue;
         }
 
+        const noteSlug = rd.note && rd.note.trim() ? `-${rd.note.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : "";
+
         candidates.push({
-          id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}`,
+          id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}${noteSlug}`,
           mediaType: "movie",
           movieId: movie.id,
           movieTitle,
