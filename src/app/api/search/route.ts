@@ -27,6 +27,8 @@ export async function GET(request: NextRequest) {
       {
         headers: {
           "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+          "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          "Cloudflare-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
           ...rateGuard.headers,
         },
       }

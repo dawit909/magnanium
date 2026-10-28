@@ -1,3 +1,5 @@
+import { kv } from "../kv";
+
 const TMDB_API_BASE = "https://api.themoviedb.org/3";
 const SERVER_API_KEY = process.env.TMDB_API_KEY || "";
 const SERVER_ACCESS_TOKEN = process.env.TMDB_ACCESS_TOKEN || "";
@@ -42,6 +44,19 @@ export async function tmdbFetch<T>(
   revalidateSeconds: number = 3600,
   clientKey?: string
 ): Promise<{ data: T | null; status: number }> {
+  // Use shared L1/L2 KV cache for shared server API key requests
+  const isSharedRequest = !clientKey;
+  const paramEntries = Object.entries(params).sort(([a], [b]) => a.localeCompare(b));
+  const paramKey = paramEntries.map(([k, v]) => `${k}=${v}`).join("&");
+  const cacheKey = `tmdb:${endpoint}?${paramKey}`;
+
+  if (isSharedRequest) {
+    const cached = await kv.get<T>(cacheKey);
+    if (cached !== null) {
+      return { data: cached, status: 200 };
+    }
+  }
+
   const url = buildTmdbUrl(endpoint, params, clientKey);
   const headers = getTmdbHeaders(clientKey);
 
@@ -55,7 +70,13 @@ export async function tmdbFetch<T>(
       return { data: null, status: res.status };
     }
 
-    const data = await res.json();
+    const data: T = await res.json();
+
+    if (isSharedRequest && data) {
+      // Asynchronously populate shared L1/L2 KV cache with TTL
+      kv.set(cacheKey, data, revalidateSeconds).catch(() => {});
+    }
+
     return { data, status: res.status };
   } catch (err) {
     console.error(`TMDB fetch error for ${endpoint}:`, err);

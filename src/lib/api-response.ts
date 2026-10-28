@@ -100,10 +100,13 @@ export function buildCachedResponse({
   rateLimitHeaders = {},
 }: CachedResponseOptions): NextResponse {
   const cacheControl = `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
+  const cdnCacheControl = `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
   const etag = etagPayload ? generateEtag(etagPayload) : undefined;
 
   const baseHeaders: Record<string, string> = {
     "Cache-Control": cacheControl,
+    "CDN-Cache-Control": cdnCacheControl,
+    "Cloudflare-CDN-Cache-Control": cdnCacheControl,
     Vary: "Accept, Accept-Encoding",
     ...rateLimitHeaders,
   };
