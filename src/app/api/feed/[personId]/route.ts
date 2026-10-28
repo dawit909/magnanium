@@ -26,6 +26,8 @@ export async function GET(
     const alert = (searchParams.get("alert") as "announced" | "release_day") || "announced";
     const excludeShorts = searchParams.get("exclude_shorts") === "true";
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
+    const format = searchParams.get("format");
+    const acceptsJson = request.headers.get("accept")?.includes("application/json");
 
     const media = mediaParam
       .split(",")
@@ -48,6 +50,19 @@ export async function GET(
       },
       clientKey
     );
+
+    const cacheHeader = "public, max-age=3600, s-maxage=43200, stale-while-revalidate=86400";
+
+    if (format === "json" || acceptsJson) {
+      return NextResponse.json(
+        { personName, releases },
+        {
+          headers: {
+            "Cache-Control": cacheHeader,
+          },
+        }
+      );
+    }
 
     const host = request.headers.get("host") || "localhost:3000";
     const protocol = host.includes("localhost") ? "http" : "https";
