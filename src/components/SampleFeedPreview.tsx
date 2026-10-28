@@ -173,7 +173,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
           }}
           className={`absolute top-0 left-0 rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] flex flex-col ${
             isDragging || isResizing
-              ? "z-[60] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] ring-2 ring-[#007aff]/40 transition-none"
+              ? "z-[60] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] transition-none"
               : isElevated
               ? "z-50 shadow-2xl transition-transform duration-200 ease-out"
               : "z-30 shadow-2xl transition-transform duration-200 ease-out"
