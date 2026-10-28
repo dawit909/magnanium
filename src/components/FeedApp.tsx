@@ -17,15 +17,6 @@ const COUNTRIES = [
   { code: "JP", name: "Japan" },
 ];
 
-const SUGGESTIONS = [
-  { id: 525, name: "Christopher Nolan", dept: "Director", photo: "/xuAIuYSmsUzKlUMBFGVZaWsY3DZ.jpg" },
-  { id: 45400, name: "Greta Gerwig", dept: "Director & Writer", photo: "/dxKAhpkz4XNwmRzMG5QOpXjPZ1N.jpg" },
-  { id: 137427, name: "Denis Villeneuve", dept: "Director", photo: "/4aT1vL05c9k3U0zD6rT4TzM9qZ9.jpg" },
-  { id: 21684, name: "Bong Joon Ho", dept: "Director", photo: "/stwnTvZAoD8gEJEDHpDQyLCyDy5.jpg" },
-  { id: 18897, name: "Quentin Tarantino", dept: "Director", photo: "/9AaPM0f2U7O6N2n3L1QJ0vL4g3v.jpg" },
-  { id: 234352, name: "Margot Robbie", dept: "Actor & Producer", photo: "/euDPyqLnuUMgYvNaT7umgp49OnE.jpg" },
-];
-
 export default function FeedApp({
   initialPerson = null,
 }: {
@@ -356,39 +347,6 @@ export default function FeedApp({
               </div>
             </div>
           )}
-
-          {/* Popular Suggestions */}
-          <div className="space-y-3">
-            <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
-              Popular Filmmakers
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {SUGGESTIONS.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => router.push(`/${createPersonSlug(item.id, item.name)}`)}
-                  className="p-2.5 rounded-xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-sm text-left flex items-center gap-2.5 transition-all group"
-                >
-                  <div className="w-9 h-9 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 border border-neutral-200 dark:border-neutral-700">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`https://image.tmdb.org/t/p/w92${item.photo}`}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium text-xs text-neutral-900 dark:text-neutral-100 truncate">
-                      {item.name}
-                    </div>
-                    <div className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">
-                      {item.dept}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       ) : (
         /* Selected Person Page */
