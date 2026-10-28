@@ -603,12 +603,12 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         style={{
           transform: `translate3d(${offset.x}px, ${offset.y}px, 0)`,
           width: size ? `${size.width}px` : undefined,
-          height: size ? `${size.height}px` : undefined,
+          height: size ? `${size.height}px` : "520px",
           maxWidth: size ? "none" : undefined,
           willChange: isDragging || isResizing ? "transform, width, height" : "auto",
         }}
         className={`rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] overflow-hidden relative flex flex-col ${
-          size ? "" : "min-h-[480px]"
+          size ? "" : "h-[520px]"
         } ${
           isDragging || isResizing
             ? "z-40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] ring-2 ring-[#007aff]/40 transition-none"
@@ -677,11 +677,11 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         </div>
 
         {/* Master-Detail RSS Split View */}
-        <div className="grid grid-cols-1 md:grid-cols-12 flex-1 min-h-0 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-12 grid-rows-[220px_1fr] md:grid-rows-1 flex-1 min-h-0 overflow-hidden">
           {/* Left Column: Unified Feed Items List */}
           <div className="md:col-span-5 bg-neutral-50/80 dark:bg-[#161618] border-r border-neutral-200 dark:border-neutral-800/80 flex flex-col h-full min-h-0 overflow-hidden">
             {/* List Header */}
-            <div className="p-3 border-b border-neutral-200/80 dark:border-neutral-800/80 flex items-center justify-between text-xs">
+            <div className="p-3 border-b border-neutral-200/80 dark:border-neutral-800/80 flex items-center justify-between text-xs flex-shrink-0">
               <div>
                 <div className="font-semibold text-neutral-900 dark:text-neutral-100">
                   Movies, Shows
@@ -693,7 +693,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
             </div>
 
             {/* Clickable Items */}
-            <div className="p-1.5 space-y-1 overflow-y-auto flex-1">
+            <div className="p-1.5 space-y-1 overflow-y-auto flex-1 min-h-0">
               {SAMPLE_ITEMS.map((item) => {
                 const isSelected = item.id === selectedId;
                 const isUnread = !readIds.has(item.id);
@@ -764,7 +764,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
           {/* Right Column: Feed Content Reader */}
           <div className="md:col-span-7 bg-white dark:bg-[#121214] flex flex-col h-full min-h-0 overflow-hidden">
             {/* Rendered Article Content */}
-            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs leading-relaxed flex-1">
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs leading-relaxed flex-1 min-h-0">
               {/* Header Section (Author row + Divider + Large Title + Timestamp) */}
               <div className="space-y-3">
                 {/* Author row */}
