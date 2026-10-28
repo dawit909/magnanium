@@ -233,14 +233,14 @@ export default function HomePage() {
                       <img
                         src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
                         alt={person.name}
-                        className="w-6 h-6 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
+                        className="w-9 h-9 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400">
-                        <User className="w-3 h-3" />
+                      <div className="w-9 h-9 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                        <User className="w-4 h-4" />
                       </div>
                     )}
-                    <span className="text-neutral-900 dark:text-neutral-200">{person.name}</span>
+                    <span className="text-neutral-900 dark:text-neutral-200 font-medium">{person.name}</span>
                   </div>
                   <span className="text-neutral-400 dark:text-neutral-500">{person.known_for_department}</span>
                 </button>
@@ -312,7 +312,6 @@ export default function HomePage() {
               {[
                 { id: "theatrical", label: "Cinema" },
                 { id: "digital", label: "Streaming" },
-                { id: "physical", label: "Physical" },
               ].map((t) => (
                 <button
                   key={t.id}
