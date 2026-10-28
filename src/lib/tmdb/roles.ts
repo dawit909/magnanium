@@ -7,6 +7,10 @@ export const ROLE_PRIORITY = [
   "executive producer",
   "producer",
   "actor",
+  "original music composer",
+  "composer",
+  "music",
+  "songs",
 ];
 
 export function sortAndJoinRoles(roles: string[]): string {
@@ -20,22 +24,23 @@ export function sortAndJoinRoles(roles: string[]): string {
   return sorted.join(", ");
 }
 
-export function isIgnoredCrewCredit(item: TMDBCreditItem): boolean {
-  const job = (item.job || "").toLowerCase().trim();
+export function isSoundCredit(item: TMDBCreditItem): boolean {
   const dept = (item.department || "").toLowerCase().trim();
+  const job = (item.job || "").toLowerCase().trim();
 
-  // Thanks, generic crew, or non-filmmaking credits
-  if (job.includes("thanks") || dept === "crew") {
-    return true;
-  }
+  if (dept === "sound") return true;
 
-  // Soundtrack, song, and music performance credits (e.g. singing or writing a song for a movie soundtrack)
   if (
     job.includes("song") ||
+    job.includes("music") ||
+    job.includes("composer") ||
+    job.includes("score") ||
     job.includes("vocal") ||
     job.includes("singer") ||
+    job.includes("sound") ||
     job === "musician" ||
-    job === "lyricist"
+    job === "lyricist" ||
+    job === "conductor"
   ) {
     return true;
   }
@@ -43,23 +48,46 @@ export function isIgnoredCrewCredit(item: TMDBCreditItem): boolean {
   return false;
 }
 
+export function isIgnoredCrewCredit(item: TMDBCreditItem): boolean {
+  const job = (item.job || "").toLowerCase().trim();
+  const dept = (item.department || "").toLowerCase().trim();
+
+  // Thanks, generic uncredited crew, or non-production entries
+  if (job.includes("thanks") || (dept === "crew" && !job)) {
+    return true;
+  }
+
+  return false;
+}
+
 export function matchesSpecificCrewRole(item: TMDBCreditItem, rolesFilter: string[]): boolean {
-  if (rolesFilter.length !== 1) return true;
+  const job = (item.job || "").toLowerCase().trim();
+  const dept = (item.department || "").toLowerCase().trim();
 
-  const job = (item.job || "").toLowerCase();
-  const dept = (item.department || "").toLowerCase();
-
-  if (rolesFilter.includes("director")) {
-    return job.includes("director") || dept === "directing";
+  // Specific filmmaking roles
+  if (rolesFilter.includes("director") && (job.includes("director") || dept === "directing")) {
+    return true;
   }
-  if (rolesFilter.includes("writer")) {
-    return job.includes("writer") || job.includes("screenplay") || dept === "writing";
+  if (rolesFilter.includes("writer") && (job.includes("writer") || job.includes("screenplay") || dept === "writing")) {
+    return true;
   }
-  if (rolesFilter.includes("producer")) {
-    return job.includes("producer") || dept === "production";
+  if (rolesFilter.includes("producer") && (job.includes("producer") || dept === "production")) {
+    return true;
   }
 
-  return true;
+  // Behind the Scenes (crew) - excludes sound roles
+  const isBts = rolesFilter.includes("all") || rolesFilter.includes("crew") || rolesFilter.includes("behind_the_scenes");
+  if (isBts && !isSoundCredit(item)) {
+    return true;
+  }
+
+  // Sound - includes song, composer, music, vocals, sound design, etc.
+  const isSound = rolesFilter.includes("all") || rolesFilter.includes("sound") || rolesFilter.includes("music");
+  if (isSound && isSoundCredit(item)) {
+    return true;
+  }
+
+  return false;
 }
 
 export function resolveCrewRoleLabel(item: TMDBCreditItem): string {

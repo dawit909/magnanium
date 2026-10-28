@@ -155,6 +155,11 @@ export async function getPersonReleases(
     roles.includes("director") ||
     roles.includes("writer") ||
     roles.includes("producer");
+  const isSoundSelected =
+    roles.includes("all") ||
+    roles.includes("sound") ||
+    roles.includes("music");
+  const includeCrew = isCrewSelected || isSoundSelected;
 
   // Deduplicate and aggregate multiple roles per project (e.g. Director & Writer)
   const candidateMap = new Map<
@@ -173,7 +178,7 @@ export async function getPersonReleases(
   };
 
   // Process crew credits
-  if (isCrewSelected && credits.crew) {
+  if (includeCrew && credits.crew) {
     for (const item of credits.crew) {
       const mediaType = (item.media_type as "movie" | "tv") || "movie";
       if (mediaType === "movie" && !includeMovies) continue;

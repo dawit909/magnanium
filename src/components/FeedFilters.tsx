@@ -88,6 +88,7 @@ const MEDIA_OPTIONS = [
 const ROLE_OPTIONS = [
   { id: "actor", label: "Actor" },
   { id: "crew", label: "Behind the Scenes" },
+  { id: "sound", label: "Sound" },
 ];
 
 const FORMAT_OPTIONS = [
