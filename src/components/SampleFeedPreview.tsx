@@ -171,7 +171,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
             maxWidth: size ? "none" : undefined,
             willChange: isDragging || isResizing ? "transform, width, height" : "auto",
           }}
-          className={`absolute top-0 left-0 rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] overflow-hidden flex flex-col ${
+          className={`absolute top-0 left-0 rounded-2xl border-2 border-neutral-300 dark:border-neutral-700 bg-[#fbfbfb] dark:bg-[#18181b] flex flex-col ${
             isDragging || isResizing
               ? "z-[60] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] ring-2 ring-[#007aff]/40 transition-none"
               : isElevated
@@ -179,30 +179,33 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
               : "z-30 shadow-2xl transition-transform duration-200 ease-out"
           }`}
         >
-          {/* Title Bar */}
-          <MockWindowTitleBar
-            isDragging={isDragging}
-            canReset={canReset}
-            onPointerDown={handlePointerDown}
-            onReset={resetWindow}
-            onClose={() => setIsClosed(true)}
-            onMinimize={() => setIsMinimized(true)}
-          />
-
-          {/* Master-Detail RSS Split View */}
-          <div className="grid grid-cols-1 md:grid-cols-12 grid-rows-[220px_1fr] md:grid-rows-1 flex-1 min-h-0 overflow-hidden">
-            <MockFeedList
-              items={SAMPLE_ITEMS}
-              selectedId={selectedId}
-              readIds={readIds}
-              unreadCount={unreadCount}
-              onSelectItem={handleSelectItem}
+          {/* Inner window container with rounded corners and overflow clipping */}
+          <div className="flex-1 min-h-0 flex flex-col rounded-[14px] overflow-hidden">
+            {/* Title Bar */}
+            <MockWindowTitleBar
+              isDragging={isDragging}
+              canReset={canReset}
+              onPointerDown={handlePointerDown}
+              onReset={resetWindow}
+              onClose={() => setIsClosed(true)}
+              onMinimize={() => setIsMinimized(true)}
             />
 
-            <MockFeedDetail
-              activeItem={activeItem}
-              onArtistClick={handleArtistClick}
-            />
+            {/* Master-Detail RSS Split View */}
+            <div className="grid grid-cols-1 md:grid-cols-12 grid-rows-[220px_1fr] md:grid-rows-1 flex-1 min-h-0 overflow-hidden">
+              <MockFeedList
+                items={SAMPLE_ITEMS}
+                selectedId={selectedId}
+                readIds={readIds}
+                unreadCount={unreadCount}
+                onSelectItem={handleSelectItem}
+              />
+
+              <MockFeedDetail
+                activeItem={activeItem}
+                onArtistClick={handleArtistClick}
+              />
+            </div>
           </div>
 
           {/* 8-Way Window Resize Handles */}

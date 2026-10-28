@@ -200,6 +200,12 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       if (e.button !== 0) return; // Primary button only
       if (!containerRef.current || !windowRef.current) return;
 
+      const targetEl = e.currentTarget;
+      const pointerId = e.pointerId;
+      try {
+        targetEl.setPointerCapture(pointerId);
+      } catch {}
+
       const containerRect = containerRef.current.getBoundingClientRect();
 
       dragStartRef.current = {
@@ -241,6 +247,10 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       };
 
       const onPointerUp = () => {
+        try {
+          targetEl.releasePointerCapture(pointerId);
+        } catch {}
+
         if (dragRafRef.current !== null) {
           cancelAnimationFrame(dragRafRef.current);
           dragRafRef.current = null;
@@ -271,6 +281,12 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       e.preventDefault();
       if (e.button !== 0) return;
       if (!containerRef.current || !windowRef.current) return;
+
+      const targetEl = e.currentTarget;
+      const pointerId = e.pointerId;
+      try {
+        targetEl.setPointerCapture(pointerId);
+      } catch {}
 
       const winRect = windowRef.current.getBoundingClientRect();
       const containerRect = containerRef.current.getBoundingClientRect();
@@ -358,6 +374,10 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       };
 
       const onPointerUp = () => {
+        try {
+          targetEl.releasePointerCapture(pointerId);
+        } catch {}
+
         if (resizeRafRef.current !== null) {
           cancelAnimationFrame(resizeRafRef.current);
           resizeRafRef.current = null;
