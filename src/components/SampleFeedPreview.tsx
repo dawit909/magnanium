@@ -75,7 +75,91 @@ const SCARLETT_JOHANSSON: SampleArtistSummary = {
   popularity: 11.2,
 };
 
+const SUMMER_H_HOWELL: SampleArtistSummary = {
+  id: 1524215,
+  name: "Summer H. Howell",
+  department: "Acting",
+  avatar: "https://image.tmdb.org/t/p/w180_and_h180_face/YkxshNKixpwZOKgZ9bpWBuKkok.jpg",
+  popularity: 7.3,
+};
+
+const TOM_HOLLAND: SampleArtistSummary = {
+  id: 1136406,
+  name: "Tom Holland",
+  department: "Acting",
+  avatar: "https://image.tmdb.org/t/p/w180_and_h180_face/5OK84Wn1bIEIThFKcVoaN087mLj.jpg",
+  popularity: 14.3,
+};
+
+const JAMES_CAMERON: SampleArtistSummary = {
+  id: 2710,
+  name: "James Cameron",
+  department: "Directing",
+  avatar: "https://image.tmdb.org/t/p/w180_and_h180_face/9NAZnTjBQ9WcXAQEzZpKy4vdQto.jpg",
+  popularity: 3.4,
+};
+
 const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
+  {
+    id: "avatar-4",
+    title: "Avatar 4",
+    artist: JAMES_CAMERON,
+    role: "Director, Writer, Producer",
+    release: "2029-12-19 (US)",
+    dateDisplay: "Dec 19, 2029",
+    pubDateDisplay: "DEC 19, 2029 AT 9:00 AM",
+    runtime: "3h 10m",
+    language: "English",
+    director: "James Cameron",
+    writer: "James Cameron, Josh Friedman",
+    stars: "Sam Worthington, Zoe Saldaña, Sigourney Weaver",
+    image: "https://image.tmdb.org/t/p/w780/qzMYKnT4MG1d0gnhwytr4cKhUvS.jpg",
+    streaming: "[Opening in Theaters & IMAX nationwide]",
+    justWatchUrl: "https://www.justwatch.com",
+    tmdbUrl: "https://www.themoviedb.org/movie/216527",
+    overview:
+      "The fourth chapter in James Cameron's groundbreaking Avatar saga, continuing the journey of the Sully family across uncharted biomes of Pandora.",
+  },
+  {
+    id: "summer-carrie",
+    title: "Carrie",
+    artist: SUMMER_H_HOWELL,
+    role: "Actor (Carrie White)",
+    release: "2026-10-07 (US)",
+    dateDisplay: "Oct 7, 2026",
+    pubDateDisplay: "OCT 7, 2026 AT 12:00 AM",
+    runtime: "50m/ep",
+    language: "English",
+    director: "Mike Flanagan",
+    writer: "Mike Flanagan, Stephen King",
+    stars: "Summer H. Howell, Samantha Sloyan, Siena Agudong",
+    image: "https://image.tmdb.org/t/p/w780/6mUMquPQBFJGqTACS3Azkwwrx8d.jpg",
+    streaming: "[Stream on Prime Video]",
+    justWatchUrl: "https://www.justwatch.com/us/tv-show/carrie",
+    tmdbUrl: "https://www.themoviedb.org/tv/288673",
+    overview:
+      "After her father's sudden, untimely death thrusts her into the unforgiving ecosystem of public high school, Carrie is forced to navigate a viral bullying scandal that tears through her community, the relentless pressure and casual cruelty of the social‑media age, and the awakening of mysterious telekinetic powers that rise alongside her adolescence.",
+  },
+  {
+    id: "holland-spiderman-bnd",
+    title: "Spider-Man: Brand New Day",
+    artist: TOM_HOLLAND,
+    role: "Actor (Peter Parker / Spider-Man)",
+    release: "2026-07-29 (US)",
+    dateDisplay: "Jul 29, 2026",
+    pubDateDisplay: "JUL 29, 2026 AT 9:00 AM",
+    runtime: "2h 25m",
+    language: "English",
+    director: "Destin Daniel Cretton",
+    writer: "Chris McKenna, Erik Sommers",
+    stars: "Tom Holland, Sadie Sink, Zendaya",
+    image: "https://image.tmdb.org/t/p/w780/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg",
+    streaming: "[Opening in Theaters & IMAX nationwide]",
+    justWatchUrl: "https://www.justwatch.com",
+    tmdbUrl: "https://www.themoviedb.org/movie/969681",
+    overview:
+      "Fighting crime full-time as Spider-Man in a world that doesn't remember him—and the pressure of seeing his old friends move on without him—sparks a change in Peter Parker he may not have the power to control. But that transformation might also be the only thing that can stop a shocking new threat to the city and those he loves - a powerful villain no one can even see.",
+  },
   {
     id: "denis-dune3",
     title: "Dune: Part Three",
