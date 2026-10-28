@@ -113,7 +113,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "James Cameron",
     writer: "James Cameron, Josh Friedman",
     stars: "Sam Worthington, Zoe Saldaña, Sigourney Weaver",
-    image: "https://image.tmdb.org/t/p/w780/qzMYKnT4MG1d0gnhwytr4cKhUvS.jpg",
+    image: "https://image.tmdb.org/t/p/w500/qzMYKnT4MG1d0gnhwytr4cKhUvS.jpg",
     streaming: "[Opening in Theaters & IMAX nationwide]",
     justWatchUrl: "https://www.justwatch.com",
     tmdbUrl: "https://www.themoviedb.org/movie/216527",
@@ -133,7 +133,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "Mike Flanagan",
     writer: "Mike Flanagan, Stephen King",
     stars: "Summer H. Howell, Samantha Sloyan, Siena Agudong",
-    image: "https://image.tmdb.org/t/p/w780/6mUMquPQBFJGqTACS3Azkwwrx8d.jpg",
+    image: "https://image.tmdb.org/t/p/w500/6mUMquPQBFJGqTACS3Azkwwrx8d.jpg",
     streaming: "[Stream on Prime Video]",
     justWatchUrl: "https://www.justwatch.com/us/tv-show/carrie",
     tmdbUrl: "https://www.themoviedb.org/tv/288673",
@@ -153,7 +153,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "Destin Daniel Cretton",
     writer: "Chris McKenna, Erik Sommers",
     stars: "Tom Holland, Sadie Sink, Zendaya",
-    image: "https://image.tmdb.org/t/p/w780/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg",
+    image: "https://image.tmdb.org/t/p/w500/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg",
     streaming: "[Opening in Theaters & IMAX nationwide]",
     justWatchUrl: "https://www.justwatch.com",
     tmdbUrl: "https://www.themoviedb.org/movie/969681",
@@ -173,7 +173,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "Denis Villeneuve",
     writer: "Denis Villeneuve, Jon Spaihts",
     stars: "Timothée Chalamet, Zendaya, Florence Pugh",
-    image: "https://image.tmdb.org/t/p/w780/eZ239CUp1d6OryZEBPnO2n87gMG.jpg",
+    image: "https://image.tmdb.org/t/p/w500/glt0v4I89rMWstDNCaFXc5SNyO1.jpg",
     streaming: "[Opening in Theaters & IMAX nationwide]",
     justWatchUrl: "https://www.justwatch.com",
     tmdbUrl: "https://www.themoviedb.org/movie/1170608",
@@ -185,15 +185,15 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     title: "The Odyssey",
     artist: CHRISTOPHER_NOLAN,
     role: "Director, Writer, Producer",
-    release: "2026-07-15 (US)",
-    dateDisplay: "Jul 15, 2026",
-    pubDateDisplay: "JUL 15, 2026 AT 10:00 AM",
+    release: "2026-07-17 (US)",
+    dateDisplay: "Jul 17, 2026",
+    pubDateDisplay: "JUL 17, 2026 AT 9:00 AM",
     runtime: "2h 45m",
     language: "English",
     director: "Christopher Nolan",
     writer: "Christopher Nolan",
     stars: "Matt Damon, Tom Holland, Anne Hathaway",
-    image: "https://image.tmdb.org/t/p/w780/neeNHeXjMF5fXoCJRsOmkNGC7q.jpg",
+    image: "https://image.tmdb.org/t/p/w500/5rhTDKUhPYvpdQIijFIs5VoWsON.jpg",
     streaming: "[Opening in Theaters & IMAX nationwide]",
     justWatchUrl: "https://www.justwatch.com",
     tmdbUrl: "https://www.themoviedb.org/movie/1368337",
@@ -213,7 +213,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "Andrew Stanton",
     writer: "Andrew Stanton, Kenna Harris",
     stars: "Joan Cusack, Tom Hanks, Tim Allen",
-    image: "https://image.tmdb.org/t/p/w780/qjTqY5coNiz6sVtPng40IzltsoN.jpg",
+    image: "https://image.tmdb.org/t/p/w500/sfQtVlIHljToOwYjhe21KPGzZWK.jpg",
     streaming: "[Stream on Disney+]",
     rentBuy: "[Rent on Amazon Video] · [Rent on Apple TV] · [Rent on Google Play]",
     justWatchUrl: "https://www.justwatch.com/us/movie/toy-story-5",
@@ -234,7 +234,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "Tim Burton",
     writer: "Alfred Gough, Miles Millar",
     stars: "Jenna Ortega, Emma Myers, Hunter Doohan",
-    image: "https://image.tmdb.org/t/p/w780/iHSwvRVsRyxpX7FE7GbviaDvgGZ.jpg",
+    image: "https://image.tmdb.org/t/p/w500/9PFonBhy4cQy7Jz20NpMygczOkv.jpg",
     streaming: "[Stream on Netflix]",
     justWatchUrl: "https://www.justwatch.com/us/tv-show/wednesday",
     tmdbUrl: "https://www.themoviedb.org/tv/119051",
@@ -254,7 +254,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "Gareth Edwards",
     writer: "David Koepp",
     stars: "Scarlett Johansson, Jonathan Bailey, Mahershala Ali",
-    image: "https://image.tmdb.org/t/p/w780/zNriRTr0kWwyaXPzdg1EIxf0BWk.jpg",
+    image: "https://image.tmdb.org/t/p/w500/1RICxzeoNCAO5NpcRMIgg1XT6fm.jpg",
     streaming: "[Opening in Theaters & IMAX nationwide]",
     justWatchUrl: "https://www.justwatch.com",
     tmdbUrl: "https://www.themoviedb.org/movie/1234821",
@@ -274,7 +274,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "Wes Anderson",
     writer: "Wes Anderson, Roman Coppola",
     stars: "Benicio del Toro, Michael Cera, Tom Hanks",
-    image: "https://image.tmdb.org/t/p/w780/bajke0ThKJ2V2iHE9DDYOJGdS7a.jpg",
+    image: "https://image.tmdb.org/t/p/w500/iXxIUVqpQAlyy98UjUlzjkMYuj6.jpg",
     streaming: "[Stream on Peacock]",
     rentBuy: "[Rent on Apple TV] · [Rent on Amazon Video]",
     justWatchUrl: "https://www.justwatch.com",
@@ -295,7 +295,7 @@ const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     director: "Jared Hess",
     writer: "Chris Bowman, Hubbel Palmer",
     stars: "Jack Black, Jason Momoa, Emma Myers",
-    image: "https://image.tmdb.org/t/p/w780/2Nti3gYAX513wvhp8IiLL6ZDyOm.jpg",
+    image: "https://image.tmdb.org/t/p/w500/yFHHfHcUgGAxziP1C3lLt0q2T4s.jpg",
     streaming: "[Opening in Theaters & IMAX nationwide]",
     rentBuy: "[Rent on Apple TV] · [Rent on Amazon Video]",
     justWatchUrl: "https://www.justwatch.com",
@@ -978,13 +978,13 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
                 </div>
               </div>
 
-              {/* Image banner */}
-              <div className="rounded-xl overflow-hidden border border-neutral-200/80 dark:border-neutral-800 aspect-[16/9] bg-neutral-100 dark:bg-neutral-900 shadow-sm">
+              {/* Movie/Show Poster (vertical portrait, matching actual RSS feed) */}
+              <div className="max-w-[280px] sm:max-w-[320px] rounded-xl overflow-hidden border border-neutral-200/80 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={activeItem.image}
                   alt={activeItem.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-auto object-cover"
                 />
               </div>
 
