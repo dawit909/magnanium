@@ -2,16 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  FileText,
-  Star,
-  CheckCircle2,
-  ExternalLink,
-  Search,
-  ChevronsRight,
-  Radio,
-  SlidersHorizontal,
-} from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { createPersonSlug } from "@/lib/slug";
 
@@ -541,19 +532,12 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
             {/* List Header */}
             <div className="p-3 border-b border-neutral-200/80 dark:border-neutral-800/80 flex items-center justify-between text-xs">
               <div>
-                <div className="font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
-                  <span>Movies, Shows</span>
-                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-normal">
-                    · Double-click opens TMDB
-                  </span>
+                <div className="font-semibold text-neutral-900 dark:text-neutral-100">
+                  Movies, Shows
                 </div>
                 <div className="text-[11px] text-neutral-400 dark:text-neutral-500">
                   {unreadCount > 0 ? `${unreadCount} unread` : "All read"}
                 </div>
-              </div>
-              <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
-                <Radio className="w-3.5 h-3.5" />
-                <SlidersHorizontal className="w-3.5 h-3.5" />
               </div>
             </div>
 
@@ -628,26 +612,6 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
 
           {/* Right Column: Feed Content Reader */}
           <div className="md:col-span-7 bg-white dark:bg-[#121214] flex flex-col">
-            {/* Native Toolbar */}
-            <div className="p-2.5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between text-neutral-400 dark:text-neutral-500 text-xs">
-              <div className="flex items-center gap-3">
-                <FileText className="w-3.5 h-3.5 text-neutral-700 dark:text-neutral-300" />
-                <Star className="w-3.5 h-3.5 hover:text-amber-500 transition-colors cursor-pointer" />
-                <CheckCircle2 className="w-3.5 h-3.5 hover:text-emerald-500 transition-colors cursor-pointer" />
-                <button
-                  onClick={() => window.open(activeItem.tmdbUrl, "_blank", "noopener,noreferrer")}
-                  title="Open on TMDB (opens in new tab)"
-                  className="hover:text-blue-500 transition-colors"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <ChevronsRight className="w-3.5 h-3.5" />
-                <Search className="w-3.5 h-3.5" />
-              </div>
-            </div>
-
             {/* Rendered Article Content */}
             <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs leading-relaxed flex-1">
               {/* Header Section (Author row + Divider + Large Title + Timestamp) */}
