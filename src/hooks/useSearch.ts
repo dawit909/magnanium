@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
+import { BoundedMap } from "@/lib/cache";
 
 // In-memory cache for search queries to avoid repeated network calls
-const searchCache = new Map<string, TMDBPersonSearchResult[]>();
+const searchCache = new BoundedMap<string, TMDBPersonSearchResult[]>(50);
 
 // 600ms delay: ensures search results only update after user stops typing
 const SEARCH_DEBOUNCE_MS = 600;
@@ -91,13 +92,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
         const data = await res.json();
         const results = data.results || [];
 
-        // Save to in-memory cache (limit cache size to 50 items)
-        if (searchCache.size > 50) {
-          const oldestKey = searchCache.keys().next().value;
-          if (oldestKey) searchCache.delete(oldestKey);
-        }
         searchCache.set(cacheKey, results);
-
         setSearchResults(results);
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== "AbortError") {

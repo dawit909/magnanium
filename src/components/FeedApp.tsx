@@ -7,6 +7,7 @@ import { createPersonSlug } from "@/lib/slug";
 import { useTheme } from "@/hooks/useTheme";
 import { useSearch } from "@/hooks/useSearch";
 import { useFeedState } from "@/hooks/useFeedState";
+import { useRecentArtists } from "@/hooks/useRecentArtists";
 import Header from "./Header";
 import ArtistHero from "./ArtistHero";
 import RecentArtists from "./RecentArtists";
@@ -22,7 +23,7 @@ export default function FeedApp({
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [selectedPerson, setSelectedPerson] = useState<TMDBPersonSearchResult | null>(initialPerson);
-  const [recentArtists, setRecentArtists] = useState<Array<{ id: number; name: string; slug: string }>>([]);
+  const { recentArtists } = useRecentArtists(selectedPerson);
 
   const handleSelectPerson = useCallback(
     (person: TMDBPersonSearchResult) => {
@@ -68,29 +69,6 @@ export default function FeedApp({
     setSelectedPerson(initialPerson);
     resetSearch();
   }, [initialPerson, resetSearch]);
-
-  // Load recent history from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("magnanium_recent");
-    if (saved) {
-      try {
-        setRecentArtists(JSON.parse(saved));
-      } catch {}
-    }
-  }, []);
-
-  // Save artist to recent history when viewed
-  useEffect(() => {
-    if (selectedPerson) {
-      const slug = createPersonSlug(selectedPerson.id, selectedPerson.name);
-      setRecentArtists((prev) => {
-        const filtered = prev.filter((a) => a.id !== selectedPerson.id);
-        const updated = [{ id: selectedPerson.id, name: selectedPerson.name, slug }, ...filtered].slice(0, 6);
-        localStorage.setItem("magnanium_recent", JSON.stringify(updated));
-        return updated;
-      });
-    }
-  }, [selectedPerson]);
 
   const goHome = useCallback(() => {
     resetSearch();

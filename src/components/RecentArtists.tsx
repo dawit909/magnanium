@@ -1,10 +1,6 @@
 "use client";
 
-interface RecentArtist {
-  id: number;
-  name: string;
-  slug: string;
-}
+import { RecentArtist } from "@/hooks/useRecentArtists";
 
 interface RecentArtistsProps {
   artists: RecentArtist[];

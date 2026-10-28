@@ -8,7 +8,6 @@ import {
 import {
   tmdbFetch,
   hasTmdbAuth,
-  getResolvedApiKey,
 } from "./tmdb/client";
 import {
   sortAndJoinRoles,
@@ -29,9 +28,6 @@ import {
   isPersonMarkedNotFound,
   markPersonNotFound,
 } from "./negative-cache";
-
-// Re-export helpers for backward compatibility
-export { getResolvedApiKey, mapReleaseType };
 
 /**
  * Search TMDB for an artist (director, actor, crew, creator)
@@ -97,8 +93,6 @@ export async function getPersonCredits(
   return data || { id: personId, cast: [], crew: [] };
 }
 
-export const getPersonCombinedCredits = getPersonCredits;
-
 /**
  * Compile formatted movie and TV releases for an artist
  */
@@ -144,7 +138,7 @@ export async function getPersonReleases(
   });
   const isEarliestOnly = normalizedTypes.includes("earliest");
 
-  const credits = await getPersonCombinedCredits(personId, customApiKey);
+  const credits = await getPersonCredits(personId, customApiKey);
   const personName = person.name || "Artist";
 
   const isActorSelected = roles.includes("all") || roles.includes("actor");

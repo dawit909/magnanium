@@ -1,34 +1,16 @@
-// In-memory cache for non-existent TMDB person IDs (404s) to stop repeat cache-busting lookups
-const notFoundCache = new Map<number, number>();
+import { TimedCache } from "./cache";
 
-const TTL_MS = 60 * 60 * 1000; // Cache 404s for 1 hour
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const notFoundCache = new TimedCache<number, boolean>(ONE_HOUR_MS, 10_000);
 
 export function isValidPersonId(personId: number): boolean {
-  return (
-    Number.isInteger(personId) &&
-    personId > 0 &&
-    personId < 100_000_000
-  );
+  return Number.isInteger(personId) && personId > 0 && personId < 100_000_000;
 }
 
 export function isPersonMarkedNotFound(personId: number): boolean {
-  const expiresAt = notFoundCache.get(personId);
-  if (!expiresAt) return false;
-
-  if (Date.now() > expiresAt) {
-    notFoundCache.delete(personId);
-    return false;
-  }
-
-  return true;
+  return notFoundCache.has(personId);
 }
 
 export function markPersonNotFound(personId: number): void {
-  // Prevent unbounded cache growth
-  if (notFoundCache.size > 10_000) {
-    const oldestKey = notFoundCache.keys().next().value;
-    if (oldestKey !== undefined) notFoundCache.delete(oldestKey);
-  }
-
-  notFoundCache.set(personId, Date.now() + TTL_MS);
+  notFoundCache.set(personId, true);
 }

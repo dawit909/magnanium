@@ -1,55 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchPerson } from "@/lib/tmdb";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { guardRateLimit } from "@/lib/api-response";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  // 1. IP Rate Limiting (30 requests per minute for search)
-  const clientIp = getClientIp(request);
-  const rateCheck = checkRateLimit(`search:${clientIp}`, 30, 60 * 1000);
-
-  if (!rateCheck.success) {
-    return NextResponse.json(
-      { error: "Too many search requests. Please slow down.", results: [] },
-      {
-        status: 429,
-        headers: {
-          "Retry-After": String(rateCheck.resetSeconds),
-          "X-RateLimit-Limit": String(rateCheck.limit),
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": String(rateCheck.resetSeconds),
-        },
-      }
-    );
+  // 1. IP Rate Limiting (30 requests per minute)
+  const rateGuard = guardRateLimit(request, "search", 30, 60 * 1000, true);
+  if (!rateGuard.allowed) {
+    return rateGuard.response!;
   }
 
   const { searchParams } = new URL(request.url);
   const rawQuery = searchParams.get("q") || "";
-  const query = rawQuery.trim().slice(0, 80); // Cap query string to 80 chars
+  const query = rawQuery.trim().slice(0, 80);
   const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
   if (query.length < 2) {
-    return NextResponse.json(
-      { results: [] },
-      {
-        headers: {
-          "X-RateLimit-Limit": String(rateCheck.limit),
-          "X-RateLimit-Remaining": String(rateCheck.remaining),
-        },
-      }
-    );
+    return NextResponse.json({ results: [] }, { headers: rateGuard.headers });
   }
 
   try {
     const { results, noApiKey } = await searchPerson(query, clientKey);
     return NextResponse.json(
-      { results, noApiKey: !!noApiKey },
+      { results, noApiKey: Boolean(noApiKey) },
       {
         headers: {
           "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
-          "X-RateLimit-Limit": String(rateCheck.limit),
-          "X-RateLimit-Remaining": String(rateCheck.remaining),
+          ...rateGuard.headers,
         },
       }
     );
@@ -59,10 +37,7 @@ export async function GET(request: NextRequest) {
       { error: "Failed to search people", results: [] },
       {
         status: 500,
-        headers: {
-          "X-RateLimit-Limit": String(rateCheck.limit),
-          "X-RateLimit-Remaining": String(rateCheck.remaining),
-        },
+        headers: rateGuard.headers,
       }
     );
   }

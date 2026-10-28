@@ -1,74 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { getPersonDetails } from "@/lib/tmdb";
-import { isValidPersonId, isPersonMarkedNotFound } from "@/lib/negative-cache";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { generateEtag, isEtagMatch } from "@/lib/etag";
+import { BoundedMap } from "@/lib/cache";
+import { generateEtag } from "@/lib/etag";
+import {
+  guardRateLimit,
+  validatePersonId,
+  buildCachedResponse,
+} from "@/lib/api-response";
 
 export const runtime = "nodejs";
 
-// In-memory LRU-like cache for cropped square avatars to minimize TMDB fetches & image processing
 interface CachedAvatar {
   buffer: Buffer;
   etag: string;
 }
-const avatarCache = new Map<number, CachedAvatar>();
-const MAX_CACHE_ENTRIES = 500;
+const avatarCache = new BoundedMap<number, CachedAvatar>(500);
 
 export async function GET(
   request: NextRequest,
   props: { params: Promise<{ personId: string }> }
 ) {
   try {
-    const clientIp = getClientIp(request);
-    // Rate limit avatar requests (60 req/min per IP)
-    const rateCheck = checkRateLimit(`avatar:${clientIp}`, 60, 60 * 1000);
-    if (!rateCheck.success) {
-      return new NextResponse("Too Many Requests", {
-        status: 429,
-        headers: {
-          "Retry-After": String(rateCheck.resetSeconds),
-        },
-      });
+    // 1. Rate limiting (60 req/min per IP)
+    const rateGuard = guardRateLimit(request, "avatar", 60);
+    if (!rateGuard.allowed) {
+      return rateGuard.response!;
     }
 
+    // 2. Strict ID validation & negative cache check
     const params = await props.params;
-    const personId = parseInt(params.personId, 10);
-
-    if (isNaN(personId) || !isValidPersonId(personId)) {
-      return new NextResponse("Invalid person ID", { status: 400 });
+    const validation = validatePersonId(params.personId);
+    if (!validation.valid) {
+      return validation.response!;
     }
-
-    if (isPersonMarkedNotFound(personId)) {
-      return new NextResponse("Person not found", { status: 404 });
-    }
+    const personId = validation.personId!;
 
     const ifNoneMatch = request.headers.get("if-none-match");
 
-    // 1. Check in-memory avatar cache
+    // 3. Check in-memory avatar cache
     const cached = avatarCache.get(personId);
     if (cached) {
-      if (isEtagMatch(ifNoneMatch, cached.etag)) {
-        return new NextResponse(null, {
-          status: 304,
-          headers: {
-            "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
-            ETag: cached.etag,
-          },
-        });
-      }
-
-      return new NextResponse(new Uint8Array(cached.buffer), {
-        status: 200,
-        headers: {
-          "Content-Type": "image/jpeg",
-          "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
-          ETag: cached.etag,
-        },
+      return buildCachedResponse({
+        content: new Uint8Array(cached.buffer),
+        contentType: "image/jpeg",
+        maxAge: 86400,
+        sMaxAge: 604800,
+        staleWhileRevalidate: 2592000,
+        etagPayload: cached.buffer,
+        ifNoneMatch,
+        rateLimitHeaders: rateGuard.headers,
       });
     }
 
-    // 2. Fetch TMDB details
+    // 4. Fetch person details from TMDB
     const { searchParams } = new URL(request.url);
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
@@ -77,7 +62,7 @@ export async function GET(
       return new NextResponse("Profile image not found", { status: 404 });
     }
 
-    // 3. Fetch source TMDB portrait image (2:3 aspect ratio, w342)
+    // 5. Fetch source portrait & crop to 1:1 square centered JPEG
     const tmdbImageUrl = `https://image.tmdb.org/t/p/w342${person.profile_path}`;
     const imgRes = await fetch(tmdbImageUrl);
     if (!imgRes.ok) {
@@ -85,47 +70,23 @@ export async function GET(
     }
 
     const sourceBuffer = Buffer.from(await imgRes.arrayBuffer());
-
-    // 4. Crop to 1:1 square centered and encode as JPEG
     const squareBuffer = await sharp(sourceBuffer)
-      .resize(300, 300, {
-        fit: "cover",
-        position: "center",
-      })
+      .resize(300, 300, { fit: "cover", position: "center" })
       .jpeg({ quality: 90 })
       .toBuffer();
 
     const etag = generateEtag(squareBuffer);
+    avatarCache.set(personId, { buffer: squareBuffer, etag });
 
-    // Evict oldest entry if cache exceeds limit
-    if (avatarCache.size >= MAX_CACHE_ENTRIES) {
-      const oldestKey = avatarCache.keys().next().value;
-      if (oldestKey !== undefined) {
-        avatarCache.delete(oldestKey);
-      }
-    }
-    avatarCache.set(personId, {
-      buffer: squareBuffer,
-      etag,
-    });
-
-    if (isEtagMatch(ifNoneMatch, etag)) {
-      return new NextResponse(null, {
-        status: 304,
-        headers: {
-          "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
-          ETag: etag,
-        },
-      });
-    }
-
-    return new NextResponse(new Uint8Array(squareBuffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "image/jpeg",
-        "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
-        ETag: etag,
-      },
+    return buildCachedResponse({
+      content: new Uint8Array(squareBuffer),
+      contentType: "image/jpeg",
+      maxAge: 86400,
+      sMaxAge: 604800,
+      staleWhileRevalidate: 2592000,
+      etagPayload: squareBuffer,
+      ifNoneMatch,
+      rateLimitHeaders: rateGuard.headers,
     });
   } catch (error) {
     console.error("Avatar processing error:", error);

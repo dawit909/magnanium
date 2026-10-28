@@ -92,6 +92,39 @@ interface MovieDetailsWithReleases {
   release_dates?: TMDBReleaseDatesResponse;
 }
 
+function isShortFilmTitle(title: string): boolean {
+  return /\b(short|short film)\b/i.test(title);
+}
+
+function createReleaseItem(params: {
+  id: string;
+  mediaType: "movie" | "tv";
+  movieId: number;
+  movieTitle: string;
+  overview?: string;
+  posterPath?: string | null;
+  releaseDate: string;
+  releaseType: "cinema" | "home";
+  releaseTypeLabel: string;
+  country: string;
+  role: string;
+}): FormattedRelease {
+  return {
+    id: params.id,
+    mediaType: params.mediaType,
+    movieId: params.movieId,
+    movieTitle: params.movieTitle,
+    overview: params.overview || "",
+    posterPath: params.posterPath || null,
+    releaseDate: params.releaseDate,
+    releaseType: params.releaseType,
+    releaseTypeLabel: params.releaseTypeLabel,
+    country: params.country,
+    role: params.role,
+    tmdbUrl: `https://www.themoviedb.org/${params.mediaType}/${params.movieId}`,
+  };
+}
+
 export async function extractMovieReleases(
   movie: TMDBCreditItem,
   roleStr: string,
@@ -99,7 +132,7 @@ export async function extractMovieReleases(
 ): Promise<FormattedRelease[]> {
   const movieTitle = movie.title || movie.name || "Movie";
 
-  if (ctx.excludeShorts && /\b(short|short film)\b/i.test(movieTitle)) {
+  if (ctx.excludeShorts && isShortFilmTitle(movieTitle)) {
     return [];
   }
 
@@ -136,48 +169,72 @@ export async function extractMovieReleases(
         const dateStr = rd.release_date ? rd.release_date.split("T")[0] : "";
         const mapped = mapReleaseType(rd.type, rd.note);
 
-        if (!mapped || !isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr, ctx.sevenDaysFromNowStr)) {
+        if (
+          !mapped ||
+          !isDateInWindow(
+            dateStr,
+            ctx.alert,
+            ctx.window,
+            ctx.nowStr,
+            ctx.oneYearAgoStr,
+            ctx.sevenDaysFromNowStr
+          )
+        ) {
           continue;
         }
 
-        const noteSlug = rd.note && rd.note.trim() ? `-${rd.note.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : "";
+        const noteSlug =
+          rd.note && rd.note.trim()
+            ? `-${rd.note.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
+            : "";
 
-        candidates.push({
-          id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}${noteSlug}`,
-          mediaType: "movie",
-          movieId: movie.id,
-          movieTitle,
-          overview: movie.overview || "",
-          posterPath: movie.poster_path,
-          releaseDate: dateStr,
-          releaseType: mapped.category,
-          releaseTypeLabel: mapped.label,
-          country: countryData.iso_3166_1,
-          role: roleStr,
-          tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
-        });
+        candidates.push(
+          createReleaseItem({
+            id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}${noteSlug}`,
+            mediaType: "movie",
+            movieId: movie.id,
+            movieTitle,
+            overview: movie.overview,
+            posterPath: movie.poster_path,
+            releaseDate: dateStr,
+            releaseType: mapped.category,
+            releaseTypeLabel: mapped.label,
+            country: countryData.iso_3166_1,
+            role: roleStr,
+          })
+        );
       }
     }
   }
 
-  // Fallback to general movie.release_date if no country release entries matched
+  // Fallback to general movie.release_date if no specific country entries matched
   if (candidates.length === 0 && movie.release_date) {
     const dateStr = movie.release_date;
-    if (isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr, ctx.sevenDaysFromNowStr)) {
-      candidates.push({
-        id: `${movie.id}-general-${dateStr}`,
-        mediaType: "movie",
-        movieId: movie.id,
-        movieTitle,
-        overview: movie.overview || "",
-        posterPath: movie.poster_path,
-        releaseDate: dateStr,
-        releaseType: "cinema",
-        releaseTypeLabel: "Theatrical",
-        country: ctx.country,
-        role: roleStr,
-        tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
-      });
+    if (
+      isDateInWindow(
+        dateStr,
+        ctx.alert,
+        ctx.window,
+        ctx.nowStr,
+        ctx.oneYearAgoStr,
+        ctx.sevenDaysFromNowStr
+      )
+    ) {
+      candidates.push(
+        createReleaseItem({
+          id: `${movie.id}-general-${dateStr}`,
+          mediaType: "movie",
+          movieId: movie.id,
+          movieTitle,
+          overview: movie.overview,
+          posterPath: movie.poster_path,
+          releaseDate: dateStr,
+          releaseType: "cinema",
+          releaseTypeLabel: "Theatrical",
+          country: ctx.country,
+          role: roleStr,
+        })
+      );
     }
   }
 
@@ -191,7 +248,7 @@ export async function extractTvReleases(
 ): Promise<FormattedRelease[]> {
   const showTitle = tvShow.name || tvShow.title || "TV Series";
 
-  if (ctx.excludeShorts && /\b(short|short film)\b/i.test(showTitle)) {
+  if (ctx.excludeShorts && isShortFilmTitle(showTitle)) {
     return [];
   }
 
@@ -214,48 +271,69 @@ export async function extractTvReleases(
           ? tvDetails.next_episode_to_air.air_date
           : null);
 
-      if (!dateStr || !isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr, ctx.sevenDaysFromNowStr)) {
+      if (
+        !dateStr ||
+        !isDateInWindow(
+          dateStr,
+          ctx.alert,
+          ctx.window,
+          ctx.nowStr,
+          ctx.oneYearAgoStr,
+          ctx.sevenDaysFromNowStr
+        )
+      ) {
         continue;
       }
 
       const seasonTitle = `${tvDetails.name}: ${season.name}`;
       const premiereLabel = season.season_number === 1 ? "Series Premiere" : "Season Premiere";
 
-      candidates.push({
-        id: `${tvShow.id}-s${season.season_number}-${dateStr}`,
-        mediaType: "tv",
-        movieId: tvShow.id,
-        movieTitle: seasonTitle,
-        overview: season.overview || tvDetails.overview || tvShow.overview || "",
-        posterPath: season.poster_path || tvDetails.poster_path || tvShow.poster_path,
-        releaseDate: dateStr,
-        releaseType: "home",
-        releaseTypeLabel: premiereLabel,
-        country: showCountry,
-        role: roleStr,
-        tmdbUrl: `https://www.themoviedb.org/tv/${tvShow.id}`,
-      });
+      candidates.push(
+        createReleaseItem({
+          id: `${tvShow.id}-s${season.season_number}-${dateStr}`,
+          mediaType: "tv",
+          movieId: tvShow.id,
+          movieTitle: seasonTitle,
+          overview: season.overview || tvDetails.overview || tvShow.overview,
+          posterPath: season.poster_path || tvDetails.poster_path || tvShow.poster_path,
+          releaseDate: dateStr,
+          releaseType: "home",
+          releaseTypeLabel: premiereLabel,
+          country: showCountry,
+          role: roleStr,
+        })
+      );
     }
   }
 
   // Fallback to tvShow.first_air_date if no specific seasons matched
   if (candidates.length === 0 && tvShow.first_air_date) {
     const dateStr = tvShow.first_air_date;
-    if (isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr, ctx.sevenDaysFromNowStr)) {
-      candidates.push({
-        id: `${tvShow.id}-general-${dateStr}`,
-        mediaType: "tv",
-        movieId: tvShow.id,
-        movieTitle: showTitle,
-        overview: tvShow.overview || "",
-        posterPath: tvShow.poster_path,
-        releaseDate: dateStr,
-        releaseType: "home",
-        releaseTypeLabel: "Series Premiere",
-        country: showCountry,
-        role: roleStr,
-        tmdbUrl: `https://www.themoviedb.org/tv/${tvShow.id}`,
-      });
+    if (
+      isDateInWindow(
+        dateStr,
+        ctx.alert,
+        ctx.window,
+        ctx.nowStr,
+        ctx.oneYearAgoStr,
+        ctx.sevenDaysFromNowStr
+      )
+    ) {
+      candidates.push(
+        createReleaseItem({
+          id: `${tvShow.id}-general-${dateStr}`,
+          mediaType: "tv",
+          movieId: tvShow.id,
+          movieTitle: showTitle,
+          overview: tvShow.overview,
+          posterPath: tvShow.poster_path,
+          releaseDate: dateStr,
+          releaseType: "home",
+          releaseTypeLabel: "Series Premiere",
+          country: showCountry,
+          role: roleStr,
+        })
+      );
     }
   }
 

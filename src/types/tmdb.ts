@@ -89,7 +89,7 @@ export interface TvDetails {
   seasons?: TvSeasonItem[];
 }
 
-export type ReleaseTypeCategory = "cinema" | "home" | "earliest" | "theatrical" | "digital" | "physical" | "premiere" | "other";
+export type ReleaseTypeCategory = "cinema" | "home" | "earliest";
 
 export interface FormattedRelease {
   id: string;

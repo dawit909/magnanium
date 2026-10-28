@@ -2,112 +2,35 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
-import { COUNTRIES } from "@/lib/constants";
-
-export interface FeedOptionsSettings {
-  media: string[];
-  roles: string[];
-  types: string[];
-  country: string;
-  alert: "announced" | "release_day" | "week_before";
-  excludeShorts: boolean;
-}
-
-const STORAGE_KEY = "magnanium_feed_options";
-
-const DEFAULT_OPTIONS: FeedOptionsSettings = {
-  media: ["movie", "tv"],
-  roles: ["actor", "crew"],
-  types: ["cinema", "home"],
-  country: "US",
-  alert: "announced",
-  excludeShorts: false,
-};
-
-// Global in-memory cache to preserve options instantly across client navigation
-let inMemoryOptions: FeedOptionsSettings = { ...DEFAULT_OPTIONS };
-
-function persistOption<K extends keyof FeedOptionsSettings>(
-  key: K,
-  value: FeedOptionsSettings[K]
-) {
-  inMemoryOptions = {
-    ...inMemoryOptions,
-    [key]: value,
-  };
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryOptions));
-    } catch {}
-  }
-}
+import {
+  getSavedFeedOptions,
+  saveFeedOption,
+  FeedOptionsSettings,
+} from "@/lib/feed-options";
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
-  const [media, setMedia] = useState<string[]>(() => inMemoryOptions.media);
-  const [roles, setRoles] = useState<string[]>(() => inMemoryOptions.roles);
-  const [types, setTypes] = useState<string[]>(() => inMemoryOptions.types);
-  const [country, setCountryState] = useState<string>(() => inMemoryOptions.country);
-  const [alert, setAlertState] = useState<"announced" | "release_day" | "week_before">(
-    () => inMemoryOptions.alert
-  );
-  const [excludeShorts, setExcludeShortsState] = useState<boolean>(
-    () => inMemoryOptions.excludeShorts
-  );
+  const initial = getSavedFeedOptions();
+  const [media, setMedia] = useState<string[]>(initial.media);
+  const [roles, setRoles] = useState<string[]>(initial.roles);
+  const [types, setTypes] = useState<string[]>(initial.types);
+  const [country, setCountryState] = useState<string>(initial.country);
+  const [alert, setAlertState] = useState<FeedOptionsSettings["alert"]>(initial.alert);
+  const [excludeShorts, setExcludeShortsState] = useState<boolean>(initial.excludeShorts);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [origin, setOrigin] = useState("");
 
-  // Sync with localStorage on initial client mount
+  // Sync with persisted settings on mount
   useEffect(() => {
     setOrigin(window.location.origin);
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const validMedia =
-          Array.isArray(parsed.media) && parsed.media.length > 0
-            ? parsed.media
-            : inMemoryOptions.media;
-        const validRoles =
-          Array.isArray(parsed.roles) && parsed.roles.length > 0
-            ? parsed.roles
-            : inMemoryOptions.roles;
-        const validTypes =
-          Array.isArray(parsed.types) && parsed.types.length > 0
-            ? parsed.types
-            : inMemoryOptions.types;
-        const validCountry =
-          typeof parsed.country === "string" && COUNTRIES.some((c) => c.code === parsed.country)
-            ? parsed.country
-            : inMemoryOptions.country;
-        const validAlert =
-          ["announced", "release_day", "week_before"].includes(parsed.alert)
-            ? (parsed.alert as "announced" | "release_day" | "week_before")
-            : inMemoryOptions.alert;
-        const validExcludeShorts =
-          typeof parsed.excludeShorts === "boolean"
-            ? parsed.excludeShorts
-            : inMemoryOptions.excludeShorts;
-
-        inMemoryOptions = {
-          media: validMedia,
-          roles: validRoles,
-          types: validTypes,
-          country: validCountry,
-          alert: validAlert,
-          excludeShorts: validExcludeShorts,
-        };
-
-        setMedia(validMedia);
-        setRoles(validRoles);
-        setTypes(validTypes);
-        setCountryState(validCountry);
-        setAlertState(validAlert);
-        setExcludeShortsState(validExcludeShorts);
-      }
-    } catch {}
+    const saved = getSavedFeedOptions();
+    setMedia(saved.media);
+    setRoles(saved.roles);
+    setTypes(saved.types);
+    setCountryState(saved.country);
+    setAlertState(saved.alert);
+    setExcludeShortsState(saved.excludeShorts);
   }, []);
 
   const toggleMedia = useCallback((m: string) => {
@@ -117,7 +40,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
           ? prev.filter((x) => x !== m)
           : prev
         : [...prev, m];
-      persistOption("media", next);
+      saveFeedOption("media", next);
       return next;
     });
   }, []);
@@ -129,7 +52,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
           ? prev.filter((x) => x !== r)
           : prev
         : [...prev, r];
-      persistOption("roles", next);
+      saveFeedOption("roles", next);
       return next;
     });
   }, []);
@@ -145,30 +68,38 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
         const filtered = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
         next = filtered.length > 0 ? filtered : ["cinema", "home"];
       }
-      persistOption("types", next);
+      saveFeedOption("types", next);
       return next;
     });
   }, []);
 
   const setCountry = useCallback((c: string) => {
     setCountryState(c);
-    persistOption("country", c);
+    saveFeedOption("country", c);
   }, []);
 
-  const setAlert = useCallback((a: "announced" | "release_day" | "week_before") => {
+  const setAlert = useCallback((a: FeedOptionsSettings["alert"]) => {
     setAlertState(a);
-    persistOption("alert", a);
+    saveFeedOption("alert", a);
   }, []);
 
   const setExcludeShorts = useCallback((exclude: boolean) => {
     setExcludeShortsState(exclude);
-    persistOption("excludeShorts", exclude);
+    saveFeedOption("excludeShorts", exclude);
   }, []);
 
-  // Construct RSS Feed URL (memoized to avoid reallocations)
+  // Construct RSS Feed URL
   const feedUrl = useMemo(() => {
     if (!selectedPerson || !origin) return "";
-    return `${origin}/api/feed/${selectedPerson.id}?media=${media.join(",")}&roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&alert=${alert}&exclude_shorts=${excludeShorts}`;
+    const params = new URLSearchParams({
+      media: media.join(","),
+      roles: roles.join(","),
+      types: types.join(","),
+      country,
+      alert,
+      exclude_shorts: String(excludeShorts),
+    });
+    return `${origin}/api/feed/${selectedPerson.id}?${params.toString()}`;
   }, [selectedPerson, origin, media, roles, types, country, alert, excludeShorts]);
 
   // Fetch preview items with AbortController to cancel stale in-flight requests
