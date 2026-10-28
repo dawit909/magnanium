@@ -45,6 +45,28 @@ export default function FeedApp({
   const [origin, setOrigin] = useState("");
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus search bar on "/" keypress
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/") {
+        const active = document.activeElement;
+        const isInput =
+          active instanceof HTMLInputElement ||
+          active instanceof HTMLTextAreaElement ||
+          active?.getAttribute("contenteditable") === "true";
+
+        if (!isInput) {
+          e.preventDefault();
+          searchInputRef.current?.focus();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
 
   // Sync state whenever initialPerson changes (URL changes, Back/Forward browser navigation)
   useEffect(() => {
@@ -321,9 +343,10 @@ export default function FeedApp({
           </button>
 
           {/* Search Bar in Header */}
-          <div ref={searchContainerRef} className="flex-1 max-w-xs sm:max-w-sm relative">
+          <div ref={searchContainerRef} className="flex-1 max-w-sm sm:max-w-md relative">
             <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
+              ref={searchInputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -348,10 +371,15 @@ export default function FeedApp({
                 }
               }}
               placeholder="Search director, actor, artist..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors"
+              className="w-full pl-8 pr-8 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors"
             />
             {isSearching && (
               <div className="w-3 h-3 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+            )}
+            {!isSearching && !query && (
+              <kbd className="pointer-events-none px-1.5 py-0.5 text-[10px] font-mono rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800/80 text-neutral-400 dark:text-neutral-500 absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-block">
+                /
+              </kbd>
             )}
 
             {/* Autocomplete Dropdown */}

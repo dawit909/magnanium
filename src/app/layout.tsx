@@ -14,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased font-sans">
-        <main className="flex-1 max-w-xl w-full mx-auto px-4 pb-12">{children}</main>
+        <main className="flex-1 max-w-3xl w-full mx-auto px-4 pb-12">{children}</main>
         <footer className="py-6 text-center text-[11px] text-neutral-400 dark:text-neutral-600">
           <span>This product uses the TMDB API but is not endorsed or certified by TMDB.</span>
         </footer>
