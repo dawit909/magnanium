@@ -21,9 +21,26 @@ export function sortAndJoinRoles(roles: string[]): string {
 }
 
 export function isIgnoredCrewCredit(item: TMDBCreditItem): boolean {
-  const job = (item.job || "").toLowerCase();
-  const dept = (item.department || "").toLowerCase();
-  return job.includes("thanks") || dept === "crew";
+  const job = (item.job || "").toLowerCase().trim();
+  const dept = (item.department || "").toLowerCase().trim();
+
+  // Thanks, generic crew, or non-filmmaking credits
+  if (job.includes("thanks") || dept === "crew") {
+    return true;
+  }
+
+  // Soundtrack, song, and music performance credits (e.g. singing or writing a song for a movie soundtrack)
+  if (
+    job.includes("song") ||
+    job.includes("vocal") ||
+    job.includes("singer") ||
+    job === "musician" ||
+    job === "lyricist"
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export function matchesSpecificCrewRole(item: TMDBCreditItem, rolesFilter: string[]): boolean {
