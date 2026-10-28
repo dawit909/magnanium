@@ -106,6 +106,8 @@ interface RawWatchProvidersResponse {
 }
 
 interface MovieDetailsWithReleases {
+  original_language?: string;
+  spoken_languages?: Array<{ english_name?: string; name?: string; iso_639_1?: string }>;
   runtime?: number;
   release_dates?: TMDBReleaseDatesResponse;
   "watch/providers"?: RawWatchProvidersResponse;
@@ -122,6 +124,29 @@ export function formatRuntime(minutes?: number | null): string | null {
   if (h > 0 && m > 0) return `${h}h ${m}m`;
   if (h > 0) return `${h}h`;
   return `${m}m`;
+}
+
+export function formatLanguage(
+  spokenLanguages?: Array<{ english_name?: string; name?: string; iso_639_1?: string }>,
+  originalLanguage?: string
+): string | null {
+  if (spokenLanguages && spokenLanguages.length > 0) {
+    const primary = spokenLanguages[0];
+    const name = primary.english_name || primary.name;
+    if (name && name.trim()) return name.trim();
+  }
+  if (originalLanguage && originalLanguage.trim()) {
+    const code = originalLanguage.trim().toLowerCase();
+    if (typeof Intl !== "undefined" && typeof Intl.DisplayNames !== "undefined") {
+      try {
+        const dn = new Intl.DisplayNames(["en"], { type: "language" });
+        const name = dn.of(code);
+        if (name) return name;
+      } catch {}
+    }
+    return code.toUpperCase();
+  }
+  return null;
 }
 
 const PROVIDER_NAME_PATTERNS: Array<[RegExp, string]> = [
@@ -288,6 +313,7 @@ function createReleaseItem(params: {
   writer?: string | null;
   stars?: string[] | null;
   runtime?: string | null;
+  language?: string | null;
 }): FormattedRelease {
   return {
     id: params.id,
@@ -307,6 +333,7 @@ function createReleaseItem(params: {
     writer: params.writer || null,
     stars: params.stars && params.stars.length > 0 ? params.stars : null,
     runtime: params.runtime || null,
+    language: params.language || null,
   };
 }
 
@@ -345,6 +372,10 @@ export async function extractMovieReleases(
 
   const { director, writer, stars } = extractMovieCredits(movieDetails?.credits);
   const runtime = formatRuntime(movieDetails?.runtime);
+  const language = formatLanguage(
+    movieDetails?.spoken_languages,
+    movieDetails?.original_language || movie.original_language
+  );
 
   const candidates: FormattedRelease[] = [];
   const releaseDatesData = movieDetails?.release_dates;
@@ -399,6 +430,7 @@ export async function extractMovieReleases(
             writer,
             stars,
             runtime,
+            language,
           })
         );
       }
@@ -436,6 +468,7 @@ export async function extractMovieReleases(
           writer,
           stars,
           runtime,
+          language,
         })
       );
     }
@@ -483,6 +516,10 @@ export async function extractTvReleases(
     tvDetails?.episode_run_time && tvDetails.episode_run_time.length > 0
       ? formatRuntime(tvDetails.episode_run_time[0])
       : null;
+  const language = formatLanguage(
+    tvDetails?.spoken_languages,
+    tvDetails?.original_language || tvShow.original_language
+  );
 
   const candidates: FormattedRelease[] = [];
   const showCountry = tvDetails?.origin_country?.[0] || ctx.country;
@@ -530,6 +567,7 @@ export async function extractTvReleases(
           director,
           stars,
           runtime,
+          language,
         })
       );
     }
@@ -565,6 +603,7 @@ export async function extractTvReleases(
           director,
           stars,
           runtime,
+          language,
         })
       );
     }

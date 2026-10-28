@@ -71,6 +71,9 @@ function renderMetadataLines(item: FormattedRelease): string {
   if (item.runtime) {
     lines.push(`<strong>Runtime:</strong> ${escapeXml(item.runtime)}`);
   }
+  if (item.language) {
+    lines.push(`<strong>Language:</strong> ${escapeXml(item.language)}`);
+  }
   if (item.director) {
     lines.push(`<strong>Director:</strong> ${escapeXml(item.director)}`);
   }
@@ -110,6 +113,7 @@ function renderRssItem(item: FormattedRelease, buildDate: string): string {
   const pubDate = formatPubDate(item.releaseDate, buildDate);
   const mediumLabel = item.mediaType === "tv" ? "TV" : "Movie";
   const descriptionContent = renderItemDescription(item);
+  const languageCategory = item.language ? `\n      <category>${escapeXml(item.language)}</category>` : "";
 
   return `
     <item>
@@ -120,7 +124,7 @@ function renderRssItem(item: FormattedRelease, buildDate: string): string {
       <description><![CDATA[${descriptionContent}]]></description>
       <category>${escapeXml(mediumLabel)}</category>
       <category>${escapeXml(item.releaseTypeLabel)}</category>
-      <category>${escapeXml(item.role)}</category>
+      <category>${escapeXml(item.role)}</category>${languageCategory}
     </item>`;
 }
 

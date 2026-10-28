@@ -87,6 +87,12 @@ export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
                         <span>{item.runtime}</span>
                       </>
                     )}
+                    {item.language && (
+                      <>
+                        <span>·</span>
+                        <span>{item.language}</span>
+                      </>
+                    )}
                     <span>·</span>
                     <span>{item.country}</span>
                   </div>

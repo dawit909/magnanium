@@ -37,6 +37,7 @@ export interface TMDBCreditItem {
   name?: string;
   original_title?: string;
   original_name?: string;
+  original_language?: string;
   overview: string;
   poster_path: string | null;
   backdrop_path: string | null;
@@ -95,6 +96,8 @@ export interface TvDetails {
   status?: string;
   in_production?: boolean;
   origin_country?: string[];
+  original_language?: string;
+  spoken_languages?: Array<{ english_name?: string; name?: string; iso_639_1?: string }>;
   created_by?: { id: number; name: string }[];
   episode_run_time?: number[];
   next_episode_to_air?: {
@@ -134,6 +137,7 @@ export interface FormattedRelease {
   writer?: string | null;
   stars?: string[] | null;
   runtime?: string | null;
+  language?: string | null;
 }
 
 export interface FeedFilterOptions {
