@@ -11,8 +11,8 @@ interface FeedFiltersProps {
   onToggleRole: (r: string) => void;
   types: string[];
   onToggleType: (t: string) => void;
-  alert: "announced" | "release_day" | "week_before";
-  onSetAlert: (a: "announced" | "release_day" | "week_before") => void;
+  alert: "announced" | "week_before";
+  onSetAlert: (a: "announced" | "week_before") => void;
   country: string;
   onSetCountry: (c: string) => void;
   excludeShorts: boolean;
@@ -103,7 +103,6 @@ const FORMAT_OPTIONS = [
 const ALERT_OPTIONS = [
   { id: "announced", label: "When Announced" },
   { id: "week_before", label: "Week Before Release" },
-  { id: "release_day", label: "On Release Day" },
 ];
 
 export default function FeedFilters({
@@ -212,7 +211,7 @@ export default function FeedFilters({
               <FilterPill
                 key={a.id}
                 active={alert === a.id}
-                onClick={() => onSetAlert(a.id as "announced" | "release_day" | "week_before")}
+                onClick={() => onSetAlert(a.id as "announced" | "week_before")}
               >
                 {a.label}
               </FilterPill>
@@ -227,9 +226,6 @@ export default function FeedFilters({
                   </p>
                   <p>
                     <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Week Before Release&rdquo;</strong> alerts 7 days prior to release.
-                  </p>
-                  <p>
-                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;On Release Day&rdquo;</strong> alerts on the release date.
                   </p>
                 </div>
               }

@@ -5,7 +5,7 @@ export interface FeedOptionsSettings {
   roles: string[];
   types: string[];
   country: string;
-  alert: "announced" | "release_day" | "week_before";
+  alert: "announced" | "week_before";
   excludeShorts: boolean;
   excludeReReleases: boolean;
 }
@@ -54,7 +54,7 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       : inMemoryOptions.country;
 
   const validAlert =
-    ["announced", "release_day", "week_before"].includes(parsed.alert)
+    ["announced", "week_before"].includes(parsed.alert)
       ? (parsed.alert as FeedOptionsSettings["alert"])
       : inMemoryOptions.alert;
 

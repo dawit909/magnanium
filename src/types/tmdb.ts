@@ -148,7 +148,7 @@ export interface FeedFilterOptions {
   types?: string[]; // "cinema", "home", "earliest"
   country?: string;
   window?: "upcoming" | "all";
-  alert?: "announced" | "release_day" | "week_before";
+  alert?: "announced" | "week_before";
   excludeShorts?: boolean;
   excludeReReleases?: boolean;
 }

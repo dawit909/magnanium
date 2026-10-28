@@ -37,7 +37,7 @@ export function mapReleaseType(
 
 export function isDateInWindow(
   dateStr: string,
-  alert: "announced" | "release_day" | "week_before",
+  alert: "announced" | "week_before" | "release_day",
   window: "upcoming" | "all",
   nowStr: string,
   oneYearAgoStr: string,
@@ -77,7 +77,7 @@ export function filterReleasesByType(
 export interface ReleaseExtractionContext {
   country: string;
   window: "upcoming" | "all";
-  alert: "announced" | "release_day" | "week_before";
+  alert: "announced" | "week_before";
   excludeShorts: boolean;
   excludeReReleases: boolean;
   normalizedTypes: string[];
