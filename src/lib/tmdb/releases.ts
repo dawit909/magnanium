@@ -37,14 +37,16 @@ export function mapReleaseType(
 
 export function isDateInWindow(
   dateStr: string,
-  alert: "announced" | "week_before",
+  alert: "announced" | "month_before" | "week_before",
   window: "upcoming" | "all",
   nowStr: string,
   oneYearAgoStr: string,
-  sevenDaysFromNowStr?: string
+  sevenDaysFromNowStr?: string,
+  thirtyDaysFromNowStr?: string
 ): boolean {
   if (!dateStr) return false;
   if (alert === "week_before" && sevenDaysFromNowStr && dateStr > sevenDaysFromNowStr) return false;
+  if (alert === "month_before" && thirtyDaysFromNowStr && dateStr > thirtyDaysFromNowStr) return false;
   if (window === "upcoming" && dateStr < nowStr) return false;
   if (window === "all" && dateStr < oneYearAgoStr) return false;
   return true;
@@ -76,7 +78,7 @@ export function filterReleasesByType(
 export interface ReleaseExtractionContext {
   country: string;
   window: "upcoming" | "all";
-  alert: "announced" | "week_before";
+  alert: "announced" | "month_before" | "week_before";
   excludeShorts: boolean;
   excludeReReleases: boolean;
   normalizedTypes: string[];
@@ -84,6 +86,7 @@ export interface ReleaseExtractionContext {
   nowStr: string;
   oneYearAgoStr: string;
   sevenDaysFromNowStr: string;
+  thirtyDaysFromNowStr: string;
   clientKey?: string;
   personId?: number;
 }
@@ -440,7 +443,8 @@ export async function extractMovieReleases(
             ctx.window,
             ctx.nowStr,
             ctx.oneYearAgoStr,
-            ctx.sevenDaysFromNowStr
+            ctx.sevenDaysFromNowStr,
+            ctx.thirtyDaysFromNowStr
           ) ||
           (ctx.excludeReReleases &&
             isReReleaseOrRemaster(rd.note, movieTitle, dateStr, movie.release_date, rd.type))
@@ -490,7 +494,8 @@ export async function extractMovieReleases(
         ctx.window,
         ctx.nowStr,
         ctx.oneYearAgoStr,
-        ctx.sevenDaysFromNowStr
+        ctx.sevenDaysFromNowStr,
+        ctx.thirtyDaysFromNowStr
       )
     ) {
       candidates.push(
@@ -633,7 +638,8 @@ export async function extractTvReleases(
           ctx.window,
           ctx.nowStr,
           ctx.oneYearAgoStr,
-          ctx.sevenDaysFromNowStr
+          ctx.sevenDaysFromNowStr,
+          ctx.thirtyDaysFromNowStr
         ) ||
         (ctx.excludeReReleases && isReReleaseOrRemaster(season.name, seasonTitle))
       ) {
@@ -707,7 +713,8 @@ export async function extractTvReleases(
         ctx.window,
         ctx.nowStr,
         ctx.oneYearAgoStr,
-        ctx.sevenDaysFromNowStr
+        ctx.sevenDaysFromNowStr,
+        ctx.thirtyDaysFromNowStr
       )
     ) {
       candidates.push(

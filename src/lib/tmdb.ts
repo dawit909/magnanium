@@ -337,6 +337,7 @@ export async function getPersonReleases(
   const nowStr = new Date(now).toISOString().split("T")[0];
   const oneYearAgoStr = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   const sevenDaysFromNowStr = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const thirtyDaysFromNowStr = new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   const ctx: ReleaseExtractionContext = {
     country,
@@ -349,6 +350,7 @@ export async function getPersonReleases(
     nowStr,
     oneYearAgoStr,
     sevenDaysFromNowStr,
+    thirtyDaysFromNowStr,
     clientKey: customApiKey,
     personId: Number(personId),
   };
