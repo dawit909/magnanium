@@ -9,9 +9,11 @@ import {
 } from "@/types/tmdb";
 
 const TMDB_API_BASE = "https://api.themoviedb.org/3";
+const SERVER_API_KEY = process.env.TMDB_API_KEY || "";
+const SERVER_ACCESS_TOKEN = process.env.TMDB_ACCESS_TOKEN || "";
 
 export function getResolvedApiKey(clientKey?: string | null): string {
-  return (clientKey && clientKey.trim()) || process.env.TMDB_API_KEY || "";
+  return (clientKey && clientKey.trim()) || SERVER_API_KEY;
 }
 
 export function mapReleaseType(type: number): { category: ReleaseTypeCategory; label: string } {
@@ -33,29 +35,46 @@ export function mapReleaseType(type: number): { category: ReleaseTypeCategory; l
   }
 }
 
-function buildUrl(endpoint: string, apiKey: string, params: Record<string, string> = {}): string {
-  const url = new URL(`${TMDB_API_BASE}${endpoint}`);
-  url.searchParams.set("api_key", apiKey);
-  for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(key, value);
+function getFetchOptions(customKey?: string): { url: (endpoint: string, params?: Record<string, string>) => string; headers: Record<string, string> } {
+  const apiKey = getResolvedApiKey(customKey);
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+
+  if (!customKey && SERVER_ACCESS_TOKEN) {
+    headers["Authorization"] = `Bearer ${SERVER_ACCESS_TOKEN}`;
   }
-  return url.toString();
+
+  const buildUrl = (endpoint: string, params: Record<string, string> = {}) => {
+    const url = new URL(`${TMDB_API_BASE}${endpoint}`);
+    if (apiKey && !headers["Authorization"]) {
+      url.searchParams.set("api_key", apiKey);
+    } else if (apiKey) {
+      url.searchParams.set("api_key", apiKey);
+    }
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value);
+    }
+    return url.toString();
+  };
+
+  return { url: buildUrl, headers };
 }
 
 /**
  * Search TMDB for an actor or director
  */
 export async function searchPerson(query: string, customApiKey?: string): Promise<{ results: TMDBPersonSearchResult[]; noApiKey?: boolean }> {
-  const apiKey = getResolvedApiKey(customApiKey);
+  const { url, headers } = getFetchOptions(customApiKey);
+  const hasAuth = SERVER_ACCESS_TOKEN || getResolvedApiKey(customApiKey);
 
-  if (!apiKey) {
-    // Check if query matches mock fallback
-    const mock = getMockPersons(query);
-    return { results: mock, noApiKey: true };
+  if (!hasAuth) {
+    return { results: [], noApiKey: true };
   }
 
   try {
-    const res = await fetch(buildUrl("/search/person", apiKey, { query }), {
+    const res = await fetch(url("/search/person", { query }), {
+      headers,
       next: { revalidate: 3600 },
     });
 
@@ -78,13 +97,11 @@ export async function searchPerson(query: string, customApiKey?: string): Promis
  * Get person details
  */
 export async function getPersonDetails(personId: number, customApiKey?: string) {
-  const apiKey = getResolvedApiKey(customApiKey);
-  if (!apiKey) {
-    return MOCK_PERSONS.find((p) => p.id === personId) || { id: personId, name: "Artist" };
-  }
+  const { url, headers } = getFetchOptions(customApiKey);
 
   try {
-    const res = await fetch(buildUrl(`/person/${personId}`, apiKey), {
+    const res = await fetch(url(`/person/${personId}`), {
+      headers,
       next: { revalidate: 86400 },
     });
     if (!res.ok) return { id: personId, name: "Artist" };
@@ -98,13 +115,11 @@ export async function getPersonDetails(personId: number, customApiKey?: string) 
  * Get person movie credits
  */
 export async function getPersonCredits(personId: number, customApiKey?: string): Promise<TMDBPersonCreditsResponse> {
-  const apiKey = getResolvedApiKey(customApiKey);
-  if (!apiKey) {
-    return getMockCredits(personId);
-  }
+  const { url, headers } = getFetchOptions(customApiKey);
 
   try {
-    const res = await fetch(buildUrl(`/person/${personId}/movie_credits`, apiKey), {
+    const res = await fetch(url(`/person/${personId}/movie_credits`), {
+      headers,
       next: { revalidate: 21600 },
     });
 
@@ -120,11 +135,11 @@ export async function getPersonCredits(personId: number, customApiKey?: string):
  * Fetch detailed release dates for a movie
  */
 export async function getMovieReleaseDates(movieId: number, customApiKey?: string): Promise<TMDBReleaseDatesResponse | null> {
-  const apiKey = getResolvedApiKey(customApiKey);
-  if (!apiKey) return null;
+  const { url, headers } = getFetchOptions(customApiKey);
 
   try {
-    const res = await fetch(buildUrl(`/movie/${movieId}/release_dates`, apiKey), {
+    const res = await fetch(url(`/movie/${movieId}/release_dates`), {
+      headers,
       next: { revalidate: 43200 },
     });
 
@@ -143,11 +158,10 @@ export async function getPersonReleases(
   customApiKey?: string
 ): Promise<{ personName: string; releases: FormattedRelease[] }> {
   const { personId, roles = ["director", "actor"], types = ["theatrical", "digital"], country = "US", window = "all" } = options;
-  const apiKey = getResolvedApiKey(customApiKey);
 
   const [person, credits] = await Promise.all([
-    getPersonDetails(personId, apiKey),
-    getPersonCredits(personId, apiKey),
+    getPersonDetails(personId, customApiKey),
+    getPersonCredits(personId, customApiKey),
   ]);
 
   const personName = person.name || "Artist";
@@ -192,7 +206,7 @@ export async function getPersonReleases(
     return dateB.localeCompare(dateA);
   });
 
-  const sliceCandidates = candidateList.slice(0, 25);
+  const sliceCandidates = candidateList.slice(0, 30);
   const nowStr = new Date().toISOString().split("T")[0];
   const oneYearAgoStr = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
@@ -200,7 +214,7 @@ export async function getPersonReleases(
 
   await Promise.all(
     sliceCandidates.map(async ({ movie, roles: movieRoles }) => {
-      const releaseDatesData = await getMovieReleaseDates(movie.id, apiKey);
+      const releaseDatesData = await getMovieReleaseDates(movie.id, customApiKey);
       let foundSpecific = false;
 
       if (releaseDatesData && releaseDatesData.results) {
@@ -262,70 +276,4 @@ export async function getPersonReleases(
   formattedReleases.sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
 
   return { personName, releases: formattedReleases };
-}
-
-// Minimal fallback mock
-const MOCK_PERSONS: TMDBPersonSearchResult[] = [
-  {
-    id: 525,
-    name: "Christopher Nolan",
-    original_name: "Christopher Nolan",
-    known_for_department: "Directing",
-    profile_path: "/xuAIuYSmsUzKlUMBFGVZaWsY3Z5.jpg",
-    popularity: 45.2,
-    known_for: [{ id: 872585, title: "Oppenheimer", media_type: "movie" }],
-  },
-  {
-    id: 137427,
-    name: "Denis Villeneuve",
-    original_name: "Denis Villeneuve",
-    known_for_department: "Directing",
-    profile_path: "/4aT1vL05c9k3U0zD6rT4TzM9qZ9.jpg",
-    popularity: 38.6,
-    known_for: [{ id: 693134, title: "Dune: Part Two", media_type: "movie" }],
-  },
-  {
-    id: 234352,
-    name: "Margot Robbie",
-    original_name: "Margot Robbie",
-    known_for_department: "Acting",
-    profile_path: "/euDPyqLnuUMgYvNaT7umgp49OnE.jpg",
-    popularity: 52.1,
-    known_for: [{ id: 346698, title: "Barbie", media_type: "movie" }],
-  },
-  {
-    id: 18897,
-    name: "Quentin Tarantino",
-    original_name: "Quentin Tarantino",
-    known_for_department: "Directing",
-    profile_path: "/1gjVuRg0Lq1gK0pW3kH6b.jpg",
-    popularity: 35.8,
-    known_for: [{ id: 680, title: "Pulp Fiction", media_type: "movie" }],
-  },
-];
-
-function getMockPersons(query: string): TMDBPersonSearchResult[] {
-  const q = query.toLowerCase();
-  return MOCK_PERSONS.filter((p) => p.name.toLowerCase().includes(q));
-}
-
-function getMockCredits(personId: number): TMDBPersonCreditsResponse {
-  return {
-    id: personId,
-    cast: [],
-    crew: [
-      {
-        id: 1159311,
-        title: "Upcoming Project",
-        original_title: "Upcoming Project",
-        overview: "Feature release scheduled for cinema and streaming.",
-        poster_path: null,
-        backdrop_path: null,
-        release_date: "2026-07-17",
-        vote_average: 0,
-        job: "Director",
-        department: "Directing",
-      },
-    ],
-  };
 }
