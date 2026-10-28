@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Rss, Maximize2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { createPersonSlug } from "@/lib/slug";
 
@@ -264,11 +264,19 @@ interface SampleFeedPreviewProps {
   onSelectSampleArtist?: (person: TMDBPersonSearchResult) => void;
 }
 
+type ResizeDirection = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
+
 export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPreviewProps) {
   const router = useRouter();
 
   const [selectedId, setSelectedId] = useState<string>("ts5");
   const [readIds, setReadIds] = useState<Set<string>>(new Set(["ts5"]));
+
+  // Window visibility & size states
+  const [isClosed, setIsClosed] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
 
   // Draggable window state
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -285,6 +293,28 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
   }>({
     startX: 0,
     startY: 0,
+    startOffsetX: 0,
+    startOffsetY: 0,
+    baselineLeft: 0,
+    baselineTop: 0,
+  });
+
+  const resizeStartRef = useRef<{
+    dir: ResizeDirection;
+    startX: number;
+    startY: number;
+    startWidth: number;
+    startHeight: number;
+    startOffsetX: number;
+    startOffsetY: number;
+    baselineLeft: number;
+    baselineTop: number;
+  }>({
+    dir: "se",
+    startX: 0,
+    startY: 0,
+    startWidth: 0,
+    startHeight: 0,
     startOffsetX: 0,
     startOffsetY: 0,
     baselineLeft: 0,
@@ -308,8 +338,8 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
 
       const baselineLeft = bLeft ?? containerRect.left;
       const baselineTop = bTop ?? containerRect.top;
-      const winWidth = windowRect.width;
-      const winHeight = windowRect.height;
+      const winWidth = size?.width ?? windowRect.width;
+      const winHeight = size?.height ?? windowRect.height;
 
       // Website horizontal bounds (viewport width / client width)
       const maxPageWidth = document.documentElement.clientWidth || window.innerWidth;
@@ -346,12 +376,22 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
 
       return { x: clampedX, y: clampedY };
     },
-    []
+    [size]
   );
 
   // Monitor window resize and zoom level changes to re-clamp window inside website border
   useEffect(() => {
     const handleResize = () => {
+      const maxPageWidth = document.documentElement.clientWidth || window.innerWidth;
+
+      setSize((prev) => {
+        if (!prev) return null;
+        if (prev.width > maxPageWidth) {
+          return { ...prev, width: Math.max(340, maxPageWidth) };
+        }
+        return prev;
+      });
+
       setOffset((curr) => {
         const clamped = clampOffset(curr.x, curr.y);
         if (clamped.x === curr.x && clamped.y === curr.y) return curr;
@@ -426,6 +466,96 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     window.addEventListener("pointercancel", onPointerUp);
   };
 
+  const handleResizePointerDown = (dir: ResizeDirection, e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (e.button !== 0) return;
+    if (!containerRef.current || !windowRef.current) return;
+
+    const winRect = windowRef.current.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+
+    resizeStartRef.current = {
+      dir,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: winRect.width,
+      startHeight: winRect.height,
+      startOffsetX: offset.x,
+      startOffsetY: offset.y,
+      baselineLeft: containerRect.left,
+      baselineTop: containerRect.top,
+    };
+
+    setIsResizing(true);
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const deltaX = moveEvent.clientX - resizeStartRef.current.startX;
+      const deltaY = moveEvent.clientY - resizeStartRef.current.startY;
+      const {
+        dir: currentDir,
+        startWidth,
+        startHeight,
+        startOffsetX,
+        startOffsetY,
+        baselineLeft,
+        baselineTop,
+      } = resizeStartRef.current;
+
+      const maxPageWidth = document.documentElement.clientWidth || window.innerWidth;
+      const docHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        window.innerHeight
+      );
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newOffsetX = startOffsetX;
+      let newOffsetY = startOffsetY;
+
+      // Horizontal resizing
+      if (currentDir.includes("e")) {
+        const maxAllowedWidth = maxPageWidth - (baselineLeft + startOffsetX);
+        newWidth = Math.max(340, Math.min(maxAllowedWidth, startWidth + deltaX));
+      } else if (currentDir.includes("w")) {
+        const minDeltaX = -(baselineLeft + startOffsetX);
+        const effectiveDeltaX = Math.max(minDeltaX, deltaX);
+        const maxPossibleWidth = startWidth - minDeltaX;
+        newWidth = Math.max(340, Math.min(maxPossibleWidth, startWidth - effectiveDeltaX));
+        newOffsetX = startOffsetX + (startWidth - newWidth);
+      }
+
+      // Vertical resizing
+      if (currentDir.includes("s")) {
+        const maxAllowedHeight = docHeight - (baselineTop + window.scrollY + startOffsetY);
+        newHeight = Math.max(320, Math.min(maxAllowedHeight, startHeight + deltaY));
+      } else if (currentDir.includes("n")) {
+        const minDeltaY = -(baselineTop + window.scrollY + startOffsetY);
+        const effectiveDeltaY = Math.max(minDeltaY, deltaY);
+        const maxPossibleHeight = startHeight - minDeltaY;
+        newHeight = Math.max(320, Math.min(maxPossibleHeight, startHeight - effectiveDeltaY));
+        newOffsetY = startOffsetY + (startHeight - newHeight);
+      }
+
+      setSize({ width: Math.round(newWidth), height: Math.round(newHeight) });
+      setOffset({ x: Math.round(newOffsetX), y: Math.round(newOffsetY) });
+    };
+
+    const onPointerUp = () => {
+      setIsResizing(false);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+  };
+
   const activeItem =
     SAMPLE_ITEMS.find((item) => item.id === selectedId) || SAMPLE_ITEMS[0];
   const unreadCount = SAMPLE_ITEMS.filter((item) => !readIds.has(item.id)).length;
@@ -453,6 +583,49 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     router.push(`/${slug}`);
   };
 
+  if (isClosed) {
+    return null;
+  }
+
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <button
+          onClick={() => setIsMinimized(false)}
+          className="group flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-300 dark:border-neutral-700 shadow-2xl hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-all text-left"
+          title="Click to restore RSS Reader"
+        >
+          {/* Signal Icon / Symbol */}
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-md shadow-amber-500/30">
+              <Rss className="w-5 h-5 animate-pulse" />
+            </div>
+            {/* Minimized amber badge indicator */}
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white dark:border-neutral-900 flex items-center justify-center">
+              <span className="w-1.5 h-0.5 bg-neutral-900 rounded-full" />
+            </span>
+          </div>
+
+          <div className="min-w-0 pr-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-900 dark:text-neutral-100">
+              <span>RSS Reader</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-mono font-medium">
+                Minimized
+              </span>
+            </div>
+            <div className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate max-w-[140px]">
+              {activeItem.title}
+            </div>
+          </div>
+
+          <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+            <Maximize2 className="w-3.5 h-3.5" />
+          </div>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -463,12 +636,17 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         ref={windowRef}
         style={{
           transform: `translate3d(${offset.x}px, ${offset.y}px, 0)`,
-          willChange: isDragging ? "transform" : "auto",
+          width: size ? `${size.width}px` : undefined,
+          height: size ? `${size.height}px` : undefined,
+          maxWidth: size ? "none" : undefined,
+          willChange: isDragging || isResizing ? "transform, width, height" : "auto",
         }}
-        className={`rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] overflow-hidden relative ${
-          isDragging
+        className={`rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] overflow-hidden relative flex flex-col ${
+          size ? "" : "min-h-[480px]"
+        } ${
+          isDragging || isResizing
             ? "z-40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] ring-2 ring-[#007aff]/40 transition-none"
-            : offset.x !== 0 || offset.y !== 0
+            : offset.x !== 0 || offset.y !== 0 || size !== null
             ? "z-30 shadow-2xl transition-transform duration-200 ease-out"
             : "shadow-2xl transition-transform duration-200 ease-out"
         }`}
@@ -476,8 +654,11 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         {/* macOS Window Title Bar (Draggable Handle) */}
         <div
           onPointerDown={handlePointerDown}
-          onDoubleClick={() => setOffset({ x: 0, y: 0 })}
-          className={`px-4 py-2.5 bg-neutral-100 dark:bg-[#202023] border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between select-none touch-none transition-colors ${
+          onDoubleClick={() => {
+            setOffset({ x: 0, y: 0 });
+            setSize(null);
+          }}
+          className={`px-4 py-2.5 bg-neutral-100 dark:bg-[#202023] border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between select-none touch-none transition-colors flex-shrink-0 ${
             isDragging
               ? "cursor-grabbing bg-neutral-200/80 dark:bg-[#28282c]"
               : "cursor-grab hover:bg-neutral-200/50 dark:hover:bg-[#252528]"
@@ -488,33 +669,40 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
             <span
               onClick={(e) => {
                 e.stopPropagation();
-                setOffset({ x: 0, y: 0 });
+                setIsClosed(true);
               }}
-              title="Reset position"
+              title="Close RSS Reader"
               className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] cursor-pointer hover:opacity-80 transition-opacity"
             />
-            <span className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]" />
             <span
               onClick={(e) => {
                 e.stopPropagation();
-                setOffset({ x: 0, y: 0 });
+                setIsMinimized(true);
               }}
-              title="Center window"
-              className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] cursor-pointer hover:opacity-80 transition-opacity"
+              title="Minimize to bottom right corner"
+              className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] cursor-pointer hover:opacity-80 transition-opacity"
+            />
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                // Do nothing for the green button
+              }}
+              className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] cursor-default"
             />
           </div>
           <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
             RSS Reader — Preview
           </span>
           <div className="w-12 text-right">
-            {(offset.x !== 0 || offset.y !== 0) && (
+            {(offset.x !== 0 || offset.y !== 0 || size !== null) && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setOffset({ x: 0, y: 0 });
+                  setSize(null);
                 }}
                 className="text-[10px] text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 underline"
-                title="Reset position"
+                title="Reset position and size"
               >
                 Reset
               </button>
@@ -523,9 +711,9 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         </div>
 
         {/* Master-Detail RSS Split View */}
-        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[480px]">
+        <div className="grid grid-cols-1 md:grid-cols-12 flex-1 min-h-0 overflow-hidden">
           {/* Left Column: Unified Feed Items List */}
-          <div className="md:col-span-5 bg-neutral-50/80 dark:bg-[#161618] border-r border-neutral-200 dark:border-neutral-800/80 flex flex-col">
+          <div className="md:col-span-5 bg-neutral-50/80 dark:bg-[#161618] border-r border-neutral-200 dark:border-neutral-800/80 flex flex-col h-full min-h-0 overflow-hidden">
             {/* List Header */}
             <div className="p-3 border-b border-neutral-200/80 dark:border-neutral-800/80 flex items-center justify-between text-xs">
               <div>
@@ -608,7 +796,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
           </div>
 
           {/* Right Column: Feed Content Reader */}
-          <div className="md:col-span-7 bg-white dark:bg-[#121214] flex flex-col">
+          <div className="md:col-span-7 bg-white dark:bg-[#121214] flex flex-col h-full min-h-0 overflow-hidden">
             {/* Rendered Article Content */}
             <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs leading-relaxed flex-1">
               {/* Header Section (Author row + Divider + Large Title + Timestamp) */}
@@ -752,6 +940,48 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
             </div>
           </div>
         </div>
+
+        {/* Resize Handles (macOS style window borders & corners) */}
+        {/* Top border */}
+        <div
+          onPointerDown={(e) => handleResizePointerDown("n", e)}
+          className="absolute -top-1.5 left-3 right-3 h-3 cursor-ns-resize z-30 touch-none"
+        />
+        {/* Bottom border */}
+        <div
+          onPointerDown={(e) => handleResizePointerDown("s", e)}
+          className="absolute -bottom-1.5 left-3 right-3 h-3 cursor-ns-resize z-30 touch-none"
+        />
+        {/* Left border */}
+        <div
+          onPointerDown={(e) => handleResizePointerDown("w", e)}
+          className="absolute top-3 bottom-3 -left-1.5 w-3 cursor-ew-resize z-30 touch-none"
+        />
+        {/* Right border */}
+        <div
+          onPointerDown={(e) => handleResizePointerDown("e", e)}
+          className="absolute top-3 bottom-3 -right-1.5 w-3 cursor-ew-resize z-30 touch-none"
+        />
+        {/* Top-Left corner */}
+        <div
+          onPointerDown={(e) => handleResizePointerDown("nw", e)}
+          className="absolute -top-1.5 -left-1.5 w-4 h-4 cursor-nwse-resize z-30 touch-none"
+        />
+        {/* Top-Right corner */}
+        <div
+          onPointerDown={(e) => handleResizePointerDown("ne", e)}
+          className="absolute -top-1.5 -right-1.5 w-4 h-4 cursor-nesw-resize z-30 touch-none"
+        />
+        {/* Bottom-Left corner */}
+        <div
+          onPointerDown={(e) => handleResizePointerDown("sw", e)}
+          className="absolute -bottom-1.5 -left-1.5 w-4 h-4 cursor-nesw-resize z-30 touch-none"
+        />
+        {/* Bottom-Right corner */}
+        <div
+          onPointerDown={(e) => handleResizePointerDown("se", e)}
+          className="absolute -bottom-1.5 -right-1.5 w-4 h-4 cursor-nwse-resize z-30 touch-none"
+        />
       </div>
 
       {/* Highlights: No ads. No tracking. Pure RSS. */}
