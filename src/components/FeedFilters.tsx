@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info, Settings2, ChevronDown } from "lucide-react";
+import { Info, Settings2, ChevronRight } from "lucide-react";
 import { getCountryOptions } from "@/lib/constants";
 
 interface FeedFiltersProps {
@@ -122,13 +122,6 @@ export default function FeedFilters({
 
   const countryOptions = getCountryOptions(country);
 
-  const isFineTuned =
-    types.length !== 2 ||
-    !types.includes("cinema") ||
-    !types.includes("home") ||
-    alert !== "announced" ||
-    excludeShorts;
-
   return (
     <div className="space-y-3.5 text-xs">
       {/* 1. Always Visible Primary Filters */}
@@ -168,15 +161,9 @@ export default function FeedFilters({
         >
           <Settings2 className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
           <span className="font-medium">Fine-tune (Format, Timing, Region)</span>
-          {isFineTuned && (
-            <span
-              className="w-1.5 h-1.5 rounded-full bg-blue-500 ring-2 ring-blue-500/20"
-              title="Customized feed settings active"
-            />
-          )}
-          <ChevronDown
+          <ChevronRight
             className={`w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-transform duration-200 ${
-              isExpanded ? "rotate-180" : ""
+              isExpanded ? "rotate-90" : ""
             }`}
           />
         </button>
