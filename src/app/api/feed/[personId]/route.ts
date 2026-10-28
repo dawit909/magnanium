@@ -22,7 +22,7 @@ export async function GET(
     const typesParam = searchParams.get("types") || "theatrical,digital";
     const country = searchParams.get("country") || "US";
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
-    const excludeShorts = searchParams.get("exclude_shorts") !== "false";
+    const excludeShorts = searchParams.get("exclude_shorts") === "true";
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
     const roles = rolesParam.split(",").map((r) => r.trim().toLowerCase());

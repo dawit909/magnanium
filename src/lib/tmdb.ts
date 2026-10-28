@@ -167,7 +167,7 @@ export async function getPersonReleases(
     types = ["theatrical", "digital"],
     country = "US",
     window = "all",
-    excludeShorts = true,
+    excludeShorts = false,
   } = options;
 
   const [person, credits] = await Promise.all([
@@ -210,9 +210,7 @@ export async function getPersonReleases(
 
   if (credits.cast && checkRole("actor")) {
     for (const item of credits.cast) {
-      const char = (item.character || "").toLowerCase();
-      // Skip "Self" appearances in behind-the-scenes / documentaries if looking for acting
-      if (char === "self" || char.startsWith("self -")) continue;
+      // Include all acting credits including guest, cameo, and special appearances
       addCandidate(item, item.character ? `Actor (${item.character})` : "Actor");
     }
   }

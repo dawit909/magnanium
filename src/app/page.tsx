@@ -28,7 +28,7 @@ export default function HomePage() {
   const [roles, setRoles] = useState<string[]>(["director", "actor"]);
   const [types, setTypes] = useState<string[]>(["theatrical", "digital"]);
   const [country, setCountry] = useState("US");
-  const [excludeShorts, setExcludeShorts] = useState(true);
+  const [excludeShorts, setExcludeShorts] = useState(false);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -348,7 +348,7 @@ export default function HomePage() {
                   onChange={(e) => setExcludeShorts(e.target.checked)}
                   className="rounded accent-neutral-800 dark:accent-neutral-200"
                 />
-                <span>Exclude shorts</span>
+                <span>Exclude short films</span>
               </label>
             </div>
           </div>
