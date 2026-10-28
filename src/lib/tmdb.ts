@@ -25,6 +25,11 @@ import {
   isPersonMarkedNotFound,
   markPersonNotFound,
 } from "./negative-cache";
+import {
+  normalizeSearchText,
+  scoreCandidate,
+  getPopularArtistsIndex,
+} from "./fuzzy";
 
 interface CandidateEntry {
   item: TMDBCreditItem;
@@ -62,6 +67,8 @@ async function mapConcurrent<T, R>(
 
 /**
  * Search TMDB for an artist (director, actor, crew, creator)
+ * Implements Approach 1: Multi-Pass Fuzzy Fallback with Damerau-Levenshtein
+ * Scoring + Popularity Boost when direct search yields 0 results or only obscure entities.
  */
 export async function searchPerson(
   query: string,
@@ -86,7 +93,88 @@ export async function searchPerson(
     return { results: [], error: `TMDB search request failed with status ${status}` };
   }
 
-  return { results: (data?.results || []).slice(0, 6) };
+  const directResults = data.results || [];
+  const hasStrongResults =
+    directResults.length > 0 &&
+    directResults.some((p) => (p.popularity || 0) >= 1.0);
+
+  // If TMDB returns solid matches, return them immediately
+  if (hasStrongResults) {
+    return { results: directResults.slice(0, 6) };
+  }
+
+  // --- Approach 1: Multi-Pass Fuzzy Fallback ---
+  // When a query returns 0 results or only obscure entities (popularity < 1.0):
+  const normQuery = normalizeSearchText(query);
+  const tokens = normQuery.split(/\s+/).filter((t) => t.length >= 2);
+
+  const candidatePool: TMDBPersonSearchResult[] = [];
+  const seenIds = new Set<number>();
+
+  const addCandidates = (list?: TMDBPersonSearchResult[]) => {
+    if (!list) return;
+    for (const c of list) {
+      if (c && c.id && !seenIds.has(c.id)) {
+        seenIds.add(c.id);
+        candidatePool.push(c);
+      }
+    }
+  };
+
+  // Include direct results in case one ranks reasonably
+  addCandidates(directResults);
+
+  if (tokens.length >= 2) {
+    // 1. Token Decomposition: Extract surname (last token) and first name
+    const surname = tokens[tokens.length - 1];
+    const firstName = tokens[0];
+
+    // 2. Broad TMDB Candidate Fetch: Fetch TMDB candidates for surname and first name
+    const [surRes, firstRes] = await Promise.all([
+      tmdbFetch<{ results: TMDBPersonSearchResult[] }>(
+        "/search/person",
+        { query: surname },
+        3600,
+        customApiKey
+      ),
+      tmdbFetch<{ results: TMDBPersonSearchResult[] }>(
+        "/search/person",
+        { query: firstName },
+        3600,
+        customApiKey
+      ),
+    ]);
+
+    addCandidates(surRes.data?.results);
+    addCandidates(firstRes.data?.results);
+  }
+
+  // Query top artists fuzzy index to inject known prominent artists
+  const fuzzyIndex = await getPopularArtistsIndex();
+  if (fuzzyIndex) {
+    const indexMatches = fuzzyIndex.search(query, 10);
+    addCandidates(indexMatches);
+  }
+
+  // 3. Damerau-Levenshtein Scoring + Popularity Boost:
+  // Score = LevenshteinDistance(query, candidate) - min(Popularity / 5, 2)
+  const scored: Array<{ candidate: TMDBPersonSearchResult; score: number; dist: number }> = [];
+
+  for (const c of candidatePool) {
+    const isTop = fuzzyIndex ? fuzzyIndex.hasArtist(c.id) : false;
+    const { dist, score } = scoreCandidate(normQuery, c.name, c.popularity || 0, isTop);
+    if (dist <= 3.5 || score <= 2.2) {
+      scored.push({ candidate: c, score, dist });
+    }
+  }
+
+  scored.sort((a, b) => a.score - b.score);
+
+  if (scored.length > 0) {
+    return { results: scored.slice(0, 6).map((s) => s.candidate) };
+  }
+
+  return { results: directResults.slice(0, 6) };
 }
 
 /**

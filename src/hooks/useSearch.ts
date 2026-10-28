@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { BoundedMap } from "@/lib/cache";
+import { getPopularArtistsIndex, TopArtistsFuzzyIndex } from "@/lib/fuzzy";
 
 // In-memory cache for search queries to avoid repeated network calls
 const searchCache = new BoundedMap<string, TMDBPersonSearchResult[]>(50);
@@ -21,6 +22,14 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const fuzzyIndexRef = useRef<TopArtistsFuzzyIndex | null>(null);
+
+  // Approach 2: Pre-cache top popular artists index for instant (< 2ms) fuzzy search
+  useEffect(() => {
+    getPopularArtistsIndex().then((idx) => {
+      if (idx) fuzzyIndexRef.current = idx;
+    });
+  }, []);
 
   // Focus search bar on "/" keypress anywhere on the page
   useEffect(() => {
@@ -57,6 +66,11 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
 
   // Handle input focus
   const handleFocus = useCallback(() => {
+    if (!fuzzyIndexRef.current) {
+      getPopularArtistsIndex().then((idx) => {
+        if (idx) fuzzyIndexRef.current = idx;
+      });
+    }
     if (query.trim().length >= 2) {
       setIsOpen(true);
     }
@@ -74,6 +88,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
   }, []);
 
   // Delay updating search results while typing (600ms debounce)
+  // Provides instant (< 2ms) client-side fuzzy suggestions while network query is pending
   useEffect(() => {
     const trimmed = query.trim();
 
@@ -88,6 +103,16 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
       setIsSearching(false);
       setHasSearched(false);
       return;
+    }
+
+    // Approach 2: Instant Client-Side Fuzzy Index (< 2ms)
+    // Runs before network query to provide instant typo-tolerant suggestions
+    if (fuzzyIndexRef.current) {
+      const instantMatches = fuzzyIndexRef.current.search(trimmed, 6);
+      if (instantMatches.length > 0) {
+        setSearchResults(instantMatches);
+        setHasSearched(true);
+      }
     }
 
     // Indicate that search is queued while user is typing
@@ -114,11 +139,19 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
 
         const data = await res.json();
         if (data.error) return;
-        const results = (data.results || []).slice(0, 6);
+        const results: TMDBPersonSearchResult[] = (data.results || []).slice(0, 6);
 
-        searchCache.set(cacheKey, results);
-        setSearchResults(results);
-        setHasSearched(true);
+        if (results.length > 0) {
+          searchCache.set(cacheKey, results);
+          setSearchResults(results);
+          setHasSearched(true);
+        } else {
+          // If server returned 0 results, fall back to client fuzzy index
+          const fallback = fuzzyIndexRef.current ? fuzzyIndexRef.current.search(trimmed, 6) : [];
+          searchCache.set(cacheKey, fallback);
+          setSearchResults(fallback);
+          setHasSearched(true);
+        }
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== "AbortError") {
           console.error("Search error:", err);
@@ -195,14 +228,25 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
           const cacheKey = trimmed.toLowerCase();
           let results = searchCache.get(cacheKey);
 
+          if (!results && fuzzyIndexRef.current) {
+            const instant = fuzzyIndexRef.current.search(trimmed, 6);
+            if (instant.length > 0) {
+              results = instant;
+            }
+          }
+
           if (!results) {
             try {
               const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
               if (res.ok) {
                 const data = await res.json();
                 const fetchedResults: TMDBPersonSearchResult[] = (data.results || []).slice(0, 6);
-                searchCache.set(cacheKey, fetchedResults);
-                results = fetchedResults;
+                if (fetchedResults.length > 0) {
+                  searchCache.set(cacheKey, fetchedResults);
+                  results = fetchedResults;
+                } else if (fuzzyIndexRef.current) {
+                  results = fuzzyIndexRef.current.search(trimmed, 6);
+                }
                 setHasSearched(true);
               }
             } catch {}
