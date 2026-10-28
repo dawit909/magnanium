@@ -115,7 +115,16 @@ export function MockFeedDetail({ activeItem, onArtistClick }: MockFeedDetailProp
           )}
         </div>
 
-        {/* Streaming Box (JustWatch) */}
+        {/* Description Overview (Plot) */}
+        {activeItem.overview && (
+          <div className="pt-1">
+            <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed text-xs sm:text-[13px]">
+              {activeItem.overview}
+            </p>
+          </div>
+        )}
+
+        {/* Streaming Box (JustWatch) - below the plot */}
         <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 space-y-1 text-xs">
           {activeItem.streaming && (
             <p>
@@ -148,15 +157,6 @@ export function MockFeedDetail({ activeItem, onArtistClick }: MockFeedDetailProp
             </a>
           </div>
         </div>
-
-        {/* Description Overview below Streaming Box */}
-        {activeItem.overview && (
-          <div className="pt-1">
-            <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed text-xs sm:text-[13px]">
-              {activeItem.overview}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -104,8 +104,8 @@ function renderItemDescription(item: FormattedRelease): string {
   return `
 ${posterHtml}
 <p style="line-height: 1.6;">${metaHtml}</p>
-${watchHtml}
 ${overviewHtml}
+${watchHtml}
   `.trim();
 }
 
