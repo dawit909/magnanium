@@ -12,10 +12,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="min-h-screen flex flex-col bg-neutral-950 text-neutral-200 antialiased font-sans">
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen flex flex-col antialiased font-sans">
         <main className="flex-1 max-w-xl w-full mx-auto px-4 py-10">{children}</main>
-        <footer className="py-6 text-center text-[11px] text-neutral-600">
+        <footer className="py-6 text-center text-[11px] text-neutral-400 dark:text-neutral-600">
           <span>This product uses the TMDB API but is not endorsed or certified by TMDB.</span>
         </footer>
       </body>

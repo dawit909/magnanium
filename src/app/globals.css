@@ -3,10 +3,20 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+}
+
+.dark {
   color-scheme: dark;
 }
 
 body {
+  background-color: #ffffff;
+  color: #171717;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dark body {
   background-color: #0a0a0a;
   color: #ededed;
 }
