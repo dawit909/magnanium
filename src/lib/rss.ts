@@ -47,19 +47,17 @@ export function generateRssFeed({
       }
 
       const posterHtml = item.posterPath
-        ? `<p><img src="https://image.tmdb.org/t/p/w342${item.posterPath}" alt="${escapeXml(item.movieTitle)}" style="max-width: 200px; margin-bottom: 8px;" /></p>`
+        ? `<p><img src="https://image.tmdb.org/t/p/w342${item.posterPath}" alt="${escapeXml(item.movieTitle)}" style="max-width: 320px; border-radius: 8px; margin-bottom: 12px;" /></p>`
         : "";
 
       const mediumLabel = item.mediaType === "tv" ? "TV" : "Movie";
+      const roleLine = item.role ? `<strong>Role:</strong> ${escapeXml(item.role)}<br/>` : "";
+      const overviewHtml = item.overview ? `<p>${escapeXml(item.overview)}</p>` : "";
 
       const descriptionContent = `
 ${posterHtml}
-<p><strong>Medium:</strong> ${mediumLabel}</p>
-<p><strong>Release:</strong> ${item.releaseDate} (${item.country})</p>
-<p><strong>Format:</strong> ${item.releaseTypeLabel}</p>
-<p><strong>Role:</strong> ${escapeXml(item.role)}</p>
-<p>${escapeXml(item.overview || "")}</p>
-<p><a href="${item.tmdbUrl}">TMDB entry</a></p>
+<p>${roleLine}<strong>Release:</strong> ${item.releaseDate} (${item.country})</p>
+${overviewHtml}
       `.trim();
 
       return `
