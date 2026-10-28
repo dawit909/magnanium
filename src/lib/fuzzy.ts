@@ -20,9 +20,13 @@ export function normalizeSearchText(text: string): string {
     .trim();
 }
 
+// Statically allocated Int32Array buffer (up to 63x63 chars) to make Damerau-Levenshtein zero-allocation
+const DL_STATIC_BUFFER = new Int32Array(4096);
+
 /**
  * Optimized Damerau-Levenshtein distance algorithm.
  * Accounts for insertions, deletions, substitutions, and adjacent transpositions.
+ * Uses a flat reusable typed buffer to avoid GC churn during tight fuzzy search loops.
  */
 export function damerauLevenshtein(source: string, target: string): number {
   const s = source.toLowerCase();
@@ -36,25 +40,31 @@ export function damerauLevenshtein(source: string, target: string): number {
   // Single-letter fast path
   if (m === 1 && n === 1) return s === t ? 0 : 1;
 
-  // 2D distance matrix
-  const d: number[][] = [];
+  // Flat distance matrix indexed by (i * stride + j)
+  const stride = n + 1;
+  const totalCells = (m + 1) * stride;
+  const d = totalCells <= 4096 ? DL_STATIC_BUFFER : new Int32Array(totalCells);
+
   for (let i = 0; i <= m; i++) {
-    d[i] = [i];
+    d[i * stride] = i;
   }
   for (let j = 0; j <= n; j++) {
-    d[0][j] = j;
+    d[j] = j;
   }
 
   for (let i = 1; i <= m; i++) {
     const sChar = s.charCodeAt(i - 1);
+    const rowOffset = i * stride;
+    const prevRowOffset = (i - 1) * stride;
+
     for (let j = 1; j <= n; j++) {
       const tChar = t.charCodeAt(j - 1);
       const cost = sChar === tChar ? 0 : 1;
 
-      d[i][j] = Math.min(
-        d[i - 1][j] + 1,       // deletion
-        d[i][j - 1] + 1,       // insertion
-        d[i - 1][j - 1] + cost // substitution
+      let minCost = Math.min(
+        d[prevRowOffset + j] + 1,       // deletion
+        d[rowOffset + j - 1] + 1,       // insertion
+        d[prevRowOffset + j - 1] + cost // substitution
       );
 
       // Transposition check
@@ -64,12 +74,18 @@ export function damerauLevenshtein(source: string, target: string): number {
         sChar === t.charCodeAt(j - 2) &&
         s.charCodeAt(i - 2) === tChar
       ) {
-        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + cost);
+        const prevPrevRowOffset = (i - 2) * stride;
+        const transCost = d[prevPrevRowOffset + j - 2] + cost;
+        if (transCost < minCost) {
+          minCost = transCost;
+        }
       }
+
+      d[rowOffset + j] = minCost;
     }
   }
 
-  return d[m][n];
+  return d[m * stride + n];
 }
 
 /**
