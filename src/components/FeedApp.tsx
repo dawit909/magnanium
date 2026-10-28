@@ -63,9 +63,6 @@ export default function FeedApp({
     isLoadingPreview,
     feedUrl,
     feedProtocolUrl,
-    calUrl,
-    webcalUrl,
-    googleCalUrl,
   } = useFeedState(selectedPerson);
 
   // Sync state whenever initialPerson changes (navigation)
@@ -126,9 +123,6 @@ export default function FeedApp({
           <FeedUrlCard
             feedUrl={feedUrl}
             feedProtocolUrl={feedProtocolUrl}
-            calUrl={calUrl}
-            webcalUrl={webcalUrl}
-            googleCalUrl={googleCalUrl}
           />
 
           <ReleaseList
