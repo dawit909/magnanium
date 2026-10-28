@@ -23,6 +23,45 @@ function formatPubDate(releaseDate: string, fallbackDate: string): string {
   return fallbackDate;
 }
 
+function renderWatchProvidersHtml(item: FormattedRelease): string {
+  const wp = item.watchProviders;
+  if (!wp || (!wp.stream?.length && !wp.rent?.length && !wp.buy?.length)) {
+    return "";
+  }
+
+  const parts: string[] = [];
+  if (wp.stream && wp.stream.length > 0) {
+    const streamPills = wp.stream
+      .map((s) => `[Stream on ${escapeXml(s)}]`)
+      .join(" · ");
+    parts.push(`<strong>Streaming in ${escapeXml(item.country)}:</strong> ${streamPills}`);
+  }
+  if (wp.rent && wp.rent.length > 0) {
+    const rentPills = wp.rent
+      .map((r) => `[Rent on ${escapeXml(r)}]`)
+      .join(" · ");
+    parts.push(`<strong>Rent / Buy:</strong> ${rentPills}`);
+  } else if (wp.buy && wp.buy.length > 0) {
+    const buyPills = wp.buy
+      .map((b) => `[Buy on ${escapeXml(b)}]`)
+      .join(" · ");
+    parts.push(`<strong>Buy:</strong> ${buyPills}`);
+  }
+
+  const linkHtml = wp.link
+    ? `<div style="margin-top: 6px; font-size: 11px;"><a href="${escapeXml(
+        wp.link
+      )}" style="color: #2563eb; text-decoration: none;">View all streaming options on JustWatch &rarr;</a></div>`
+    : "";
+
+  return `
+<div style="margin: 12px 0; padding: 10px 14px; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #18181b;">
+  ${parts.join("<br/>")}
+  ${linkHtml}
+</div>
+  `.trim();
+}
+
 function renderItemDescription(item: FormattedRelease): string {
   const posterSrc = item.posterPath
     ? item.posterPath.startsWith("http")
@@ -36,10 +75,12 @@ function renderItemDescription(item: FormattedRelease): string {
 
   const roleLine = item.role ? `<strong>Role:</strong> ${escapeXml(item.role)}<br/>` : "";
   const overviewHtml = item.overview ? `<p>${escapeXml(item.overview)}</p>` : "";
+  const watchHtml = renderWatchProvidersHtml(item);
 
   return `
 ${posterHtml}
 <p>${roleLine}<strong>Release:</strong> ${item.releaseDate} (${item.country})</p>
+${watchHtml}
 ${overviewHtml}
   `.trim();
 }

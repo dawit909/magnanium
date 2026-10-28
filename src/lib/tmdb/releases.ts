@@ -87,9 +87,96 @@ export interface ReleaseExtractionContext {
   clientKey?: string;
 }
 
+interface RawProviderEntry {
+  provider_id: number;
+  provider_name: string;
+  logo_path?: string | null;
+  display_priority?: number;
+}
+
+interface RawCountryProviders {
+  link?: string;
+  flatrate?: RawProviderEntry[];
+  rent?: RawProviderEntry[];
+  buy?: RawProviderEntry[];
+}
+
+interface RawWatchProvidersResponse {
+  results?: Record<string, RawCountryProviders>;
+}
+
 interface MovieDetailsWithReleases {
   runtime?: number;
   release_dates?: TMDBReleaseDatesResponse;
+  "watch/providers"?: RawWatchProvidersResponse;
+}
+
+export function extractWatchProviders(
+  rawProvidersData: RawWatchProvidersResponse | undefined,
+  targetCountry: string
+) {
+  if (!rawProvidersData?.results) return null;
+
+  const countryUpper = targetCountry.toUpperCase();
+  const countryData =
+    rawProvidersData.results[countryUpper] ||
+    rawProvidersData.results["US"] ||
+    null;
+
+  if (!countryData) return null;
+
+  const cleanName = (name: string): string => {
+    const trimmed = name.trim();
+    if (/^Paramount/i.test(trimmed)) return "Paramount+";
+    if (/^Amazon Prime Video/i.test(trimmed)) return "Prime Video";
+    if (/^Amazon Video/i.test(trimmed)) return "Amazon Video";
+    if (/^Apple TV/i.test(trimmed)) return "Apple TV";
+    if (/^Disney/i.test(trimmed)) return "Disney+";
+    if (/^HBO/i.test(trimmed) || /^Max/i.test(trimmed)) return "Max";
+    if (/^Netflix/i.test(trimmed)) return "Netflix";
+    if (/^Hulu/i.test(trimmed)) return "Hulu";
+    if (/^Peacock/i.test(trimmed)) return "Peacock";
+    if (/^Google Play/i.test(trimmed)) return "Google Play";
+    if (/^YouTube/i.test(trimmed)) return "YouTube";
+    return trimmed
+      .replace(/\s+(Standard with Ads|with Ads|Premium|Essential|Channel|Basic with Ads|Store)$/i, "")
+      .trim();
+  };
+
+  const getDeduplicatedNames = (entries?: RawProviderEntry[], limit = 4): string[] => {
+    if (!entries || entries.length === 0) return [];
+    const seen = new Set<string>();
+    const names: string[] = [];
+
+    const sorted = [...entries].sort(
+      (a, b) => (a.display_priority ?? 99) - (b.display_priority ?? 99)
+    );
+
+    for (const item of sorted) {
+      const cleaned = cleanName(item.provider_name);
+      if (cleaned && !seen.has(cleaned.toLowerCase())) {
+        seen.add(cleaned.toLowerCase());
+        names.push(cleaned);
+        if (names.length >= limit) break;
+      }
+    }
+    return names;
+  };
+
+  const stream = getDeduplicatedNames(countryData.flatrate, 4);
+  const rent = getDeduplicatedNames(countryData.rent, 3);
+  const buy = getDeduplicatedNames(countryData.buy, 3);
+
+  if (stream.length === 0 && rent.length === 0 && buy.length === 0) {
+    return null;
+  }
+
+  return {
+    link: countryData.link,
+    stream: stream.length > 0 ? stream : undefined,
+    rent: rent.length > 0 ? rent : undefined,
+    buy: buy.length > 0 ? buy : undefined,
+  };
 }
 
 function isShortFilmTitle(title: string): boolean {
@@ -108,6 +195,7 @@ function createReleaseItem(params: {
   releaseTypeLabel: string;
   country: string;
   role: string;
+  watchProviders?: FormattedRelease["watchProviders"];
 }): FormattedRelease {
   return {
     id: params.id,
@@ -122,6 +210,7 @@ function createReleaseItem(params: {
     country: params.country,
     role: params.role,
     tmdbUrl: `https://www.themoviedb.org/${params.mediaType}/${params.movieId}`,
+    watchProviders: params.watchProviders || null,
   };
 }
 
@@ -138,7 +227,7 @@ export async function extractMovieReleases(
 
   const { data: movieDetails } = await tmdbFetch<MovieDetailsWithReleases>(
     `/movie/${movie.id}`,
-    { append_to_response: "release_dates" },
+    { append_to_response: "release_dates,watch/providers" },
     43200,
     ctx.clientKey
   );
@@ -152,6 +241,11 @@ export async function extractMovieReleases(
   ) {
     return [];
   }
+
+  const watchProviders = extractWatchProviders(
+    movieDetails?.["watch/providers"],
+    ctx.country
+  );
 
   const candidates: FormattedRelease[] = [];
   const releaseDatesData = movieDetails?.release_dates;
@@ -201,6 +295,7 @@ export async function extractMovieReleases(
             releaseTypeLabel: mapped.label,
             country: countryData.iso_3166_1,
             role: roleStr,
+            watchProviders,
           })
         );
       }
@@ -233,6 +328,7 @@ export async function extractMovieReleases(
           releaseTypeLabel: "Theatrical",
           country: ctx.country,
           role: roleStr,
+          watchProviders,
         })
       );
     }
@@ -252,11 +348,18 @@ export async function extractTvReleases(
     return [];
   }
 
-  const { data: tvDetails } = await tmdbFetch<TvDetails>(
+  const { data: tvDetails } = await tmdbFetch<
+    TvDetails & { "watch/providers"?: RawWatchProvidersResponse }
+  >(
     `/tv/${tvShow.id}`,
-    {},
+    { append_to_response: "watch/providers" },
     43200,
     ctx.clientKey
+  );
+
+  const watchProviders = extractWatchProviders(
+    tvDetails?.["watch/providers"],
+    ctx.country
   );
 
   const candidates: FormattedRelease[] = [];
@@ -301,6 +404,7 @@ export async function extractTvReleases(
           releaseTypeLabel: premiereLabel,
           country: showCountry,
           role: roleStr,
+          watchProviders,
         })
       );
     }
@@ -332,6 +436,7 @@ export async function extractTvReleases(
           releaseTypeLabel: "Series Premiere",
           country: showCountry,
           role: roleStr,
+          watchProviders,
         })
       );
     }

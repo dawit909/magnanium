@@ -84,6 +84,22 @@ export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
                     <span>·</span>
                     <span>{item.country}</span>
                   </div>
+
+                  {/* Streaming & Watch Providers Badge */}
+                  {item.watchProviders?.stream && item.watchProviders.stream.length > 0 ? (
+                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                      <span className="truncate">
+                        Stream on {item.watchProviders.stream.slice(0, 3).join(", ")}
+                      </span>
+                    </div>
+                  ) : item.watchProviders?.rent && item.watchProviders.rent.length > 0 ? (
+                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                      <span className="truncate">
+                        Rent on {item.watchProviders.rent.slice(0, 2).join(", ")}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

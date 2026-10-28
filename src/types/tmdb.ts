@@ -91,6 +91,13 @@ export interface TvDetails {
 
 export type ReleaseTypeCategory = "cinema" | "home" | "earliest";
 
+export interface WatchProvidersInfo {
+  link?: string;
+  stream?: string[];
+  rent?: string[];
+  buy?: string[];
+}
+
 export interface FormattedRelease {
   id: string;
   mediaType: "movie" | "tv";
@@ -104,6 +111,7 @@ export interface FormattedRelease {
   country: string;
   role: string;
   tmdbUrl: string;
+  watchProviders?: WatchProvidersInfo | null;
 }
 
 export interface FeedFilterOptions {
