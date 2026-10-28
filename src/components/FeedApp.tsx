@@ -4,25 +4,26 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
 import { createPersonSlug } from "@/lib/slug";
-import { Search, Copy, Check, ExternalLink, Sun, Moon, User } from "lucide-react";
+import { Search, Copy, Check, ExternalLink, Sun, Moon, User, Film, Rss } from "lucide-react";
 
 const COUNTRIES = [
-  { code: "US", name: "US" },
-  { code: "GB", name: "UK" },
-  { code: "CA", name: "CA" },
-  { code: "AU", name: "AU" },
-  { code: "FR", name: "FR" },
-  { code: "DE", name: "DE" },
-  { code: "KR", name: "KR" },
-  { code: "JP", name: "JP" },
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "CA", name: "Canada" },
+  { code: "AU", name: "Australia" },
+  { code: "FR", name: "France" },
+  { code: "DE", name: "Germany" },
+  { code: "KR", name: "South Korea" },
+  { code: "JP", name: "Japan" },
 ];
 
 const SUGGESTIONS = [
-  { id: 525, name: "Christopher Nolan" },
-  { id: 45400, name: "Greta Gerwig" },
-  { id: 137427, name: "Denis Villeneuve" },
-  { id: 21684, name: "Bong Joon Ho" },
-  { id: 18897, name: "Quentin Tarantino" },
+  { id: 525, name: "Christopher Nolan", dept: "Director", photo: "/xuAIuYSmsUzKlUMBFGVZaWsY3DZ.jpg" },
+  { id: 45400, name: "Greta Gerwig", dept: "Director & Writer", photo: "/dxKAhpkz4XNwmRzMG5QOpXjPZ1N.jpg" },
+  { id: 137427, name: "Denis Villeneuve", dept: "Director", photo: "/4aT1vL05c9k3U0zD6rT4TzM9qZ9.jpg" },
+  { id: 21684, name: "Bong Joon Ho", dept: "Director", photo: "/stwnTvZAoD8gEJEDHpDQyLCyDy5.jpg" },
+  { id: 18897, name: "Quentin Tarantino", dept: "Director", photo: "/9AaPM0f2U7O6N2n3L1QJ0vL4g3v.jpg" },
+  { id: 234352, name: "Margot Robbie", dept: "Actor & Producer", photo: "/euDPyqLnuUMgYvNaT7umgp49OnE.jpg" },
 ];
 
 export default function FeedApp({
@@ -86,7 +87,7 @@ export default function FeedApp({
       const slug = createPersonSlug(selectedPerson.id, selectedPerson.name);
       setRecentArtists((prev) => {
         const filtered = prev.filter((a) => a.id !== selectedPerson.id);
-        const updated = [{ id: selectedPerson.id, name: selectedPerson.name, slug }, ...filtered].slice(0, 5);
+        const updated = [{ id: selectedPerson.id, name: selectedPerson.name, slug }, ...filtered].slice(0, 6);
         localStorage.setItem("magnanium_recent", JSON.stringify(updated));
         return updated;
       });
@@ -190,6 +191,11 @@ export default function FeedApp({
           const guid = item.querySelector("guid")?.textContent || "";
           const pubDate = item.querySelector("pubDate")?.textContent || "";
           const categories = Array.from(item.querySelectorAll("category")).map((c) => c.textContent || "");
+          const desc = item.querySelector("description")?.textContent || "";
+
+          // Extract poster if available from html
+          const imgMatch = desc.match(/src="([^"]+)"/);
+          const posterUrl = imgMatch ? imgMatch[1] : null;
 
           const dateMatch = title.match(/\((\d{4}-\d{2}-\d{2})\)/);
           const releaseDate = dateMatch ? dateMatch[1] : pubDate;
@@ -199,7 +205,7 @@ export default function FeedApp({
             movieId: 0,
             movieTitle: title.split(" - ")[0] || title,
             overview: "",
-            posterPath: null,
+            posterPath: posterUrl,
             releaseDate,
             releaseType: "cinema",
             releaseTypeLabel: categories[0] || "Release",
@@ -246,44 +252,44 @@ export default function FeedApp({
     if (!feedUrl) return;
     navigator.clipboard.writeText(feedUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
-    <div className="space-y-6 text-sm">
-      {/* Sticky Top Header */}
-      <div className="sticky top-0 z-40 bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200 dark:border-neutral-800 -mx-4 px-4 sm:mx-0 sm:px-0">
+    <div className="space-y-8 text-sm">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-40 bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0">
         <div className="flex items-center justify-between gap-3">
-          {/* Left: Home button */}
+          {/* Logo */}
           <button
             onClick={goHome}
-            className="font-medium text-sm text-neutral-900 dark:text-neutral-100 hover:opacity-75 transition-opacity flex-shrink-0"
+            className="font-semibold text-base text-neutral-900 dark:text-neutral-100 tracking-tight hover:opacity-75 transition-opacity flex-shrink-0"
           >
             Magnanium
           </button>
 
-          {/* Middle: Persistent Search Bar */}
+          {/* Search Bar in Header */}
           <div ref={searchContainerRef} className="flex-1 max-w-xs sm:max-w-sm relative">
-            <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search actor or director..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 transition-colors"
+              placeholder="Search director or actor..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/20 dark:focus:ring-neutral-600/30 focus:border-neutral-400 dark:focus:border-neutral-600 transition-all"
             />
             {isSearching && (
-              <div className="w-3 h-3 border border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
+              <div className="w-3 h-3 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
             )}
 
-            {/* Autocomplete Dropdown under Search Bar */}
+            {/* Autocomplete Dropdown */}
             {searchResults.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800/50 shadow-xl z-50 max-h-80 overflow-y-auto">
+              <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60 max-h-80 overflow-y-auto">
                 {searchResults.map((person) => (
                   <button
                     key={person.id}
                     onClick={() => selectPerson(person)}
-                    className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-xs transition-colors"
+                    className="w-full text-left px-3.5 py-2.5 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-xs transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       {person.profile_path ? (
@@ -291,14 +297,16 @@ export default function FeedApp({
                         <img
                           src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
                           alt={person.name}
-                          className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
+                          className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
                         />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
                           <User className="w-3.5 h-3.5" />
                         </div>
                       )}
-                      <span className="text-neutral-900 dark:text-neutral-200 font-medium truncate">{person.name}</span>
+                      <span className="text-neutral-900 dark:text-neutral-100 font-medium truncate">
+                        {person.name}
+                      </span>
                     </div>
                     <span className="text-neutral-400 dark:text-neutral-500 text-[11px] ml-2 flex-shrink-0">
                       {person.known_for_department}
@@ -309,36 +317,38 @@ export default function FeedApp({
             )}
 
             {query.trim().length > 1 && !isSearching && searchResults.length === 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 p-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-400 dark:text-neutral-500 shadow-xl z-50">
-                No results found.
+              <div className="absolute left-0 right-0 top-full mt-2 p-3 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-400 dark:text-neutral-500 shadow-xl z-50 text-center">
+                No matching artists found.
               </div>
             )}
           </div>
 
-          {/* Right: Theme Toggle */}
+          {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
             aria-label="Toggle theme"
-            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors flex-shrink-0"
+            className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0"
           >
             {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Body */}
+      {/* Main Content Area */}
       {!selectedPerson ? (
-        <div className="pt-8 space-y-6">
-          {/* Recent Artists (if any exist in localStorage) */}
+        <div className="pt-6 space-y-8 animate-in fade-in duration-200">
+          {/* Recent History */}
           {recentArtists.length > 0 && (
-            <div className="space-y-2">
-              <span className="text-xs text-neutral-400 dark:text-neutral-500 font-mono">recent</span>
+            <div className="space-y-2.5">
+              <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
+                Recent
+              </span>
               <div className="flex flex-wrap gap-2">
                 {recentArtists.map((artist) => (
                   <button
                     key={artist.id}
                     onClick={() => router.push(`/${artist.slug}`)}
-                    className="px-2.5 py-1 rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors"
+                    className="px-3.5 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 text-xs hover:border-neutral-400 dark:hover:border-neutral-600 shadow-sm transition-all"
                   >
                     {artist.name}
                   </button>
@@ -347,17 +357,34 @@ export default function FeedApp({
             </div>
           )}
 
-          {/* Quick Examples */}
-          <div className="space-y-2">
-            <span className="text-xs text-neutral-400 dark:text-neutral-500 font-mono">popular</span>
-            <div className="flex flex-wrap gap-2">
+          {/* Popular Suggestions */}
+          <div className="space-y-3">
+            <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
+              Popular Filmmakers
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {SUGGESTIONS.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => router.push(`/${createPersonSlug(item.id, item.name)}`)}
-                  className="px-2.5 py-1 rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors"
+                  className="p-2.5 rounded-xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-sm text-left flex items-center gap-2.5 transition-all group"
                 >
-                  {item.name}
+                  <div className="w-9 h-9 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 border border-neutral-200 dark:border-neutral-700">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://image.tmdb.org/t/p/w92${item.photo}`}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-xs text-neutral-900 dark:text-neutral-100 truncate">
+                      {item.name}
+                    </div>
+                    <div className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">
+                      {item.dept}
+                    </div>
+                  </div>
                 </button>
               ))}
             </div>
@@ -365,15 +392,15 @@ export default function FeedApp({
         </div>
       ) : (
         /* Selected Person Page */
-        <div className="space-y-5">
-          {/* Person Header with Profile Picture */}
-          <div className="flex items-center gap-3.5 pb-3 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Person Header */}
+          <div className="flex items-center gap-4 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80">
             {selectedPerson.profile_path ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={`https://image.tmdb.org/t/p/w185${selectedPerson.profile_path}`}
                 alt={selectedPerson.name}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-sm flex-shrink-0"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-md flex-shrink-0"
               />
             ) : (
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-neutral-400 flex-shrink-0">
@@ -381,133 +408,196 @@ export default function FeedApp({
               </div>
             )}
             <div>
-              <span className="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100 block">
+              <h2 className="text-xl sm:text-2xl font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
                 {selectedPerson.name}
-              </span>
-              <span className="text-neutral-400 dark:text-neutral-500 text-xs">
+              </h2>
+              <span className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 inline-block">
                 {selectedPerson.known_for_department}
               </span>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="space-y-2.5 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-14 text-neutral-400 dark:text-neutral-500">Role:</span>
-              {(["director", "actor", "writer"] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => toggleRole(r)}
-                  className={`px-2.5 py-1 rounded border transition-colors capitalize ${
-                    roles.includes(r)
-                      ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-200 dark:text-neutral-900 dark:border-neutral-200"
-                      : "bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 dark:bg-neutral-950 dark:text-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-700"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
+          {/* Filters in Clean Pill Groups */}
+          <div className="space-y-3.5 text-xs">
+            {/* Roles */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Role:</span>
+              <div className="flex items-center gap-1.5">
+                {(["director", "actor", "writer"] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => toggleRole(r)}
+                    className={`px-3 py-1 rounded-full border text-xs capitalize transition-all ${
+                      roles.includes(r)
+                        ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
+                        : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="w-14 text-neutral-400 dark:text-neutral-500">Format:</span>
-              {[
-                { id: "cinema", label: "Cinema" },
-                { id: "home", label: "Home" },
-                { id: "earliest", label: "Earliest" },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => toggleType(t.id)}
-                  className={`px-2.5 py-1 rounded border transition-colors ${
-                    types.includes(t.id)
-                      ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-200 dark:text-neutral-900 dark:border-neutral-200"
-                      : "bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-300 dark:bg-neutral-950 dark:text-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-700"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+            {/* Formats */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Format:</span>
+              <div className="flex items-center gap-1.5">
+                {[
+                  { id: "cinema", label: "Cinema" },
+                  { id: "home", label: "Home" },
+                  { id: "earliest", label: "Earliest" },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => toggleType(t.id)}
+                    className={`px-3 py-1 rounded-full border text-xs transition-all ${
+                      types.includes(t.id)
+                        ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
+                        : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {/* Region */}
             <div className="flex items-center gap-2">
-              <span className="w-14 text-neutral-400 dark:text-neutral-500">Region:</span>
+              <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Region:</span>
               <select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="px-2 py-1 rounded bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-300 text-xs focus:outline-none"
+                className="px-3 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs focus:outline-none shadow-sm"
               >
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
-                    {c.name}
+                    {c.name} ({c.code})
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Short films toggle */}
+            <div className="flex items-center gap-2 pt-0.5">
               <span className="w-14"></span>
-              <label className="flex items-center gap-1.5 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
+              <label className="flex items-center gap-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
                 <input
                   type="checkbox"
                   checked={excludeShorts}
                   onChange={(e) => setExcludeShorts(e.target.checked)}
-                  className="rounded accent-neutral-800 dark:accent-neutral-200"
+                  className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5"
                 />
                 <span>Exclude short films</span>
               </label>
             </div>
           </div>
 
-          {/* RSS Feed Output */}
-          <div className="pt-2 space-y-1.5">
-            <div className="text-xs text-neutral-400 dark:text-neutral-500">Feed URL</div>
+          {/* RSS Feed Card */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/90 dark:border-neutral-800 shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+              <span className="flex items-center gap-1.5 font-medium text-neutral-700 dark:text-neutral-300">
+                <Rss className="w-3.5 h-3.5 text-amber-500" />
+                RSS Feed URL
+              </span>
+              <span className="text-[11px] text-neutral-400">Subscribe in any reader</span>
+            </div>
+
             <div className="flex gap-2">
               <input
                 type="text"
                 readOnly
                 value={feedUrl}
-                className="flex-1 px-2.5 py-1.5 rounded bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-800 dark:text-neutral-300 select-all focus:outline-none"
+                className="flex-1 px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-700 dark:text-neutral-300 select-all focus:outline-none"
               />
               <button
                 onClick={handleCopy}
-                className="px-3 py-1.5 rounded bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-neutral-200 dark:hover:bg-white dark:text-neutral-900 text-xs font-medium flex items-center gap-1 transition-colors"
+                className="px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-neutral-100 dark:hover:bg-white dark:text-neutral-900 text-xs font-medium flex items-center gap-1.5 shadow-sm transition-all"
               >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? "Copied" : "Copy"}
               </button>
               <a
                 href={feedUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1.5 rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white flex items-center transition-colors"
-                title="Open RSS Feed"
+                className="p-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white flex items-center justify-center transition-colors shadow-sm"
+                title="Open RSS Feed XML"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
           </div>
 
-          {/* Release List */}
-          <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800/70 space-y-2">
-            <div className="flex items-center justify-between text-xs text-neutral-400 dark:text-neutral-500">
-              <span>Feed entries</span>
-              {isLoadingPreview && <span>Loading...</span>}
+          {/* Releases List */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                Releases ({previewReleases.length})
+              </span>
+              {isLoadingPreview && (
+                <span className="text-neutral-400 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-neutral-400 animate-ping" />
+                  Updating...
+                </span>
+              )}
             </div>
 
             {previewReleases.length === 0 ? (
-              <p className="text-xs text-neutral-400 dark:text-neutral-500 py-2">No entries found.</p>
+              <div className="py-8 text-center text-xs text-neutral-400 dark:text-neutral-500 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800">
+                No releases found for the selected filters.
+              </div>
             ) : (
               <div className="divide-y divide-neutral-100 dark:divide-neutral-900 border-t border-b border-neutral-100 dark:border-neutral-900">
                 {previewReleases.map((item) => (
-                  <div key={item.id} className="py-2 flex items-center justify-between text-xs">
-                    <div className="truncate mr-3">
-                      <span className="text-neutral-800 dark:text-neutral-200">{item.movieTitle}</span>
-                      <span className="text-neutral-400 dark:text-neutral-500 ml-1.5">({item.role})</span>
+                  <div
+                    key={item.id}
+                    className="py-3 flex items-center justify-between gap-3 group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Movie Poster Thumbnail */}
+                      <div className="w-10 h-14 rounded-lg bg-neutral-100 dark:bg-neutral-800 overflow-hidden border border-neutral-200/80 dark:border-neutral-700 flex-shrink-0 shadow-sm">
+                        {item.posterPath ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.posterPath}
+                            alt={item.movieTitle}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-neutral-400">
+                            <Film className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Title & Metadata */}
+                      <div className="min-w-0">
+                        <a
+                          href={item.tmdbUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-sm text-neutral-900 dark:text-neutral-100 hover:underline truncate block"
+                        >
+                          {item.movieTitle}
+                        </a>
+                        <div className="text-xs text-neutral-400 dark:text-neutral-500 flex items-center gap-1.5 mt-0.5 truncate">
+                          <span>{item.role}</span>
+                          <span>·</span>
+                          <span>{item.country}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 text-neutral-500 dark:text-neutral-400 font-mono text-[11px]">
-                      <span>{item.releaseTypeLabel}</span>
-                      <span>{item.releaseDate}</span>
+
+                    {/* Date & Format Tag */}
+                    <div className="text-right flex-shrink-0 space-y-1">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 shadow-sm">
+                        {item.releaseTypeLabel}
+                      </span>
+                      <div className="font-mono text-xs text-neutral-500 dark:text-neutral-400">
+                        {item.releaseDate}
+                      </div>
                     </div>
                   </div>
                 ))}
