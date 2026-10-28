@@ -268,6 +268,7 @@ export async function getPersonReleases(
     oneYearAgoStr,
     sevenDaysFromNowStr,
     clientKey: customApiKey,
+    personId: Number(personId),
   };
 
   // Execute extraction with pooled concurrency (10 parallel requests max)

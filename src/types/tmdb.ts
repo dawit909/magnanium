@@ -50,6 +50,7 @@ export interface TMDBCreditItem {
   origin_country?: string[];
   genre_ids?: number[];
   episode_count?: number;
+  first_credit_air_date?: string;
 }
 
 export interface TMDBPersonCreditsResponse {

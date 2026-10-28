@@ -86,6 +86,7 @@ export interface ReleaseExtractionContext {
   oneYearAgoStr: string;
   sevenDaysFromNowStr: string;
   clientKey?: string;
+  personId?: number;
 }
 
 const RE_RELEASE_REGEX =
@@ -516,6 +517,38 @@ export async function extractMovieReleases(
   return filterReleasesByType(candidates, ctx.normalizedTypes, ctx.isEarliestOnly);
 }
 
+interface SeasonCreditsResponse {
+  cast?: Array<{ id: number; name: string }>;
+  crew?: Array<{ id: number; name: string }>;
+}
+
+export async function isArtistInSeasonCredits(
+  tvId: number,
+  seasonNumber: number,
+  personId: number,
+  clientKey?: string
+): Promise<boolean | null> {
+  try {
+    const { data } = await tmdbFetch<SeasonCreditsResponse>(
+      `/tv/${tvId}/season/${seasonNumber}/credits`,
+      {},
+      43200,
+      clientKey
+    );
+
+    const cast = data?.cast || [];
+    const crew = data?.crew || [];
+
+    if (cast.length === 0 && crew.length === 0) {
+      return null;
+    }
+
+    return cast.some((c) => c.id === personId) || crew.some((c) => c.id === personId);
+  } catch {
+    return null;
+  }
+}
+
 export async function extractTvReleases(
   tvShow: TMDBCreditItem,
   roleStr: string,
@@ -535,8 +568,8 @@ export async function extractTvReleases(
     TvDetails & {
       "watch/providers"?: RawWatchProvidersResponse;
       credits?: {
-        cast?: { name: string; order?: number }[];
-        crew?: { name: string; job?: string; department?: string }[];
+        cast?: { id: number; name: string; order?: number }[];
+        crew?: { id: number; name: string; job?: string; department?: string }[];
       };
     }
   >(
@@ -567,16 +600,26 @@ export async function extractTvReleases(
   const candidates: FormattedRelease[] = [];
   const showCountry = tvDetails?.origin_country?.[0] || ctx.country;
 
-  if (tvDetails?.seasons && tvDetails.seasons.length > 0) {
-    const validSeasons = tvDetails.seasons.filter((s) => s.season_number > 0);
+  const isCoreCastOrCrew =
+    Boolean(ctx.personId) &&
+    (tvDetails?.created_by?.some((c) => c.id === ctx.personId) ||
+      tvDetails?.credits?.cast?.some((c) => c.id === ctx.personId) ||
+      tvDetails?.credits?.crew?.some((c) => c.id === ctx.personId));
+
+  const validSeasons =
+    tvDetails?.seasons && tvDetails.seasons.length > 0
+      ? tvDetails.seasons.filter((s) => s.season_number > 0)
+      : [];
+
+  if (validSeasons.length > 0) {
     for (const season of validSeasons) {
       const dateStr =
         season.air_date ||
-        (tvDetails.next_episode_to_air?.season_number === season.season_number
+        (tvDetails?.next_episode_to_air?.season_number === season.season_number
           ? tvDetails.next_episode_to_air.air_date
           : null);
 
-      const seasonTitle = `${tvDetails.name}: ${season.name}`;
+      const seasonTitle = `${tvDetails?.name || showTitle}: ${season.name}`;
 
       if (
         !dateStr ||
@@ -593,6 +636,37 @@ export async function extractTvReleases(
         continue;
       }
 
+      // Filter out past guest / stale roles when a series releases subsequent seasons
+      if (ctx.personId && !isCoreCastOrCrew) {
+        const inSeason = await isArtistInSeasonCredits(
+          tvShow.id,
+          season.season_number,
+          ctx.personId,
+          ctx.clientKey
+        );
+
+        if (inSeason === false) {
+          // Season credits are populated and artist is not part of this season
+          continue;
+        }
+
+        if (inSeason === null) {
+          // No credits entered yet for this season: check if artist only had an older or brief guest role
+          const seasonYear = dateStr ? parseInt(dateStr.slice(0, 4), 10) : 0;
+          const firstCreditYear = tvShow.first_credit_air_date
+            ? parseInt(tvShow.first_credit_air_date.slice(0, 4), 10)
+            : 0;
+          const epCount = tvShow.episode_count ?? 1;
+
+          if (
+            (firstCreditYear > 0 && seasonYear - firstCreditYear >= 2) ||
+            epCount <= 3
+          ) {
+            continue;
+          }
+        }
+      }
+
       const premiereLabel = season.season_number === 1 ? "Series Premiere" : "Season Premiere";
 
       candidates.push(
@@ -601,8 +675,8 @@ export async function extractTvReleases(
           mediaType: "tv",
           movieId: tvShow.id,
           movieTitle: seasonTitle,
-          overview: season.overview || tvDetails.overview || tvShow.overview,
-          posterPath: season.poster_path || tvDetails.poster_path || tvShow.poster_path,
+          overview: season.overview || tvDetails?.overview || tvShow.overview,
+          posterPath: season.poster_path || tvDetails?.poster_path || tvShow.poster_path,
           releaseDate: dateStr,
           releaseType: "home",
           releaseTypeLabel: premiereLabel,
@@ -618,8 +692,8 @@ export async function extractTvReleases(
     }
   }
 
-  // Fallback to tvShow.first_air_date if no specific seasons matched
-  if (candidates.length === 0 && tvShow.first_air_date) {
+  // Fallback to tvShow.first_air_date ONLY if no seasons were available to evaluate
+  if (candidates.length === 0 && tvShow.first_air_date && validSeasons.length === 0) {
     const dateStr = tvShow.first_air_date;
     if (
       (!ctx.excludeReReleases || !isReReleaseOrRemaster(undefined, showTitle)) &&
