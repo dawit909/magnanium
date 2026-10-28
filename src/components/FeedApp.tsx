@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
 import { createPersonSlug, parsePersonIdFromSlug } from "@/lib/slug";
 import { Search, Copy, Check, ExternalLink, Sun, Moon, User } from "lucide-react";
@@ -39,6 +39,8 @@ export default function FeedApp({
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
 
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
   // Initialize theme from localStorage (default light)
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -50,6 +52,17 @@ export default function FeedApp({
       setTheme("light");
       document.documentElement.classList.remove("dark");
     }
+  }, []);
+
+  // Close search dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setSearchResults([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Listen to browser Back / Forward buttons (popstate)
@@ -232,111 +245,109 @@ export default function FeedApp({
 
   return (
     <div className="space-y-6 text-sm">
-      {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-4">
+      {/* Top Header: Magnanium, Search in middle, Dark mode toggle */}
+      <div className="flex items-center justify-between gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-4">
+        {/* Left: Home button */}
         <button
           onClick={goHome}
-          className="font-medium text-sm text-neutral-900 dark:text-neutral-100 hover:opacity-75 transition-opacity"
+          className="font-medium text-sm text-neutral-900 dark:text-neutral-100 hover:opacity-75 transition-opacity flex-shrink-0"
         >
           Magnanium
         </button>
 
-        {/* Theme Toggle (White / Dark) */}
-        <button
-          onClick={toggleTheme}
-          aria-label="Toggle theme"
-          className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-        >
-          {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-        </button>
-      </div>
+        {/* Middle: Persistent Search Bar */}
+        <div ref={searchContainerRef} className="flex-1 max-w-xs sm:max-w-sm relative">
+          <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search actor or director..."
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 transition-colors"
+          />
+          {isSearching && (
+            <div className="w-3 h-3 border border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
+          )}
 
-      {/* Search Input (Home View) */}
-      {!selectedPerson ? (
-        <div className="space-y-2">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search actor or director..."
-              autoFocus
-              className="w-full pl-8 pr-3 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-200 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
-            />
-            {isSearching && (
-              <div className="w-3 h-3 border border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
-            )}
-          </div>
-
-          {/* Autocomplete Results */}
+          {/* Autocomplete Dropdown under Search Bar */}
           {searchResults.length > 0 && (
-            <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800/50 shadow-sm overflow-hidden">
+            <div className="absolute left-0 right-0 top-full mt-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800/50 shadow-xl z-50 max-h-80 overflow-y-auto">
               {searchResults.map((person) => (
                 <button
                   key={person.id}
                   onClick={() => selectPerson(person)}
                   className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-xs transition-colors"
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     {person.profile_path ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
                         alt={person.name}
-                        className="w-9 h-9 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
+                        className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
-                        <User className="w-4 h-4" />
+                      <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                        <User className="w-3.5 h-3.5" />
                       </div>
                     )}
-                    <span className="text-neutral-900 dark:text-neutral-200 font-medium">{person.name}</span>
+                    <span className="text-neutral-900 dark:text-neutral-200 font-medium truncate">{person.name}</span>
                   </div>
-                  <span className="text-neutral-400 dark:text-neutral-500">{person.known_for_department}</span>
+                  <span className="text-neutral-400 dark:text-neutral-500 text-[11px] ml-2 flex-shrink-0">
+                    {person.known_for_department}
+                  </span>
                 </button>
               ))}
             </div>
           )}
 
           {query.trim().length > 1 && !isSearching && searchResults.length === 0 && (
-            <p className="text-xs text-neutral-400 dark:text-neutral-500">No results found.</p>
+            <div className="absolute left-0 right-0 top-full mt-1.5 p-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-400 dark:text-neutral-500 shadow-xl z-50">
+              No results found.
+            </div>
           )}
+        </div>
+
+        {/* Right: Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          aria-label="Toggle theme"
+          className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors flex-shrink-0"
+        >
+          {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {/* Main Body */}
+      {!selectedPerson ? (
+        <div className="py-20 text-center text-xs text-neutral-400 dark:text-neutral-500">
+          Search an actor or director above to generate an RSS feed.
         </div>
       ) : (
         /* Selected Person Page */
         <div className="space-y-5">
-          {/* Person Header with Profile Picture */}
-          <div className="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
-            <div className="flex items-center gap-3.5">
-              {selectedPerson.profile_path ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`https://image.tmdb.org/t/p/w185${selectedPerson.profile_path}`}
-                  alt={selectedPerson.name}
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-sm flex-shrink-0"
-                />
-              ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-neutral-400 flex-shrink-0">
-                  <User className="w-8 h-8" />
-                </div>
-              )}
-              <div>
-                <span className="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100 block">
-                  {selectedPerson.name}
-                </span>
-                <span className="text-neutral-400 dark:text-neutral-500 text-xs">
-                  {selectedPerson.known_for_department}
-                </span>
+          {/* Person Header with Profile Picture (No Change button) */}
+          <div className="flex items-center gap-3.5 pb-3 border-b border-neutral-200 dark:border-neutral-800">
+            {selectedPerson.profile_path ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`https://image.tmdb.org/t/p/w185${selectedPerson.profile_path}`}
+                alt={selectedPerson.name}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-sm flex-shrink-0"
+              />
+            ) : (
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                <User className="w-8 h-8" />
               </div>
+            )}
+            <div>
+              <span className="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100 block">
+                {selectedPerson.name}
+              </span>
+              <span className="text-neutral-400 dark:text-neutral-500 text-xs">
+                {selectedPerson.known_for_department}
+              </span>
             </div>
-
-            <button
-              onClick={goHome}
-              className="text-xs text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
-            >
-              Change
-            </button>
           </div>
 
           {/* Filters */}
