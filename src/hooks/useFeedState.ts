@@ -8,7 +8,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   const [roles, setRoles] = useState<string[]>(["actor", "crew"]);
   const [types, setTypes] = useState<string[]>(["cinema", "home"]);
   const [country, setCountry] = useState("US");
-  const [alert, setAlert] = useState<"announced" | "release_day">("announced");
+  const [alert, setAlert] = useState<"announced" | "release_day" | "week_before">("announced");
   const [excludeShorts, setExcludeShorts] = useState(false);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);

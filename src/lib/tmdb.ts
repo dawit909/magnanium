@@ -186,6 +186,7 @@ export async function getPersonReleases(
   const sliceCandidates = candidateList.slice(0, 40);
   const nowStr = new Date().toISOString().split("T")[0];
   const oneYearAgoStr = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const sevenDaysFromNowStr = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   const ctx: ReleaseExtractionContext = {
     country,
@@ -196,6 +197,7 @@ export async function getPersonReleases(
     isEarliestOnly,
     nowStr,
     oneYearAgoStr,
+    sevenDaysFromNowStr,
     clientKey: customApiKey,
   };
 

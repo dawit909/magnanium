@@ -10,8 +10,8 @@ interface FeedFiltersProps {
   onToggleRole: (r: string) => void;
   types: string[];
   onToggleType: (t: string) => void;
-  alert: "announced" | "release_day";
-  onSetAlert: (a: "announced" | "release_day") => void;
+  alert: "announced" | "release_day" | "week_before";
+  onSetAlert: (a: "announced" | "release_day" | "week_before") => void;
   country: string;
   onSetCountry: (c: string) => void;
   excludeShorts: boolean;
@@ -98,6 +98,7 @@ const FORMAT_OPTIONS = [
 
 const ALERT_OPTIONS = [
   { id: "announced", label: "When Announced" },
+  { id: "week_before", label: "Week Before Release" },
   { id: "release_day", label: "On Release Day" },
 ];
 
@@ -174,14 +175,14 @@ export default function FeedFilters({
           <FilterPill
             key={a.id}
             active={alert === a.id}
-            onClick={() => onSetAlert(a.id as "announced" | "release_day")}
+            onClick={() => onSetAlert(a.id as "announced" | "release_day" | "week_before")}
           >
             {a.label}
           </FilterPill>
         ))}
         <InfoTooltip
           ariaLabel="Alert timing info"
-          text="“When Announced” alerts as soon as a future date is scheduled. “On Release Day” alerts on the release date."
+          text="“When Announced” alerts as soon as a future date is scheduled. “Week Before Release” alerts 7 days prior. “On Release Day” alerts on the release date."
         />
       </FilterRow>
 

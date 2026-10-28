@@ -37,13 +37,15 @@ export function mapReleaseType(
 
 export function isDateInWindow(
   dateStr: string,
-  alert: "announced" | "release_day",
+  alert: "announced" | "release_day" | "week_before",
   window: "upcoming" | "all",
   nowStr: string,
-  oneYearAgoStr: string
+  oneYearAgoStr: string,
+  sevenDaysFromNowStr?: string
 ): boolean {
   if (!dateStr) return false;
   if (alert === "release_day" && dateStr > nowStr) return false;
+  if (alert === "week_before" && sevenDaysFromNowStr && dateStr > sevenDaysFromNowStr) return false;
   if (window === "upcoming" && dateStr < nowStr) return false;
   if (window === "all" && dateStr < oneYearAgoStr) return false;
   return true;
@@ -75,12 +77,13 @@ export function filterReleasesByType(
 export interface ReleaseExtractionContext {
   country: string;
   window: "upcoming" | "all";
-  alert: "announced" | "release_day";
+  alert: "announced" | "release_day" | "week_before";
   excludeShorts: boolean;
   normalizedTypes: string[];
   isEarliestOnly: boolean;
   nowStr: string;
   oneYearAgoStr: string;
+  sevenDaysFromNowStr: string;
   clientKey?: string;
 }
 
@@ -133,7 +136,7 @@ export async function extractMovieReleases(
         const dateStr = rd.release_date ? rd.release_date.split("T")[0] : "";
         const mapped = mapReleaseType(rd.type, rd.note);
 
-        if (!mapped || !isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr)) {
+        if (!mapped || !isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr, ctx.sevenDaysFromNowStr)) {
           continue;
         }
 
@@ -160,7 +163,7 @@ export async function extractMovieReleases(
   // Fallback to general movie.release_date if no country release entries matched
   if (candidates.length === 0 && movie.release_date) {
     const dateStr = movie.release_date;
-    if (isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr)) {
+    if (isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr, ctx.sevenDaysFromNowStr)) {
       candidates.push({
         id: `${movie.id}-general-${dateStr}`,
         mediaType: "movie",
@@ -211,7 +214,7 @@ export async function extractTvReleases(
           ? tvDetails.next_episode_to_air.air_date
           : null);
 
-      if (!dateStr || !isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr)) {
+      if (!dateStr || !isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr, ctx.sevenDaysFromNowStr)) {
         continue;
       }
 
@@ -238,7 +241,7 @@ export async function extractTvReleases(
   // Fallback to tvShow.first_air_date if no specific seasons matched
   if (candidates.length === 0 && tvShow.first_air_date) {
     const dateStr = tvShow.first_air_date;
-    if (isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr)) {
+    if (isDateInWindow(dateStr, ctx.alert, ctx.window, ctx.nowStr, ctx.oneYearAgoStr, ctx.sevenDaysFromNowStr)) {
       candidates.push({
         id: `${tvShow.id}-general-${dateStr}`,
         mediaType: "tv",
