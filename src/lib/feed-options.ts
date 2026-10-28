@@ -14,7 +14,7 @@ export const STORAGE_KEY = "magnanium_feed_options";
 
 export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
   media: ["movie", "tv"],
-  roles: ["actor", "crew"],
+  roles: ["actor", "director", "writer", "producer", "crew"],
   types: ["cinema", "home"],
   country: "US",
   alert: "announced",
@@ -38,10 +38,29 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       ? parsed.media
       : inMemoryOptions.media;
 
-  const validRoles =
-    Array.isArray(parsed.roles) && parsed.roles.length > 0
-      ? parsed.roles
-      : inMemoryOptions.roles;
+  let validRoles = inMemoryOptions.roles;
+  if (Array.isArray(parsed.roles) && parsed.roles.length > 0) {
+    const hasGranular = parsed.roles.some((r: string) =>
+      ["director", "writer", "producer"].includes(r)
+    );
+    if (!hasGranular && parsed.roles.includes("crew")) {
+      // Legacy migration: expand previous "crew" (BTS) to all specific roles
+      validRoles = [
+        ...parsed.roles.filter((r: string) => r !== "crew"),
+        "director",
+        "writer",
+        "producer",
+        "crew",
+      ];
+    } else {
+      const filtered = parsed.roles.filter((r: string) =>
+        ["actor", "director", "writer", "producer", "crew", "all"].includes(r)
+      );
+      if (filtered.length > 0) {
+        validRoles = filtered;
+      }
+    }
+  }
 
   const validTypes =
     Array.isArray(parsed.types) && parsed.types.length > 0

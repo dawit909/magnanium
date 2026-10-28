@@ -185,18 +185,15 @@ export async function getPersonReleases(
   const personName = person.name || "Artist";
 
   const isActorSelected = roles.includes("all") || roles.includes("actor");
-  const isCrewSelected =
+  const includeCrew =
     roles.includes("all") ||
-    roles.includes("crew") ||
-    roles.includes("behind_the_scenes") ||
     roles.includes("director") ||
     roles.includes("writer") ||
-    roles.includes("producer");
-  const isSoundSelected =
-    roles.includes("all") ||
+    roles.includes("producer") ||
+    roles.includes("crew") ||
+    roles.includes("behind_the_scenes") ||
     roles.includes("sound") ||
     roles.includes("music");
-  const includeCrew = isCrewSelected || isSoundSelected;
 
   // Deduplicate and aggregate multiple roles per project in O(N)
   const candidateMap = new Map<string, CandidateEntry>();

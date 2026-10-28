@@ -34,7 +34,7 @@ export async function GET(
     const personId = validation.personId!;
 
     const mediaParam = searchParams.get("media") || "movie,tv";
-    const rolesParam = searchParams.get("roles") || "actor,crew";
+    const rolesParam = searchParams.get("roles") || "actor,director,writer,producer,crew";
     const typesParam = searchParams.get("types") || "cinema,home";
     const country = searchParams.get("country") || "US";
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";

@@ -144,7 +144,7 @@ export interface FormattedRelease {
 export interface FeedFilterOptions {
   personId: number;
   media?: ("movie" | "tv")[];
-  roles?: string[]; // "actor", "crew" (or "behind_the_scenes")
+  roles?: string[]; // "actor", "director", "writer", "producer", "crew"
   types?: string[]; // "cinema", "home", "earliest"
   country?: string;
   window?: "upcoming" | "all";

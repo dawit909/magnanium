@@ -46,6 +46,42 @@ export function sortAndJoinRoles(roles: string[]): string {
   return ranked.map((r) => r.role).join(", ");
 }
 
+export function isDirectorCredit(item: TMDBCreditItem): boolean {
+  const job = (item.job || "").toLowerCase();
+  const dept = (item.department || "").toLowerCase();
+  if (job.includes("photography") || dept.includes("camera")) {
+    return false;
+  }
+  return job.includes("director") || dept.includes("directing");
+}
+
+export function isWriterCredit(item: TMDBCreditItem): boolean {
+  const job = (item.job || "").toLowerCase();
+  const dept = (item.department || "").toLowerCase();
+  return (
+    job.includes("writer") ||
+    job.includes("screenplay") ||
+    job.includes("teleplay") ||
+    job.includes("story") ||
+    job.includes("written by") ||
+    job.includes("creator") ||
+    job.includes("showrunner") ||
+    job.includes("created by") ||
+    dept.includes("writing") ||
+    dept.includes("creator")
+  );
+}
+
+export function isProducerCredit(item: TMDBCreditItem): boolean {
+  const job = (item.job || "").toLowerCase();
+  const dept = (item.department || "").toLowerCase();
+  return job.includes("producer") || dept.includes("production");
+}
+
+export function isOtherCrewCredit(item: TMDBCreditItem): boolean {
+  return !isDirectorCredit(item) && !isWriterCredit(item) && !isProducerCredit(item);
+}
+
 export function isSoundCredit(item: TMDBCreditItem): boolean {
   if (item.department && item.department.toLowerCase() === "sound") {
     return true;
@@ -60,35 +96,23 @@ export function isIgnoredCrewCredit(item: TMDBCreditItem): boolean {
 }
 
 export function matchesSpecificCrewRole(item: TMDBCreditItem, rolesFilter: string[]): boolean {
-  const job = item.job || "";
-  const dept = item.department || "";
+  if (rolesFilter.includes("all")) return true;
 
-  // Specific filmmaking roles
-  if (rolesFilter.includes("director") && (DIRECTOR_REGEX.test(job) || /directing/i.test(dept))) {
+  if (rolesFilter.includes("director") && isDirectorCredit(item)) {
     return true;
   }
-  if (rolesFilter.includes("writer") && (WRITER_REGEX.test(job) || /writing/i.test(dept))) {
+  if (rolesFilter.includes("writer") && isWriterCredit(item)) {
     return true;
   }
-  if (rolesFilter.includes("producer") && (PRODUCER_REGEX.test(job) || /production/i.test(dept))) {
+  if (rolesFilter.includes("producer") && isProducerCredit(item)) {
     return true;
   }
-
-  // Behind the Scenes (crew) - excludes sound roles
-  const isBts =
-    rolesFilter.includes("all") ||
-    rolesFilter.includes("crew") ||
-    rolesFilter.includes("behind_the_scenes");
-  if (isBts && !isSoundCredit(item)) {
-    return true;
-  }
-
-  // Sound - includes song, composer, music, vocals, sound design, etc.
-  const isSound =
-    rolesFilter.includes("all") ||
-    rolesFilter.includes("sound") ||
-    rolesFilter.includes("music");
-  if (isSound && isSoundCredit(item)) {
+  if (
+    (rolesFilter.includes("crew") ||
+      rolesFilter.includes("behind_the_scenes") ||
+      rolesFilter.includes("sound")) &&
+    isOtherCrewCredit(item)
+  ) {
     return true;
   }
 
@@ -96,17 +120,19 @@ export function matchesSpecificCrewRole(item: TMDBCreditItem, rolesFilter: strin
 }
 
 export function resolveCrewRoleLabel(item: TMDBCreditItem): string {
-  const job = item.job || "";
-  const dept = item.department || "";
+  const job = (item.job || "").trim();
+  const dept = (item.department || "").trim();
 
-  if (DIRECTOR_REGEX.test(job) || /directing/i.test(dept)) return "Director";
-  if (/creator/i.test(job) || /creator/i.test(dept)) return "Creator";
+  if (isDirectorCredit(item)) return "Director";
+  if (/creator|showrunner/i.test(job) || /creator/i.test(dept)) return "Creator";
   if (/executive producer/i.test(job)) return "Executive Producer";
-  if (PRODUCER_REGEX.test(job) || /production/i.test(dept)) return "Producer";
-  if (WRITER_REGEX.test(job) || /writing/i.test(dept)) {
-    return job && job.toLowerCase() !== "writer" ? `Writer (${job})` : "Writer";
+  if (isProducerCredit(item)) return "Producer";
+  if (isWriterCredit(item)) {
+    return job && job.toLowerCase() !== "writer" && job.toLowerCase() !== "creator"
+      ? `Writer (${job})`
+      : "Writer";
   }
-  return item.job || item.department || "Crew";
+  return job || dept || "Crew";
 }
 
 export function isTalkShowOrGuestAppearance(item: TMDBCreditItem): boolean {

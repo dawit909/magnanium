@@ -90,8 +90,10 @@ const MEDIA_OPTIONS = [
 
 const ROLE_OPTIONS = [
   { id: "actor", label: "Actor" },
-  { id: "crew", label: "Behind the Scenes" },
-  { id: "sound", label: "Sound" },
+  { id: "director", label: "Director" },
+  { id: "writer", label: "Writer" },
+  { id: "producer", label: "Producer" },
+  { id: "crew", label: "Crew" },
 ];
 
 const FORMAT_OPTIONS = [
@@ -152,6 +154,26 @@ export default function FeedFilters({
             {r.label}
           </FilterPill>
         ))}
+        <InfoTooltip
+          ariaLabel="Role info"
+          width="w-72"
+          content={
+            <div className="space-y-1.5 text-left">
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Director&rdquo;</strong> includes film and TV directors.
+              </p>
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Writer&rdquo;</strong> includes screenplays, teleplays, and TV creators / showrunners.
+              </p>
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Producer&rdquo;</strong> includes film producers and TV executive producers.
+              </p>
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Crew&rdquo;</strong> includes sound, score, cinematography, editing, art, and VFX.
+              </p>
+            </div>
+          }
+        />
       </FilterRow>
 
       {/* 2. Collapsible Fine-tune Trigger */}
