@@ -322,76 +322,90 @@ interface MockRssSettings {
   selectedId?: string;
   readIds?: string[];
   isMinimized?: boolean;
-  isClosed?: boolean;
   size?: { width: number; height: number } | null;
   offset?: { x: number; y: number };
 }
 
+// Clean up legacy global localStorage once on client side
+if (typeof window !== "undefined") {
+  try {
+    localStorage.removeItem(MOCK_SETTINGS_KEY);
+  } catch {}
+}
+
+const getInitialTabSettings = (): MockRssSettings | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const saved = sessionStorage.getItem(MOCK_SETTINGS_KEY);
+    if (saved) {
+      return JSON.parse(saved) as MockRssSettings;
+    }
+  } catch {}
+  return null;
+};
+
 export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPreviewProps) {
   const router = useRouter();
 
-  const [selectedId, setSelectedId] = useState<string>("ts5");
-  const [readIds, setReadIds] = useState<Set<string>>(new Set(["ts5"]));
+  const initialSettings = useRef<MockRssSettings | null>(null);
+  if (!initialSettings.current && typeof window !== "undefined") {
+    initialSettings.current = getInitialTabSettings();
+  }
 
-  // Window visibility & size states
+  const [selectedId, setSelectedId] = useState<string>(() => {
+    const s = initialSettings.current;
+    if (s?.selectedId && SAMPLE_ITEMS.some((i) => i.id === s.selectedId)) {
+      return s.selectedId;
+    }
+    return "ts5";
+  });
+
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    const s = initialSettings.current;
+    if (Array.isArray(s?.readIds)) {
+      return new Set(s.readIds);
+    }
+    return new Set(["ts5"]);
+  });
+
+  // isClosed is strictly per-view (not stored in sessionStorage so visits to localhost:3000 always show the mock)
   const [isClosed, setIsClosed] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+
+  const [isMinimized, setIsMinimized] = useState<boolean>(() => {
+    const s = initialSettings.current;
+    if (typeof s?.isMinimized === "boolean") {
+      return s.isMinimized;
+    }
+    return false;
+  });
+
+  const [size, setSize] = useState<{ width: number; height: number } | null>(() => {
+    return initialSettings.current?.size ?? null;
+  });
+
   const [isResizing, setIsResizing] = useState(false);
 
   // Draggable window state
-  const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [offset, setOffset] = useState<{ x: number; y: number }>(() => {
+    return initialSettings.current?.offset ?? { x: 0, y: 0 };
+  });
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
 
-  const isLoadedRef = useRef(false);
-
-  // Load saved settings from localStorage on mount so settings stay intact when navigating back
+  // Persist tab settings to sessionStorage on changes (scoped only to the current tab)
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(MOCK_SETTINGS_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as MockRssSettings;
-        if (parsed.selectedId && SAMPLE_ITEMS.some((i) => i.id === parsed.selectedId)) {
-          setSelectedId(parsed.selectedId);
-        }
-        if (Array.isArray(parsed.readIds)) {
-          setReadIds(new Set(parsed.readIds));
-        }
-        if (typeof parsed.isMinimized === "boolean") {
-          setIsMinimized(parsed.isMinimized);
-        }
-        if (typeof parsed.isClosed === "boolean") {
-          setIsClosed(parsed.isClosed);
-        }
-        if (parsed.size) {
-          setSize(parsed.size);
-        }
-        if (parsed.offset) {
-          setOffset(parsed.offset);
-        }
-      }
-    } catch {}
-    isLoadedRef.current = true;
-  }, []);
-
-  // Persist settings to localStorage on changes
-  useEffect(() => {
-    if (!isLoadedRef.current) return;
-
     try {
       const settings: MockRssSettings = {
         selectedId,
         readIds: Array.from(readIds),
         isMinimized,
-        isClosed,
         size,
         offset,
       };
-      localStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(settings));
+      sessionStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(settings));
     } catch {}
-  }, [selectedId, readIds, isMinimized, isClosed, size, offset]);
+  }, [selectedId, readIds, isMinimized, size, offset]);
   const dragStartRef = useRef<{
     startX: number;
     startY: number;
