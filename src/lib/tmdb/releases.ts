@@ -325,7 +325,11 @@ export function extractTvCredits(
 }
 
 function isShortFilmTitle(title: string): boolean {
-  return /\b(short|short film)\b/i.test(title);
+  return (
+    /\((short|short film)\)$/i.test(title) ||
+    /\bshort film\b/i.test(title) ||
+    /^short\s*:/i.test(title)
+  );
 }
 
 function createReleaseItem(params: {
@@ -556,10 +560,6 @@ export async function extractTvReleases(
 ): Promise<FormattedRelease[]> {
   const showTitle = tvShow.name || tvShow.title || "TV Series";
 
-  if (ctx.excludeShorts && isShortFilmTitle(showTitle)) {
-    return [];
-  }
-
   if (ctx.excludeReReleases && isReReleaseOrRemaster(undefined, showTitle)) {
     return [];
   }
@@ -588,10 +588,11 @@ export async function extractTvReleases(
     tvDetails?.created_by,
     tvDetails?.credits
   );
-  const runtime =
+  const episodeRuntime =
     tvDetails?.episode_run_time && tvDetails.episode_run_time.length > 0
       ? formatRuntime(tvDetails.episode_run_time[0])
       : null;
+  const runtime = episodeRuntime ? `${episodeRuntime}/ep` : null;
   const language = formatLanguage(
     tvDetails?.spoken_languages,
     tvDetails?.original_language || tvShow.original_language
