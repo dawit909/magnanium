@@ -22,19 +22,23 @@ export async function GET(
     const typesParam = searchParams.get("types") || "theatrical,digital";
     const country = searchParams.get("country") || "US";
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
+    const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
     const roles = rolesParam.split(",").map((r) => r.trim().toLowerCase());
     const types = typesParam
       .split(",")
       .map((t) => t.trim().toLowerCase()) as ReleaseTypeCategory[];
 
-    const { personName, releases } = await getPersonReleases({
-      personId,
-      roles,
-      types,
-      country,
-      window,
-    });
+    const { personName, releases } = await getPersonReleases(
+      {
+        personId,
+        roles,
+        types,
+        country,
+        window,
+      },
+      clientKey
+    );
 
     const host = request.headers.get("host") || "localhost:3000";
     const protocol = host.includes("localhost") ? "http" : "https";
@@ -52,7 +56,6 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": "application/rss+xml; charset=utf-8",
-        // Cache in browser for 1 hour, Edge/CDN for 12 hours, allow serving stale for 24 hours
         "Cache-Control":
           "public, max-age=3600, s-maxage=43200, stale-while-revalidate=86400",
       },
