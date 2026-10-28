@@ -92,13 +92,11 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   }, []);
 
   // Construct RSS & iCal Feed URLs
-  const { feedUrl, feedProtocolUrl, feedlyUrl, inoreaderUrl, calUrl, webcalUrl, googleCalUrl } = useMemo(() => {
+  const { feedUrl, feedProtocolUrl, calUrl, webcalUrl, googleCalUrl } = useMemo(() => {
     if (!selectedPerson || !origin) {
       return {
         feedUrl: "",
         feedProtocolUrl: "",
-        feedlyUrl: "",
-        inoreaderUrl: "",
         calUrl: "",
         webcalUrl: "",
         googleCalUrl: "",
@@ -117,16 +115,12 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     const cal = `${origin}/api/cal/${selectedPerson.id}?${queryString}`;
     const hostWithPort = origin.replace(/^https?:\/\//, "");
     const feedProtocol = `feed://${hostWithPort}/api/feed/${selectedPerson.id}?${queryString}`;
-    const feedly = `https://feedly.com/i/subscription/feed/${encodeURIComponent(feed)}`;
-    const inoreader = `https://www.inoreader.com/?add_feed=${encodeURIComponent(feed)}`;
     const webcal = `webcal://${hostWithPort}/api/cal/${selectedPerson.id}?${queryString}`;
     const googleCal = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`;
 
     return {
       feedUrl: feed,
       feedProtocolUrl: feedProtocol,
-      feedlyUrl: feedly,
-      inoreaderUrl: inoreader,
       calUrl: cal,
       webcalUrl: webcal,
       googleCalUrl: googleCal,
@@ -211,8 +205,6 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     isLoadingPreview,
     feedUrl,
     feedProtocolUrl,
-    feedlyUrl,
-    inoreaderUrl,
     calUrl,
     webcalUrl,
     googleCalUrl,

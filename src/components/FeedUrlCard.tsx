@@ -6,8 +6,6 @@ import { Rss, Calendar, Copy, Check, ExternalLink, Download, CalendarPlus } from
 interface FeedUrlCardProps {
   feedUrl: string;
   feedProtocolUrl?: string;
-  feedlyUrl?: string;
-  inoreaderUrl?: string;
   calUrl: string;
   webcalUrl: string;
   googleCalUrl: string;
@@ -16,8 +14,6 @@ interface FeedUrlCardProps {
 export default function FeedUrlCard({
   feedUrl,
   feedProtocolUrl,
-  feedlyUrl,
-  inoreaderUrl,
   calUrl,
   webcalUrl,
   googleCalUrl,
@@ -27,10 +23,6 @@ export default function FeedUrlCard({
 
   const resolvedFeedProtocol =
     feedProtocolUrl || (feedUrl ? feedUrl.replace(/^https?:\/\//, "feed://") : "");
-  const resolvedFeedly =
-    feedlyUrl || (feedUrl ? `https://feedly.com/i/subscription/feed/${encodeURIComponent(feedUrl)}` : "");
-  const resolvedInoreader =
-    inoreaderUrl || (feedUrl ? `https://www.inoreader.com/?add_feed=${encodeURIComponent(feedUrl)}` : "");
 
   const handleCopy = (text: string) => {
     if (!text) return;
@@ -77,7 +69,7 @@ export default function FeedUrlCard({
         </div>
 
         <span className="text-[11px] text-neutral-400 dark:text-neutral-500 hidden sm:inline">
-          {activeTab === "calendar" ? "Auto-syncs to calendar apps" : "1-click reader subscription"}
+          {activeTab === "calendar" ? "Auto-syncs to calendar apps" : "Standard RSS 2.0 XML"}
         </span>
       </div>
 
@@ -138,37 +130,6 @@ export default function FeedUrlCard({
         </div>
       ) : (
         <div className="space-y-3 animate-in fade-in-50 duration-150">
-          {/* Quick-action 1-click buttons for RSS Readers */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <a
-              href={resolvedFeedProtocol || "#"}
-              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium transition-colors shadow-sm text-center"
-            >
-              <Rss className="w-3.5 h-3.5" />
-              <span>Open in RSS Reader</span>
-            </a>
-
-            <a
-              href={resolvedFeedly || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 text-xs font-medium transition-colors text-center"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
-              <span>Add to Feedly</span>
-            </a>
-
-            <a
-              href={resolvedInoreader || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-850 text-neutral-700 dark:text-neutral-300 text-xs font-medium transition-colors text-center"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Add to Inoreader</span>
-            </a>
-          </div>
-
           {/* Copyable RSS link */}
           <div className="flex gap-2">
             <input
@@ -187,18 +148,16 @@ export default function FeedUrlCard({
               {isRssCopied ? "Copied" : "Copy"}
             </button>
             <a
-              href={feedUrl}
-              target="_blank"
-              rel="noreferrer"
+              href={resolvedFeedProtocol || "#"}
               className="p-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white flex items-center justify-center transition-colors shadow-sm"
-              title="Open Raw RSS Feed XML"
+              title="Open in RSS Reader"
             >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
 
           <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
-            Opens directly in NetNewsWire, Reeder, ReadKit, or your system RSS app via <code>feed://</code>. Also supports 1-click web subscription to Feedly and Inoreader.
+            Copy and paste into NetNewsWire, Feedly, Inoreader, NewsBlur, or any RSS reader.
           </p>
         </div>
       )}
