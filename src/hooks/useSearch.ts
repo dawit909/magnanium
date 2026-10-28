@@ -144,11 +144,18 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
       if (e.key === "ArrowDown") {
         if (searchResults.length === 0) return;
         e.preventDefault();
-        setActiveIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : 0));
+        setActiveIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : prev));
       } else if (e.key === "ArrowUp") {
         if (searchResults.length === 0) return;
         e.preventDefault();
-        setActiveIndex((prev) => (prev > 0 ? prev - 1 : searchResults.length - 1));
+        setActiveIndex((prev) => {
+          if (prev > 0) return prev - 1;
+          if (prev === 0) {
+            searchInputRef.current?.focus();
+            return -1;
+          }
+          return -1;
+        });
       } else if (e.key === "Enter") {
         e.preventDefault();
         // If an item in dropdown was navigated to by arrow keys, select it
