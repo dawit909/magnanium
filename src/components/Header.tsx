@@ -42,7 +42,7 @@ export default function Header({
   onKeyDown,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0">
+    <header className="sticky top-0 z-30 bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0">
       <div className="flex items-center justify-between gap-3">
         {/* Logo */}
         <button

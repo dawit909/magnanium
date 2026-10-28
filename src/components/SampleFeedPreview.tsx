@@ -359,6 +359,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     startOffsetY: number;
     baselineLeft: number;
     baselineTop: number;
+    baselineDocHeight: number;
   }>({
     dir: "se",
     startX: 0,
@@ -369,6 +370,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     startOffsetY: 0,
     baselineLeft: 0,
     baselineTop: 0,
+    baselineDocHeight: 0,
   });
 
   // Clamp offset to ensure window borders strictly never leave website borders
@@ -535,6 +537,11 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
       startOffsetY: offset.y,
       baselineLeft: containerRect.left,
       baselineTop: containerRect.top,
+      baselineDocHeight: Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        window.innerHeight
+      ),
     };
 
     setIsResizing(true);
@@ -550,14 +557,11 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         startOffsetY,
         baselineLeft,
         baselineTop,
+        baselineDocHeight,
       } = resizeStartRef.current;
 
       const maxPageWidth = document.documentElement.clientWidth || window.innerWidth;
-      const docHeight = Math.max(
-        document.documentElement.scrollHeight,
-        document.body.scrollHeight,
-        window.innerHeight
-      );
+      const docHeight = baselineDocHeight;
 
       let newWidth = startWidth;
       let newHeight = startHeight;
@@ -676,31 +680,35 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     );
   }
 
+  const isElevated =
+    isDragging || isResizing || offset.x !== 0 || offset.y !== 0 || size !== null;
+
   return (
     <div
-      ref={containerRef}
-      className="w-full max-w-3xl mx-auto py-4 sm:py-8 space-y-4 animate-in fade-in duration-300 relative"
+      className={`w-full max-w-3xl mx-auto py-4 sm:py-8 space-y-4 relative ${
+        isElevated ? "z-50" : "z-20"
+      }`}
     >
-      {/* Mock macOS RSS Reader Window */}
-      <div
-        ref={windowRef}
-        style={{
-          transform: `translate3d(${offset.x}px, ${offset.y}px, 0)`,
-          width: size ? `${size.width}px` : undefined,
-          height: size ? `${size.height}px` : "520px",
-          maxWidth: size ? "none" : undefined,
-          willChange: isDragging || isResizing ? "transform, width, height" : "auto",
-        }}
-        className={`rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] overflow-hidden relative flex flex-col ${
-          size ? "" : "h-[520px]"
-        } ${
-          isDragging || isResizing
-            ? "z-40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] ring-2 ring-[#007aff]/40 transition-none"
-            : offset.x !== 0 || offset.y !== 0 || size !== null
-            ? "z-30 shadow-2xl transition-transform duration-200 ease-out"
-            : "shadow-2xl transition-transform duration-200 ease-out"
-        }`}
-      >
+      {/* Fixed layout slot for the mock window - reserves 520px in document flow so website height and other elements never shift */}
+      <div ref={containerRef} className="relative w-full h-[520px]">
+        {/* Mock macOS RSS Reader Window */}
+        <div
+          ref={windowRef}
+          style={{
+            transform: `translate3d(${offset.x}px, ${offset.y}px, 0)`,
+            width: size ? `${size.width}px` : "100%",
+            height: size ? `${size.height}px` : "520px",
+            maxWidth: size ? "none" : undefined,
+            willChange: isDragging || isResizing ? "transform, width, height" : "auto",
+          }}
+          className={`absolute top-0 left-0 rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] overflow-hidden flex flex-col ${
+            isDragging || isResizing
+              ? "z-[60] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] ring-2 ring-[#007aff]/40 transition-none"
+              : isElevated
+              ? "z-50 shadow-2xl transition-transform duration-200 ease-out"
+              : "z-30 shadow-2xl transition-transform duration-200 ease-out"
+          }`}
+        >
         {/* macOS Window Title Bar (Draggable Handle) */}
         <div
           onPointerDown={handlePointerDown}
@@ -1032,6 +1040,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
           onPointerDown={(e) => handleResizePointerDown("se", e)}
           className="absolute -bottom-1.5 -right-1.5 w-4 h-4 cursor-nwse-resize z-30 touch-none"
         />
+      </div>
       </div>
 
       {/* Highlights: No ads. No tracking. Pure RSS. */}

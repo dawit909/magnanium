@@ -104,7 +104,7 @@ export default function FeedApp({
       />
 
       {!selectedPerson ? (
-        <div className="pt-2 space-y-6 animate-in fade-in duration-200">
+        <div className="pt-2 space-y-6">
           <RecentArtists
             artists={recentArtists}
             onSelect={(slug) => router.push(`/${slug}`)}
