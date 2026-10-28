@@ -65,7 +65,7 @@ async function mapConcurrent<T, R>(
 export async function searchPerson(
   query: string,
   customApiKey?: string
-): Promise<{ results: TMDBPersonSearchResult[]; noApiKey?: boolean }> {
+): Promise<{ results: TMDBPersonSearchResult[]; noApiKey?: boolean; error?: string }> {
   if (!hasTmdbAuth(customApiKey)) {
     return { results: [], noApiKey: true };
   }
@@ -79,6 +79,10 @@ export async function searchPerson(
 
   if (status === 401) {
     return { results: [], noApiKey: true };
+  }
+
+  if (status !== 200 || !data) {
+    return { results: [], error: `TMDB search request failed with status ${status}` };
   }
 
   return { results: (data?.results || []).slice(0, 8) };

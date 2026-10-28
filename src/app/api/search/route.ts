@@ -21,7 +21,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { results, noApiKey } = await searchPerson(query, clientKey);
+    const { results, noApiKey, error } = await searchPerson(query, clientKey);
+    if (error) {
+      return NextResponse.json(
+        { error, results: [] },
+        { status: 502, headers: rateGuard.headers }
+      );
+    }
     return NextResponse.json(
       { results, noApiKey: Boolean(noApiKey) },
       {

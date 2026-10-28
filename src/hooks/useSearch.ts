@@ -90,6 +90,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
         if (!res.ok) return;
 
         const data = await res.json();
+        if (data.error) return;
         const results = data.results || [];
 
         searchCache.set(cacheKey, results);
