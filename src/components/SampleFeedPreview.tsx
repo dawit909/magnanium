@@ -58,7 +58,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     if (s?.selectedId && SAMPLE_ITEMS.some((i) => i.id === s.selectedId)) {
       return s.selectedId;
     }
-    return "ts5";
+    return "emma-angry-birds-3";
   });
 
   const [readIds, setReadIds] = useState<Set<string>>(() => {
@@ -66,7 +66,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     if (Array.isArray(s?.readIds)) {
       return new Set(s.readIds);
     }
-    return new Set(["ts5"]);
+    return new Set(["emma-angry-birds-3"]);
   });
 
   // isClosed is strictly per-view (not stored in sessionStorage so visits to localhost:3000 always show the mock)
