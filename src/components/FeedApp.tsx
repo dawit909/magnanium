@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
 import { createPersonSlug } from "@/lib/slug";
-import { Search, Copy, Check, ExternalLink, Sun, Moon, User, Film, Tv, Rss } from "lucide-react";
+import { Search, Copy, Check, ExternalLink, Sun, Moon, User, Film, Tv, Rss, Info } from "lucide-react";
 
 const COUNTRIES = [
   { code: "US", name: "United States" },
@@ -535,6 +535,21 @@ export default function FeedApp({
                     {t.label}
                   </button>
                 ))}
+
+                {/* Info Tooltip */}
+                <div className="relative group/info inline-flex items-center ml-1">
+                  <div
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Format info"
+                    className="text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors p-0.5 rounded-full cursor-help focus:outline-none"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 px-2.5 py-1.5 rounded-xl bg-neutral-900 text-neutral-100 dark:bg-neutral-800 dark:text-neutral-200 text-[11px] leading-snug shadow-xl border border-neutral-800 dark:border-neutral-700 text-center opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-150 pointer-events-none z-50">
+                    TV shows do not have theatrical releases. If you choose only Theatrical, TV shows will not appear.
+                  </div>
+                </div>
               </div>
             </div>
 
