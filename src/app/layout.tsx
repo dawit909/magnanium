@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function RootLayout({
         <footer className="py-6 text-center text-[11px] text-neutral-400 dark:text-neutral-600">
           <span>This product uses the TMDB API but is not endorsed or certified by TMDB.</span>
         </footer>
+        <Analytics />
       </body>
     </html>
   );
