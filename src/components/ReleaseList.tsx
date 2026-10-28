@@ -46,6 +46,8 @@ export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
                           : `https://image.tmdb.org/t/p/w185${item.posterPath}`
                       }
                       alt={item.movieTitle}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
                   ) : (

@@ -90,6 +90,8 @@ export default function Header({
                         <img
                           src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
                           alt={person.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
                         />
                       ) : (

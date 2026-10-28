@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { createPersonSlug } from "@/lib/slug";
@@ -24,10 +24,13 @@ export default function FeedApp({
   const [selectedPerson, setSelectedPerson] = useState<TMDBPersonSearchResult | null>(initialPerson);
   const [recentArtists, setRecentArtists] = useState<Array<{ id: number; name: string; slug: string }>>([]);
 
-  const handleSelectPerson = (person: TMDBPersonSearchResult) => {
-    const slug = createPersonSlug(person.id, person.name);
-    router.push(`/${slug}`);
-  };
+  const handleSelectPerson = useCallback(
+    (person: TMDBPersonSearchResult) => {
+      const slug = createPersonSlug(person.id, person.name);
+      router.push(`/${slug}`);
+    },
+    [router]
+  );
 
   const {
     query,
@@ -64,7 +67,7 @@ export default function FeedApp({
   useEffect(() => {
     setSelectedPerson(initialPerson);
     resetSearch();
-  }, [initialPerson]);
+  }, [initialPerson, resetSearch]);
 
   // Load recent history from localStorage
   useEffect(() => {
@@ -89,10 +92,10 @@ export default function FeedApp({
     }
   }, [selectedPerson]);
 
-  const goHome = () => {
+  const goHome = useCallback(() => {
     resetSearch();
     router.push("/");
-  };
+  }, [router, resetSearch]);
 
   return (
     <div className="space-y-8 text-sm">

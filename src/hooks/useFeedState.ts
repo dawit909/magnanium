@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
@@ -19,25 +19,25 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     setOrigin(window.location.origin);
   }, []);
 
-  const toggleMedia = (m: string) => {
+  const toggleMedia = useCallback((m: string) => {
     setMedia((prev) => {
       if (prev.includes(m)) {
         return prev.length > 1 ? prev.filter((x) => x !== m) : prev;
       }
       return [...prev, m];
     });
-  };
+  }, []);
 
-  const toggleRole = (r: string) => {
+  const toggleRole = useCallback((r: string) => {
     setRoles((prev) => {
       if (prev.includes(r)) {
         return prev.length > 1 ? prev.filter((x) => x !== r) : prev;
       }
       return [...prev, r];
     });
-  };
+  }, []);
 
-  const toggleType = (t: string) => {
+  const toggleType = useCallback((t: string) => {
     if (t === "earliest") {
       setTypes(["earliest"]);
       return;
@@ -49,21 +49,22 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       const next = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
       return next.length > 0 ? next : ["cinema", "home"];
     });
-  };
+  }, []);
 
-  // Construct RSS Feed URL (without format=json)
-  const feedUrl = selectedPerson && origin
-    ? `${origin}/api/feed/${selectedPerson.id}?media=${media.join(",")}&roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&alert=${alert}&exclude_shorts=${excludeShorts}`
-    : "";
+  // Construct RSS Feed URL (memoized to avoid reallocations)
+  const feedUrl = useMemo(() => {
+    if (!selectedPerson || !origin) return "";
+    return `${origin}/api/feed/${selectedPerson.id}?media=${media.join(",")}&roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&alert=${alert}&exclude_shorts=${excludeShorts}`;
+  }, [selectedPerson, origin, media, roles, types, country, alert, excludeShorts]);
 
-  // Fetch preview items when artist or filters change
+  // Fetch preview items with AbortController to cancel stale in-flight requests
   useEffect(() => {
     if (!selectedPerson) {
       setPreviewReleases([]);
       return;
     }
 
-    let isCurrent = true;
+    const controller = new AbortController();
     setIsLoadingPreview(true);
 
     const loadReleases = async () => {
@@ -78,23 +79,31 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
           format: "json",
         });
 
-        const res = await fetch(`/api/feed/${selectedPerson.id}?${params.toString()}`);
+        const res = await fetch(`/api/feed/${selectedPerson.id}?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
         if (!res.ok) return;
 
         const data = await res.json();
-        if (isCurrent && data.releases) {
+        if (data.releases) {
           setPreviewReleases(data.releases);
         }
-      } catch (err) {
-        console.error("Feed preview fetch error:", err);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== "AbortError") {
+          console.error("Feed preview fetch error:", err);
+        }
       } finally {
-        if (isCurrent) setIsLoadingPreview(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingPreview(false);
+        }
       }
     };
 
     loadReleases();
+
     return () => {
-      isCurrent = false;
+      controller.abort();
     };
   }, [selectedPerson, media, roles, types, country, alert, excludeShorts]);
 

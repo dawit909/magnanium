@@ -76,7 +76,6 @@ export interface ReleaseExtractionContext {
 
 interface MovieDetailsWithReleases {
   runtime?: number;
-  genres?: Array<{ id: number; name: string }>;
   release_dates?: TMDBReleaseDatesResponse;
 }
 

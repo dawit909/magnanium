@@ -3,7 +3,6 @@ import {
   TMDBPersonCreditsResponse,
   FormattedRelease,
   FeedFilterOptions,
-  TvDetails,
   TMDBCreditItem,
 } from "@/types/tmdb";
 import {
@@ -84,32 +83,6 @@ export async function getPersonCredits(
 }
 
 export const getPersonCombinedCredits = getPersonCredits;
-
-/**
- * Fetch movie details along with release dates in a single API call
- */
-export async function getMovieDetails(movieId: number, customApiKey?: string) {
-  const { data } = await tmdbFetch<any>(
-    `/movie/${movieId}`,
-    { append_to_response: "release_dates" },
-    43200,
-    customApiKey
-  );
-  return data;
-}
-
-/**
- * Fetch TV show details including season information
- */
-export async function getTvDetails(tvId: number, customApiKey?: string): Promise<TvDetails | null> {
-  const { data } = await tmdbFetch<TvDetails>(
-    `/tv/${tvId}`,
-    {},
-    43200,
-    customApiKey
-  );
-  return data;
-}
 
 /**
  * Compile formatted movie and TV releases for an artist
