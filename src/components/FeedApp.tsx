@@ -14,6 +14,7 @@ import RecentArtists from "./RecentArtists";
 import FeedFilters from "./FeedFilters";
 import FeedUrlCard from "./FeedUrlCard";
 import ReleaseList from "./ReleaseList";
+import SampleFeedPreview from "./SampleFeedPreview";
 
 export default function FeedApp({
   initialPerson = null,
@@ -103,11 +104,12 @@ export default function FeedApp({
       />
 
       {!selectedPerson ? (
-        <div className="pt-6 space-y-8 animate-in fade-in duration-200">
+        <div className="pt-2 space-y-6 animate-in fade-in duration-200">
           <RecentArtists
             artists={recentArtists}
             onSelect={(slug) => router.push(`/${slug}`)}
           />
+          <SampleFeedPreview onSelectSampleArtist={handleSelectPerson} />
         </div>
       ) : (
         <div className="space-y-6 animate-in fade-in duration-200">

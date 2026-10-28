@@ -12,11 +12,16 @@ export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
   return (
     <div className="space-y-3 pt-2">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-medium text-neutral-700 dark:text-neutral-300">
-          Releases ({releases.length})
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+            Releases
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+            {releases.length}
+          </span>
+        </div>
         {isLoading && (
-          <span className="text-neutral-400 flex items-center gap-1">
+          <span className="text-neutral-400 dark:text-neutral-500 flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-neutral-400 animate-ping" />
             Updating...
           </span>
@@ -24,8 +29,13 @@ export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
       </div>
 
       {releases.length === 0 ? (
-        <div className="py-8 text-center text-xs text-neutral-400 dark:text-neutral-500 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800">
-          No releases found for the selected filters.
+        <div className="py-10 px-4 text-center rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800 space-y-1.5">
+          <p className="text-xs font-medium text-neutral-800 dark:text-neutral-200">
+            No releases match your current filters.
+          </p>
+          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto">
+            Try switching the time window to &ldquo;All Releases&rdquo; or enabling additional media and role filters above.
+          </p>
         </div>
       ) : (
         <div className="divide-y divide-neutral-100 dark:divide-neutral-900 border-t border-b border-neutral-100 dark:border-neutral-900">
@@ -71,7 +81,7 @@ export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
                   >
                     {item.movieTitle}
                   </a>
-                  <div className="text-xs text-neutral-400 dark:text-neutral-500 flex items-center gap-1.5 mt-0.5 truncate">
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5 mt-0.5 truncate">
                     <span className="font-medium text-neutral-600 dark:text-neutral-300">
                       {item.mediaType === "tv" ? "TV" : "Movie"}
                     </span>

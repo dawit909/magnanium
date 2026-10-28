@@ -35,20 +35,26 @@ export default function FeedUrlCard({ feedUrl, feedProtocolUrl }: FeedUrlCardPro
           type="text"
           readOnly
           value={feedUrl}
+          aria-label="Generated RSS Feed URL"
           onFocus={(e) => e.currentTarget.select()}
           placeholder="RSS Feed URL"
-          className="flex-1 px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-700 dark:text-neutral-300 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 transition-colors"
+          className="flex-1 px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-700 dark:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 transition-colors"
         />
         <button
           onClick={handleCopy}
-          className="px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-neutral-100 dark:hover:bg-white dark:text-neutral-900 text-xs font-medium flex items-center gap-1.5 shadow-sm transition-all"
+          aria-label={copied ? "Feed URL copied to clipboard" : "Copy RSS Feed URL"}
+          className="px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-neutral-100 dark:hover:bg-white dark:text-neutral-900 text-xs font-medium flex items-center gap-1.5 shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
         >
           {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? "Copied" : "Copy"}
+          <span>{copied ? "Copied" : "Copy"}</span>
+          <span className="sr-only" aria-live="polite">
+            {copied ? "Feed URL copied to clipboard" : ""}
+          </span>
         </button>
         <a
           href={resolvedFeedProtocol || "#"}
-          className="p-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white flex items-center justify-center transition-colors shadow-sm"
+          aria-label="Open directly in default RSS Reader application"
+          className="p-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white flex items-center justify-center transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
           title="Open in RSS Reader"
         >
           <ExternalLink className="w-3.5 h-3.5" />

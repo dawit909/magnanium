@@ -42,7 +42,7 @@ function FilterPill({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1 rounded-full border text-xs transition-all ${
+      className={`px-3 py-1 rounded-full border text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 ${
         active
           ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
           : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
@@ -70,7 +70,7 @@ function InfoTooltip({
         tabIndex={0}
         role="button"
         aria-label={ariaLabel}
-        className="text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors p-0.5 rounded-full cursor-help focus:outline-none"
+        className="text-neutral-400 hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors p-0.5 rounded-full cursor-help focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
       >
         <Info className="w-3.5 h-3.5" />
       </div>
@@ -260,11 +260,12 @@ export default function FeedFilters({
 
           {/* Region */}
           <div className="flex items-center gap-2">
-            <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Region:</span>
+            <span className="w-14 text-neutral-500 dark:text-neutral-400 font-medium">Region:</span>
             <select
               value={country}
               onChange={(e) => onSetCountry(e.target.value)}
-              className="px-3 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs focus:outline-none shadow-sm cursor-pointer"
+              aria-label="Select country for release dates and streaming options"
+              className="px-3 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 shadow-sm cursor-pointer"
             >
               {countryOptions.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -283,7 +284,7 @@ export default function FeedFilters({
                   type="checkbox"
                   checked={excludeShorts}
                   onChange={(e) => onSetExcludeShorts(e.target.checked)}
-                  className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer"
+                  className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-neutral-400"
                 />
                 <span>Exclude short films</span>
               </label>
@@ -296,7 +297,7 @@ export default function FeedFilters({
                   type="checkbox"
                   checked={excludeReReleases}
                   onChange={(e) => onSetExcludeReReleases(e.target.checked)}
-                  className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer"
+                  className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-neutral-400"
                 />
                 <span>Exclude re-releases, remasters &amp; director&apos;s cuts</span>
               </label>

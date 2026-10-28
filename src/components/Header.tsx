@@ -47,7 +47,7 @@ export default function Header({
         {/* Logo */}
         <button
           onClick={onHomeClick}
-          className="font-semibold text-base text-neutral-900 dark:text-neutral-100 tracking-tight hover:opacity-75 transition-opacity flex-shrink-0"
+          className="font-semibold text-base text-neutral-900 dark:text-neutral-100 tracking-tight hover:opacity-75 transition-opacity flex-shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
         >
           Magnanium
         </button>
@@ -60,12 +60,18 @@ export default function Header({
           <input
             ref={searchInputRef}
             type="text"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={isOpen && searchResults.length > 0}
+            aria-controls="search-dropdown-listbox"
+            aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
+            aria-label="Search artist, actor, director, writer"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             onFocus={onFocus}
             onKeyDown={onKeyDown}
             placeholder="Search actor, director, writer..."
-            className="w-full pl-8 pr-8 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors block"
+            className="w-full pl-8 pr-8 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 transition-colors block"
           />
           {isSearching && (
             <div className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
@@ -80,18 +86,34 @@ export default function Header({
             </div>
           )}
 
+          {/* Screen Reader Live Announcement */}
+          <div className="sr-only" aria-live="polite" aria-atomic="true">
+            {hasSearched && !isSearching
+              ? searchResults.length > 0
+                ? `${searchResults.length} people found`
+                : "No matching people found"
+              : ""}
+          </div>
+
           {/* Autocomplete Dropdown */}
           {isOpen && searchResults.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60">
+            <div
+              id="search-dropdown-listbox"
+              role="listbox"
+              aria-label="Search suggestions"
+              className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60"
+            >
               {searchResults.slice(0, 6).map((person, index) => {
                 const isActive = activeIndex === index;
                 return (
                   <button
                     key={person.id}
                     id={`search-result-${index}`}
+                    role="option"
+                    aria-selected={isActive}
                     onClick={() => onSelectPerson(person)}
                     onMouseEnter={() => onSetActiveIndex(index)}
-                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors ${
+                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400 ${
                       isActive
                         ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium ring-1 ring-inset ring-neutral-300 dark:ring-neutral-700"
                         : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200"
@@ -117,7 +139,7 @@ export default function Header({
                       )}
                       <span className="font-medium truncate text-xs">{person.name}</span>
                     </div>
-                    <span className="text-neutral-400 dark:text-neutral-500 text-[10px] ml-2 flex-shrink-0">
+                    <span className="text-neutral-500 dark:text-neutral-400 text-[10px] ml-2 flex-shrink-0">
                       {person.known_for_department}
                     </span>
                   </button>
@@ -137,7 +159,7 @@ export default function Header({
         <button
           onClick={onToggleTheme}
           aria-label="Toggle theme"
-          className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0"
+          className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
         >
           {theme === "light" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
         </button>
