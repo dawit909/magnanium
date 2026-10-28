@@ -1,22 +1,26 @@
 import fs from "fs";
 import path from "path";
 
-// Read TMDB API key from .env.local
-const envContent = fs.readFileSync(".env.local", "utf8");
-const envVars = Object.fromEntries(
-  envContent
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#") && line.includes("="))
-    .map((line) => {
-      const idx = line.indexOf("=");
-      return [line.slice(0, idx).trim(), line.slice(idx + 1).trim()];
-    })
-);
+// Read TMDB API key from environment variable or .env.local
+let apiKey = process.env.TMDB_API_KEY || process.env.TMDB_ACCESS_TOKEN;
 
-const apiKey = envVars.TMDB_API_KEY || envVars.TMDB_ACCESS_TOKEN;
+if (!apiKey && fs.existsSync(".env.local")) {
+  const envContent = fs.readFileSync(".env.local", "utf8");
+  const envVars = Object.fromEntries(
+    envContent
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#") && line.includes("="))
+      .map((line) => {
+        const idx = line.indexOf("=");
+        return [line.slice(0, idx).trim(), line.slice(idx + 1).trim()];
+      })
+  );
+  apiKey = envVars.TMDB_API_KEY || envVars.TMDB_ACCESS_TOKEN;
+}
+
 if (!apiKey) {
-  console.error("TMDB API key not found in .env.local");
+  console.error("TMDB API key not found in process.env or .env.local");
   process.exit(1);
 }
 
