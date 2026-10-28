@@ -257,21 +257,21 @@ export default function HomePage() {
         <div className="space-y-5">
           {/* Person Header with Profile Picture */}
           <div className="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3.5">
               {selectedPerson.profile_path ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={`https://image.tmdb.org/t/p/w185${selectedPerson.profile_path}`}
                   alt={selectedPerson.name}
-                  className="w-11 h-11 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-sm"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-sm flex-shrink-0"
                 />
               ) : (
-                <div className="w-11 h-11 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-neutral-400">
-                  <User className="w-5 h-5" />
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                  <User className="w-8 h-8" />
                 </div>
               )}
               <div>
-                <span className="text-neutral-900 dark:text-neutral-100 font-medium block">
+                <span className="text-base sm:text-lg font-medium text-neutral-900 dark:text-neutral-100 block">
                   {selectedPerson.name}
                 </span>
                 <span className="text-neutral-400 dark:text-neutral-500 text-xs">
