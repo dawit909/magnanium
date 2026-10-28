@@ -114,7 +114,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
 
         const data = await res.json();
         if (data.error) return;
-        const results = data.results || [];
+        const results = (data.results || []).slice(0, 6);
 
         searchCache.set(cacheKey, results);
         setSearchResults(results);
@@ -200,7 +200,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
               const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
               if (res.ok) {
                 const data = await res.json();
-                const fetchedResults: TMDBPersonSearchResult[] = data.results || [];
+                const fetchedResults: TMDBPersonSearchResult[] = (data.results || []).slice(0, 6);
                 searchCache.set(cacheKey, fetchedResults);
                 results = fetchedResults;
                 setHasSearched(true);

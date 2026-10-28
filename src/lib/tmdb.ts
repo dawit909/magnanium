@@ -86,7 +86,7 @@ export async function searchPerson(
     return { results: [], error: `TMDB search request failed with status ${status}` };
   }
 
-  return { results: (data?.results || []).slice(0, 8) };
+  return { results: (data?.results || []).slice(0, 6) };
 }
 
 /**
