@@ -131,3 +131,18 @@ export function saveFeedOption<K extends keyof FeedOptionsSettings>(
 
   return inMemoryOptions;
 }
+
+/**
+ * Persist all options to in-memory cache and localStorage.
+ */
+export function saveAllFeedOptions(options: FeedOptionsSettings): FeedOptionsSettings {
+  inMemoryOptions = { ...options };
+
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryOptions));
+    } catch {}
+  }
+
+  return inMemoryOptions;
+}

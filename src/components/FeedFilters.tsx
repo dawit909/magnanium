@@ -25,7 +25,7 @@ function FilterRow({ label, children }: { label: string; children: React.ReactNo
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">{label}:</span>
-      <div className="flex items-center gap-1.5">{children}</div>
+      <div className="flex items-center gap-1.5 flex-wrap">{children}</div>
     </div>
   );
 }
@@ -41,8 +41,10 @@ function FilterPill({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`px-3 py-1 rounded-full border text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 ${
+      suppressHydrationWarning
+      className={`px-3 py-1 rounded-full border text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer select-none ${
         active
           ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
           : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
@@ -181,8 +183,8 @@ export default function FeedFilters({
       <div className="pt-1">
         <button
           type="button"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors py-1 group focus:outline-none"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors py-1 group focus:outline-none cursor-pointer"
           aria-expanded={isExpanded}
         >
           <Settings2 className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />

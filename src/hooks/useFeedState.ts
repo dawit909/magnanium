@@ -1,101 +1,104 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
 import { BoundedMap } from "@/lib/cache";
 import {
   getSavedFeedOptions,
-  saveFeedOption,
+  saveAllFeedOptions,
   FeedOptionsSettings,
 } from "@/lib/feed-options";
 
 const previewCache = new BoundedMap<string, FormattedRelease[]>(40);
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
-  const initial = getSavedFeedOptions();
-  const [media, setMedia] = useState<string[]>(initial.media);
-  const [roles, setRoles] = useState<string[]>(initial.roles);
-  const [types, setTypes] = useState<string[]>(initial.types);
-  const [country, setCountryState] = useState<string>(initial.country);
-  const [alert, setAlertState] = useState<FeedOptionsSettings["alert"]>(initial.alert);
-  const [excludeShorts, setExcludeShortsState] = useState<boolean>(initial.excludeShorts);
-  const [excludeReReleases, setExcludeReReleasesState] = useState<boolean>(initial.excludeReReleases);
+  // Read saved feed options synchronously on client initialization to eliminate first-click lag/overwrite
+  const [media, setMedia] = useState<string[]>(() => getSavedFeedOptions().media);
+  const [roles, setRoles] = useState<string[]>(() => getSavedFeedOptions().roles);
+  const [types, setTypes] = useState<string[]>(() => getSavedFeedOptions().types);
+  const [country, setCountryState] = useState<string>(() => getSavedFeedOptions().country);
+  const [alert, setAlertState] = useState<FeedOptionsSettings["alert"]>(() => getSavedFeedOptions().alert);
+  const [excludeShorts, setExcludeShortsState] = useState<boolean>(() => getSavedFeedOptions().excludeShorts);
+  const [excludeReReleases, setExcludeReReleasesState] = useState<boolean>(() => getSavedFeedOptions().excludeReReleases);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [origin, setOrigin] = useState("");
+  const [origin, setOrigin] = useState(() =>
+    typeof window !== "undefined" ? window.location.origin : ""
+  );
 
-  // Sync with persisted settings on mount
+  const isMountedRef = useRef(false);
+
+  // Sync origin on client mount
   useEffect(() => {
-    setOrigin(window.location.origin);
-    const saved = getSavedFeedOptions();
-    setMedia(saved.media);
-    setRoles(saved.roles);
-    setTypes(saved.types);
-    setCountryState(saved.country);
-    setAlertState(saved.alert);
-    setExcludeShortsState(saved.excludeShorts);
-    setExcludeReReleasesState(saved.excludeReReleases);
-  }, []);
+    if (!origin && typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, [origin]);
+
+  // Persist options changes to storage (skipping initial mount so first-click is never clobbered)
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
+
+    saveAllFeedOptions({
+      media,
+      roles,
+      types,
+      country,
+      alert,
+      excludeShorts,
+      excludeReReleases,
+    });
+  }, [media, roles, types, country, alert, excludeShorts, excludeReReleases]);
 
   const toggleMedia = useCallback((m: string) => {
     setMedia((prev) => {
-      const next = prev.includes(m)
-        ? prev.length > 1
-          ? prev.filter((x) => x !== m)
-          : prev
-        : [...prev, m];
-      saveFeedOption("media", next);
-      return next;
+      if (prev.includes(m)) {
+        return prev.length > 1 ? prev.filter((x) => x !== m) : prev;
+      }
+      return [...prev, m];
     });
   }, []);
 
   const toggleRole = useCallback((r: string) => {
     setRoles((prev) => {
-      const next = prev.includes(r)
-        ? prev.length > 1
-          ? prev.filter((x) => x !== r)
-          : prev
-        : [...prev, r];
-      saveFeedOption("roles", next);
-      return next;
+      if (prev.includes(r)) {
+        return prev.length > 1 ? prev.filter((x) => x !== r) : prev;
+      }
+      return [...prev, r];
     });
   }, []);
 
   const toggleType = useCallback((t: string) => {
     setTypes((prev) => {
-      let next: string[];
       if (t === "earliest") {
-        next = ["earliest"];
-      } else if (prev.includes("earliest")) {
-        next = [t];
-      } else {
-        const filtered = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
-        next = filtered.length > 0 ? filtered : ["cinema", "home"];
+        return prev.includes("earliest") ? ["cinema", "home"] : ["earliest"];
       }
-      saveFeedOption("types", next);
-      return next;
+      if (prev.includes("earliest")) {
+        return [t];
+      }
+      const filtered = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
+      return filtered.length > 0 ? filtered : ["cinema", "home"];
     });
   }, []);
 
   const setCountry = useCallback((c: string) => {
     setCountryState(c);
-    saveFeedOption("country", c);
   }, []);
 
   const setAlert = useCallback((a: FeedOptionsSettings["alert"]) => {
     setAlertState(a);
-    saveFeedOption("alert", a);
   }, []);
 
   const setExcludeShorts = useCallback((exclude: boolean) => {
     setExcludeShortsState(exclude);
-    saveFeedOption("excludeShorts", exclude);
   }, []);
 
   const setExcludeReReleases = useCallback((exclude: boolean) => {
     setExcludeReReleasesState(exclude);
-    saveFeedOption("excludeReReleases", exclude);
   }, []);
 
   // Construct RSS Feed URL
