@@ -146,7 +146,7 @@ export async function getPersonReleases(
   const {
     personId,
     media = ["movie", "tv"],
-    roles = ["actor", "crew"],
+    roles = ["actor", "director", "writer", "producer", "crew"],
     types = ["cinema", "home"],
     country = "US",
     window = "all",
@@ -190,10 +190,7 @@ export async function getPersonReleases(
     roles.includes("director") ||
     roles.includes("writer") ||
     roles.includes("producer") ||
-    roles.includes("crew") ||
-    roles.includes("behind_the_scenes") ||
-    roles.includes("sound") ||
-    roles.includes("music");
+    roles.includes("crew");
 
   // Deduplicate and aggregate multiple roles per project in O(N)
   const candidateMap = new Map<string, CandidateEntry>();

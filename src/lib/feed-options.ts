@@ -40,25 +40,11 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
 
   let validRoles = inMemoryOptions.roles;
   if (Array.isArray(parsed.roles) && parsed.roles.length > 0) {
-    const hasGranular = parsed.roles.some((r: string) =>
-      ["director", "writer", "producer"].includes(r)
+    const filtered = parsed.roles.filter((r: string) =>
+      ["actor", "director", "writer", "producer", "crew", "all"].includes(r)
     );
-    if (!hasGranular && parsed.roles.includes("crew")) {
-      // Legacy migration: expand previous "crew" (BTS) to all specific roles
-      validRoles = [
-        ...parsed.roles.filter((r: string) => r !== "crew"),
-        "director",
-        "writer",
-        "producer",
-        "crew",
-      ];
-    } else {
-      const filtered = parsed.roles.filter((r: string) =>
-        ["actor", "director", "writer", "producer", "crew", "all"].includes(r)
-      );
-      if (filtered.length > 0) {
-        validRoles = filtered;
-      }
+    if (filtered.length > 0) {
+      validRoles = filtered;
     }
   }
 

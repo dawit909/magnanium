@@ -37,14 +37,13 @@ export function mapReleaseType(
 
 export function isDateInWindow(
   dateStr: string,
-  alert: "announced" | "week_before" | "release_day",
+  alert: "announced" | "week_before",
   window: "upcoming" | "all",
   nowStr: string,
   oneYearAgoStr: string,
   sevenDaysFromNowStr?: string
 ): boolean {
   if (!dateStr) return false;
-  if (alert === "release_day" && dateStr > nowStr) return false;
   if (alert === "week_before" && sevenDaysFromNowStr && dateStr > sevenDaysFromNowStr) return false;
   if (window === "upcoming" && dateStr < nowStr) return false;
   if (window === "all" && dateStr < oneYearAgoStr) return false;

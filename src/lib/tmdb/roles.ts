@@ -13,7 +13,6 @@ export const ROLE_PRIORITY = [
   "songs",
 ];
 
-const SOUND_JOB_REGEX = /song|music|composer|score|vocal|singer|sound|musician|lyricist|conductor/i;
 const DIRECTOR_REGEX = /director/i;
 const WRITER_REGEX = /writer|screenplay/i;
 const PRODUCER_REGEX = /producer/i;
@@ -82,13 +81,6 @@ export function isOtherCrewCredit(item: TMDBCreditItem): boolean {
   return !isDirectorCredit(item) && !isWriterCredit(item) && !isProducerCredit(item);
 }
 
-export function isSoundCredit(item: TMDBCreditItem): boolean {
-  if (item.department && item.department.toLowerCase() === "sound") {
-    return true;
-  }
-  return Boolean(item.job && SOUND_JOB_REGEX.test(item.job));
-}
-
 export function isIgnoredCrewCredit(item: TMDBCreditItem): boolean {
   if (item.job && /thanks/i.test(item.job)) return true;
   if (!item.job && item.department?.toLowerCase() === "crew") return true;
@@ -107,12 +99,7 @@ export function matchesSpecificCrewRole(item: TMDBCreditItem, rolesFilter: strin
   if (rolesFilter.includes("producer") && isProducerCredit(item)) {
     return true;
   }
-  if (
-    (rolesFilter.includes("crew") ||
-      rolesFilter.includes("behind_the_scenes") ||
-      rolesFilter.includes("sound")) &&
-    isOtherCrewCredit(item)
-  ) {
+  if (rolesFilter.includes("crew") && isOtherCrewCredit(item)) {
     return true;
   }
 
