@@ -158,11 +158,14 @@ export default function FeedFilters({
         ))}
         <InfoTooltip
           ariaLabel="Format info"
-          width="w-64"
+          width="w-72"
           content={
             <div className="space-y-1.5 text-left">
               <p>
                 If you choose only <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Theatrical&rdquo;</strong>, TV shows will not appear.
+              </p>
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Home&rdquo;</strong> can send more than one alert for a single film or TV show (e.g. Digital, Streaming, and Physical).
               </p>
               <p>
                 <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Earliest&rdquo;</strong> notifies only once per project on its first available release format.
