@@ -21,7 +21,7 @@ export async function generateMetadata(props: {
 
   return {
     title: `${person.name} - Magnanium`,
-    description: `Movie release RSS feed for ${person.name}.`,
+    description: `Release dates and RSS feed for ${person.name}.`,
   };
 }
 

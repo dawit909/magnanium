@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
 import { createPersonSlug } from "@/lib/slug";
-import { Search, Copy, Check, ExternalLink, Sun, Moon, User, Film, Rss } from "lucide-react";
+import { Search, Copy, Check, ExternalLink, Sun, Moon, User, Film, Tv, Rss } from "lucide-react";
 
 const COUNTRIES = [
   { code: "US", name: "United States" },
@@ -32,7 +32,8 @@ export default function FeedApp({
   const [recentArtists, setRecentArtists] = useState<Array<{ id: number; name: string; slug: string }>>([]);
 
   // Filters
-  const [roles, setRoles] = useState<string[]>(["director", "actor"]);
+  const [media, setMedia] = useState<string[]>(["movie", "tv"]);
+  const [roles, setRoles] = useState<string[]>(["actor", "crew"]);
   const [types, setTypes] = useState<string[]>(["cinema", "home"]);
   const [country, setCountry] = useState("US");
   const [excludeShorts, setExcludeShorts] = useState(false);
@@ -145,7 +146,7 @@ export default function FeedApp({
 
   // Construct RSS Feed URL
   const feedUrl = selectedPerson
-    ? `${origin}/api/feed/${selectedPerson.id}?roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&exclude_shorts=${excludeShorts}`
+    ? `${origin}/api/feed/${selectedPerson.id}?media=${media.join(",")}&roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&exclude_shorts=${excludeShorts}`
     : "";
 
   // Fetch preview items when artist or filters change
@@ -161,6 +162,7 @@ export default function FeedApp({
     const loadFeed = async () => {
       try {
         const params = new URLSearchParams({
+          media: media.join(","),
           roles: roles.join(","),
           types: types.join(","),
           country,
@@ -191,17 +193,34 @@ export default function FeedApp({
           const dateMatch = title.match(/\((\d{4}-\d{2}-\d{2})\)/);
           const releaseDate = dateMatch ? dateMatch[1] : pubDate;
 
+          const isTv = categories.includes("TV") || link.includes("/tv/");
+          const mediaType: "movie" | "tv" = isTv ? "tv" : "movie";
+
+          const formatLabel =
+            categories.find((c) => ["Cinema", "Home", "TV"].some((k) => c.startsWith(k))) ||
+            (isTv ? "TV" : "Release");
+
+          const roleLabel =
+            categories.find(
+              (c) =>
+                !["Movie", "TV"].includes(c) &&
+                !c.startsWith("Cinema") &&
+                !c.startsWith("Home") &&
+                c !== "TV"
+            ) || "";
+
           parsed.push({
             id: guid,
+            mediaType,
             movieId: 0,
             movieTitle: title.split(" - ")[0] || title,
             overview: "",
             posterPath: posterUrl,
             releaseDate,
-            releaseType: "cinema",
-            releaseTypeLabel: categories[0] || "Release",
+            releaseType: isTv ? "home" : "cinema",
+            releaseTypeLabel: formatLabel,
             country,
-            role: categories[1] || "",
+            role: roleLabel,
             tmdbUrl: link,
           });
         });
@@ -218,10 +237,24 @@ export default function FeedApp({
     return () => {
       isCurrent = false;
     };
-  }, [selectedPerson, roles, types, country, excludeShorts]);
+  }, [selectedPerson, media, roles, types, country, excludeShorts]);
+
+  const toggleMedia = (m: string) => {
+    setMedia((prev) => {
+      if (prev.includes(m)) {
+        return prev.length > 1 ? prev.filter((x) => x !== m) : prev;
+      }
+      return [...prev, m];
+    });
+  };
 
   const toggleRole = (r: string) => {
-    setRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
+    setRoles((prev) => {
+      if (prev.includes(r)) {
+        return prev.length > 1 ? prev.filter((x) => x !== r) : prev;
+      }
+      return [...prev, r];
+    });
   };
 
   const toggleType = (t: string) => {
@@ -266,7 +299,7 @@ export default function FeedApp({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search director or actor..."
+              placeholder="Search director, actor, artist..."
               className="w-full pl-8 pr-3 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/20 dark:focus:ring-neutral-600/30 focus:border-neutral-400 dark:focus:border-neutral-600 transition-all"
             />
             {isSearching && (
@@ -377,21 +410,47 @@ export default function FeedApp({
 
           {/* Filters in Clean Pill Groups */}
           <div className="space-y-3.5 text-xs">
-            {/* Roles */}
+            {/* Media */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Role:</span>
+              <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Media:</span>
               <div className="flex items-center gap-1.5">
-                {(["director", "actor", "writer"] as const).map((r) => (
+                {[
+                  { id: "movie", label: "Movie" },
+                  { id: "tv", label: "TV" },
+                ].map((m) => (
                   <button
-                    key={r}
-                    onClick={() => toggleRole(r)}
-                    className={`px-3 py-1 rounded-full border text-xs capitalize transition-all ${
-                      roles.includes(r)
+                    key={m.id}
+                    onClick={() => toggleMedia(m.id)}
+                    className={`px-3 py-1 rounded-full border text-xs transition-all ${
+                      media.includes(m.id)
                         ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
                         : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
                     }`}
                   >
-                    {r}
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Roles */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Role:</span>
+              <div className="flex items-center gap-1.5">
+                {[
+                  { id: "actor", label: "Actor" },
+                  { id: "crew", label: "Behind the Scenes" },
+                ].map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => toggleRole(r.id)}
+                    className={`px-3 py-1 rounded-full border text-xs transition-all ${
+                      roles.includes(r.id)
+                        ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
+                        : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
+                    }`}
+                  >
+                    {r.label}
                   </button>
                 ))}
               </div>
@@ -513,7 +572,7 @@ export default function FeedApp({
                     className="py-3 flex items-center justify-between gap-3 group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      {/* Movie Poster Thumbnail */}
+                      {/* Movie/TV Poster Thumbnail */}
                       <div className="w-10 h-14 rounded-lg bg-neutral-100 dark:bg-neutral-800 overflow-hidden border border-neutral-200/80 dark:border-neutral-700 flex-shrink-0 shadow-sm">
                         {item.posterPath ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -524,7 +583,11 @@ export default function FeedApp({
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                            <Film className="w-4 h-4" />
+                            {item.mediaType === "tv" ? (
+                              <Tv className="w-4 h-4" />
+                            ) : (
+                              <Film className="w-4 h-4" />
+                            )}
                           </div>
                         )}
                       </div>
@@ -540,7 +603,15 @@ export default function FeedApp({
                           {item.movieTitle}
                         </a>
                         <div className="text-xs text-neutral-400 dark:text-neutral-500 flex items-center gap-1.5 mt-0.5 truncate">
-                          <span>{item.role}</span>
+                          <span className="font-medium text-neutral-600 dark:text-neutral-300">
+                            {item.mediaType === "tv" ? "TV" : "Movie"}
+                          </span>
+                          {item.role && (
+                            <>
+                              <span>·</span>
+                              <span>{item.role}</span>
+                            </>
+                          )}
                           <span>·</span>
                           <span>{item.country}</span>
                         </div>

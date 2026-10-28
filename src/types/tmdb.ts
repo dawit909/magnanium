@@ -16,16 +16,23 @@ export interface TMDBPersonSearchResult {
 
 export interface TMDBCreditItem {
   id: number;
-  title: string;
-  original_title: string;
+  media_type?: "movie" | "tv";
+  title?: string;
+  name?: string;
+  original_title?: string;
+  original_name?: string;
   overview: string;
   poster_path: string | null;
   backdrop_path: string | null;
-  release_date: string;
+  release_date?: string;
+  first_air_date?: string;
   vote_average: number;
   character?: string;
   department?: string;
   job?: string;
+  origin_country?: string[];
+  genre_ids?: number[];
+  episode_count?: number;
 }
 
 export interface TMDBPersonCreditsResponse {
@@ -51,10 +58,35 @@ export interface TMDBReleaseDatesResponse {
   }>;
 }
 
+export interface TvSeasonItem {
+  id: number;
+  name: string;
+  overview: string;
+  air_date: string | null;
+  episode_count: number;
+  poster_path: string | null;
+  season_number: number;
+  vote_average: number;
+}
+
+export interface TvDetails {
+  id: number;
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  first_air_date: string;
+  last_air_date?: string;
+  status?: string;
+  in_production?: boolean;
+  origin_country?: string[];
+  seasons?: TvSeasonItem[];
+}
+
 export type ReleaseTypeCategory = "cinema" | "home" | "earliest" | "theatrical" | "digital" | "physical" | "premiere" | "other";
 
 export interface FormattedRelease {
   id: string;
+  mediaType: "movie" | "tv";
   movieId: number;
   movieTitle: string;
   overview: string;
@@ -69,7 +101,8 @@ export interface FormattedRelease {
 
 export interface FeedFilterOptions {
   personId: number;
-  roles?: string[];
+  media?: ("movie" | "tv")[];
+  roles?: string[]; // "actor", "crew" (or "behind_the_scenes")
   types?: string[]; // "cinema", "home", "earliest"
   country?: string;
   window?: "upcoming" | "all";

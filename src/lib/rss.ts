@@ -30,8 +30,8 @@ export function generateRssFeed({
   feedUrl: string;
   siteUrl: string;
 }): string {
-  const channelTitle = `${personName} - Movie Releases`;
-  const channelDesc = `Movie release dates for ${personName}`;
+  const channelTitle = `${personName} Releases`;
+  const channelDesc = `Movie & TV release dates for ${personName}`;
   const buildDate = new Date().toUTCString();
 
   const itemsXml = releases
@@ -50,8 +50,11 @@ export function generateRssFeed({
         ? `<p><img src="https://image.tmdb.org/t/p/w342${item.posterPath}" alt="${escapeXml(item.movieTitle)}" style="max-width: 200px; margin-bottom: 8px;" /></p>`
         : "";
 
+      const mediumLabel = item.mediaType === "tv" ? "TV" : "Movie";
+
       const descriptionContent = `
 ${posterHtml}
+<p><strong>Medium:</strong> ${mediumLabel}</p>
 <p><strong>Release:</strong> ${item.releaseDate} (${item.country})</p>
 <p><strong>Format:</strong> ${item.releaseTypeLabel}</p>
 <p><strong>Role:</strong> ${escapeXml(item.role)}</p>
@@ -66,6 +69,7 @@ ${posterHtml}
       <guid isPermaLink="false">${escapeXml(item.id)}</guid>
       <pubDate>${pubDate}</pubDate>
       <description><![CDATA[${descriptionContent}]]></description>
+      <category>${escapeXml(mediumLabel)}</category>
       <category>${escapeXml(item.releaseTypeLabel)}</category>
       <category>${escapeXml(item.role)}</category>
     </item>`;

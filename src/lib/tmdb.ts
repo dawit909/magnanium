@@ -6,6 +6,7 @@ import {
   FeedFilterOptions,
   ReleaseTypeCategory,
   TMDBCreditItem,
+  TvDetails,
 } from "@/types/tmdb";
 
 const TMDB_API_BASE = "https://api.themoviedb.org/3";
@@ -34,7 +35,10 @@ export function mapReleaseType(type: number): { category: "cinema" | "home"; lab
   }
 }
 
-function getFetchOptions(customKey?: string): { url: (endpoint: string, params?: Record<string, string>) => string; headers: Record<string, string> } {
+function getFetchOptions(customKey?: string): {
+  url: (endpoint: string, params?: Record<string, string>) => string;
+  headers: Record<string, string>;
+} {
   const apiKey = getResolvedApiKey(customKey);
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -59,9 +63,12 @@ function getFetchOptions(customKey?: string): { url: (endpoint: string, params?:
 }
 
 /**
- * Search TMDB for an actor or director
+ * Search TMDB for an artist (director, actor, crew, creator)
  */
-export async function searchPerson(query: string, customApiKey?: string): Promise<{ results: TMDBPersonSearchResult[]; noApiKey?: boolean }> {
+export async function searchPerson(
+  query: string,
+  customApiKey?: string
+): Promise<{ results: TMDBPersonSearchResult[]; noApiKey?: boolean }> {
   const { url, headers } = getFetchOptions(customApiKey);
   const hasAuth = SERVER_ACCESS_TOKEN || getResolvedApiKey(customApiKey);
 
@@ -109,13 +116,16 @@ export async function getPersonDetails(personId: number, customApiKey?: string) 
 }
 
 /**
- * Get person movie credits
+ * Get person combined credits (both movies and TV shows)
  */
-export async function getPersonCredits(personId: number, customApiKey?: string): Promise<TMDBPersonCreditsResponse> {
+export async function getPersonCredits(
+  personId: number,
+  customApiKey?: string
+): Promise<TMDBPersonCreditsResponse> {
   const { url, headers } = getFetchOptions(customApiKey);
 
   try {
-    const res = await fetch(url(`/person/${personId}/movie_credits`), {
+    const res = await fetch(url(`/person/${personId}/combined_credits`), {
       headers,
       next: { revalidate: 21600 },
     });
@@ -123,10 +133,12 @@ export async function getPersonCredits(personId: number, customApiKey?: string):
     if (!res.ok) return { id: personId, cast: [], crew: [] };
     return await res.json();
   } catch (err) {
-    console.error("Error fetching credits:", err);
+    console.error("Error fetching combined credits:", err);
     return { id: personId, cast: [], crew: [] };
   }
 }
+
+export const getPersonCombinedCredits = getPersonCredits;
 
 interface MovieDetailsWithReleases {
   runtime?: number;
@@ -137,7 +149,10 @@ interface MovieDetailsWithReleases {
 /**
  * Fetch movie details along with release dates in a single API call
  */
-export async function getMovieDetails(movieId: number, customApiKey?: string): Promise<MovieDetailsWithReleases | null> {
+export async function getMovieDetails(
+  movieId: number,
+  customApiKey?: string
+): Promise<MovieDetailsWithReleases | null> {
   const { url, headers } = getFetchOptions(customApiKey);
 
   try {
@@ -154,7 +169,31 @@ export async function getMovieDetails(movieId: number, customApiKey?: string): P
 }
 
 /**
- * Compile formatted movie releases for person
+ * Fetch TV show details including season information
+ */
+export async function getTvDetails(
+  tvId: number,
+  customApiKey?: string
+): Promise<TvDetails | null> {
+  const { url, headers } = getFetchOptions(customApiKey);
+
+  try {
+    const res = await fetch(url(`/tv/${tvId}`), {
+      headers,
+      next: { revalidate: 43200 },
+    });
+
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+const ROLE_PRIORITY = ["creator", "director", "writer", "executive producer", "producer", "actor"];
+
+/**
+ * Compile formatted movie and TV releases for an artist
  */
 export async function getPersonReleases(
   options: FeedFilterOptions,
@@ -162,14 +201,18 @@ export async function getPersonReleases(
 ): Promise<{ personName: string; releases: FormattedRelease[] }> {
   const {
     personId,
-    roles = ["director", "actor"],
+    media = ["movie", "tv"],
+    roles = ["actor", "crew"],
     types = ["cinema", "home"],
     country = "US",
     window = "all",
     excludeShorts = false,
   } = options;
 
-  // Normalize types
+  const includeMovies = media.includes("movie");
+  const includeTv = media.includes("tv");
+
+  // Normalize release types
   const normalizedTypes = types.map((t) => {
     const lower = t.toLowerCase();
     if (lower === "theatrical") return "cinema";
@@ -181,147 +224,300 @@ export async function getPersonReleases(
 
   const [person, credits] = await Promise.all([
     getPersonDetails(personId, customApiKey),
-    getPersonCredits(personId, customApiKey),
+    getPersonCombinedCredits(personId, customApiKey),
   ]);
 
   const personName = person.name || "Artist";
-  const candidateMap = new Map<number, { movie: TMDBCreditItem; roles: string[] }>();
 
-  const addCandidate = (item: TMDBCreditItem, roleStr: string) => {
-    if (!item.id || !item.title) return;
-    const existing = candidateMap.get(item.id);
+  // Check roles:
+  // "actor" -> Cast credits
+  // "crew" / "behind_the_scenes" / "director" / "writer" / "producer" -> Behind the Scenes
+  const isActorSelected = roles.includes("all") || roles.includes("actor");
+  const isCrewSelected =
+    roles.includes("all") ||
+    roles.includes("crew") ||
+    roles.includes("behind_the_scenes") ||
+    roles.includes("director") ||
+    roles.includes("writer") ||
+    roles.includes("producer");
+
+  const candidateMap = new Map<
+    string,
+    {
+      item: TMDBCreditItem;
+      roles: string[];
+      mediaType: "movie" | "tv";
+    }
+  >();
+
+  const addCandidate = (item: TMDBCreditItem, roleStr: string, mediaType: "movie" | "tv") => {
+    const key = `${mediaType}-${item.id}`;
+    const existing = candidateMap.get(key);
     if (existing) {
       if (!existing.roles.includes(roleStr)) existing.roles.push(roleStr);
     } else {
-      candidateMap.set(item.id, { movie: item, roles: [roleStr] });
+      candidateMap.set(key, { item, roles: [roleStr], mediaType });
     }
   };
 
-  const checkRole = (r: string) => roles.includes("all") || roles.includes(r.toLowerCase());
-
-  if (credits.crew) {
+  // 1. Process behind-the-scenes (crew) credits
+  if (isCrewSelected && credits.crew) {
     for (const item of credits.crew) {
+      const mediaType = (item.media_type as "movie" | "tv") || "movie";
+      if (mediaType === "movie" && !includeMovies) continue;
+      if (mediaType === "tv" && !includeTv) continue;
+      if (!item.id || (!item.title && !item.name)) continue;
+
       const job = (item.job || "").toLowerCase();
       const dept = (item.department || "").toLowerCase();
 
       if (job.includes("thanks") || dept === "crew") continue;
 
-      if (checkRole("director") && (job.includes("director") || dept === "directing")) {
-        addCandidate(item, "Director");
-      } else if (checkRole("writer") && (job.includes("writer") || job.includes("screenplay") || dept === "writing")) {
-        addCandidate(item, `Writer (${item.job || "Screenplay"})`);
-      } else if (checkRole("producer") && (job.includes("producer") || dept === "production")) {
-        addCandidate(item, `Producer (${item.job || "Producer"})`);
+      // Legacy single-role query compatibility
+      if (roles.length === 1 && roles.includes("director") && !job.includes("director") && dept !== "directing") continue;
+      if (roles.length === 1 && roles.includes("writer") && !job.includes("writer") && !job.includes("screenplay") && dept !== "writing") continue;
+      if (roles.length === 1 && roles.includes("producer") && !job.includes("producer") && dept !== "production") continue;
+
+      let roleLabel = "Crew";
+      if (job.includes("director") || dept === "directing") {
+        roleLabel = "Director";
+      } else if (job.includes("creator") || dept === "creator") {
+        roleLabel = "Creator";
+      } else if (job.includes("executive producer")) {
+        roleLabel = "Executive Producer";
+      } else if (job.includes("producer") || dept === "production") {
+        roleLabel = "Producer";
+      } else if (job.includes("screenplay") || job.includes("writer") || dept === "writing") {
+        roleLabel = item.job && item.job.toLowerCase() !== "writer" ? `Writer (${item.job})` : "Writer";
+      } else if (item.job) {
+        roleLabel = item.job;
+      } else if (item.department) {
+        roleLabel = item.department;
       }
+
+      addCandidate(item, roleLabel, mediaType);
     }
   }
 
-  if (credits.cast && checkRole("actor")) {
+  // 2. Process actor (cast) credits
+  if (isActorSelected && credits.cast) {
     for (const item of credits.cast) {
-      addCandidate(item, item.character ? `Actor (${item.character})` : "Actor");
+      const mediaType = (item.media_type as "movie" | "tv") || "movie";
+      if (mediaType === "movie" && !includeMovies) continue;
+      if (mediaType === "tv" && !includeTv) continue;
+      if (!item.id || (!item.title && !item.name)) continue;
+
+      // Filter talk shows, late-night guest appearances, and award specials
+      if (mediaType === "tv") {
+        if (item.genre_ids?.includes(10767) || item.genre_ids?.includes(10763)) continue;
+        const charLower = (item.character || "").toLowerCase();
+        if (charLower.startsWith("self - guest") || charLower === "self - interviewee") continue;
+      }
+
+      const char = (item.character || "").trim();
+      const roleLabel = char ? `Actor (${char})` : "Actor";
+      addCandidate(item, roleLabel, mediaType);
     }
   }
 
   const candidateList = Array.from(candidateMap.values());
   candidateList.sort((a, b) => {
-    const dateA = a.movie.release_date || "0000-00-00";
-    const dateB = b.movie.release_date || "0000-00-00";
+    const dateA = (a.mediaType === "tv" ? a.item.first_air_date : a.item.release_date) || "0000-00-00";
+    const dateB = (b.mediaType === "tv" ? b.item.first_air_date : b.item.release_date) || "0000-00-00";
     return dateB.localeCompare(dateA);
   });
 
-  const sliceCandidates = candidateList.slice(0, 30);
+  const sliceCandidates = candidateList.slice(0, 40);
   const nowStr = new Date().toISOString().split("T")[0];
   const oneYearAgoStr = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   const formattedReleases: FormattedRelease[] = [];
 
   await Promise.all(
-    sliceCandidates.map(async ({ movie, roles: movieRoles }) => {
-      // Check for title-based shorts
-      if (excludeShorts && /\b(short|short film)\b/i.test(movie.title)) {
-        return;
-      }
+    sliceCandidates.map(async ({ item, roles: candidateRoles, mediaType }) => {
+      // Sort roles by priority: Creator > Director > Writer > Executive Producer > Producer > Actor > others
+      const sortedRoles = [...candidateRoles].sort((a, b) => {
+        const idxA = ROLE_PRIORITY.findIndex((r) => a.toLowerCase().includes(r));
+        const idxB = ROLE_PRIORITY.findIndex((r) => b.toLowerCase().includes(r));
+        const orderA = idxA === -1 ? 99 : idxA;
+        const orderB = idxB === -1 ? 99 : idxB;
+        return orderA - orderB;
+      });
+      const combinedRole = sortedRoles.join(", ");
 
-      const movieDetails = await getMovieDetails(movie.id, customApiKey);
+      if (mediaType === "movie") {
+        const movie = item;
+        const movieTitle = movie.title || movie.name || "Movie";
 
-      // Exclude short films: runtime between 1 and 39 minutes
-      if (excludeShorts && movieDetails?.runtime && movieDetails.runtime > 0 && movieDetails.runtime < 40) {
-        return;
-      }
+        if (excludeShorts && /\b(short|short film)\b/i.test(movieTitle)) {
+          return;
+        }
 
-      const releaseDatesData = movieDetails?.release_dates;
-      const movieCandidateReleases: FormattedRelease[] = [];
+        const movieDetails = await getMovieDetails(movie.id, customApiKey);
 
-      if (releaseDatesData && releaseDatesData.results) {
-        const countryData =
-          releaseDatesData.results.find((r) => r.iso_3166_1.toUpperCase() === country.toUpperCase()) ||
-          releaseDatesData.results.find((r) => r.iso_3166_1 === "US") ||
-          releaseDatesData.results[0];
+        // Exclude short films: runtime between 1 and 39 minutes
+        if (excludeShorts && movieDetails?.runtime && movieDetails.runtime > 0 && movieDetails.runtime < 40) {
+          return;
+        }
 
-        if (countryData && countryData.release_dates) {
-          for (const rd of countryData.release_dates) {
-            const dateStr = rd.release_date ? rd.release_date.split("T")[0] : "";
+        const releaseDatesData = movieDetails?.release_dates;
+        const movieCandidateReleases: FormattedRelease[] = [];
+
+        if (releaseDatesData && releaseDatesData.results) {
+          const countryData =
+            releaseDatesData.results.find((r) => r.iso_3166_1.toUpperCase() === country.toUpperCase()) ||
+            releaseDatesData.results.find((r) => r.iso_3166_1 === "US") ||
+            releaseDatesData.results[0];
+
+          if (countryData && countryData.release_dates) {
+            for (const rd of countryData.release_dates) {
+              const dateStr = rd.release_date ? rd.release_date.split("T")[0] : "";
+              if (!dateStr) continue;
+
+              const { category, label } = mapReleaseType(rd.type);
+
+              // Window filter
+              if (window === "upcoming" && dateStr < nowStr) continue;
+              if (window === "all" && dateStr < oneYearAgoStr) continue;
+
+              movieCandidateReleases.push({
+                id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}`,
+                mediaType: "movie",
+                movieId: movie.id,
+                movieTitle,
+                overview: movie.overview || "",
+                posterPath: movie.poster_path,
+                releaseDate: dateStr,
+                releaseType: category,
+                releaseTypeLabel: label,
+                country: countryData.iso_3166_1,
+                role: combinedRole,
+                tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
+              });
+            }
+          }
+        }
+
+        // Fallback to movie.release_date if no specific release entries
+        if (movieCandidateReleases.length === 0 && movie.release_date) {
+          const dateStr = movie.release_date;
+          const inWindow = !(window === "upcoming" && dateStr < nowStr) && !(window === "all" && dateStr < oneYearAgoStr);
+
+          if (inWindow) {
+            movieCandidateReleases.push({
+              id: `${movie.id}-general-${dateStr}`,
+              mediaType: "movie",
+              movieId: movie.id,
+              movieTitle,
+              overview: movie.overview || "",
+              posterPath: movie.poster_path,
+              releaseDate: dateStr,
+              releaseType: "cinema",
+              releaseTypeLabel: "Cinema",
+              country,
+              role: combinedRole,
+              tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
+            });
+          }
+        }
+
+        if (movieCandidateReleases.length === 0) return;
+
+        if (isEarliestOnly) {
+          movieCandidateReleases.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
+          const earliest = movieCandidateReleases[0];
+          formattedReleases.push({
+            ...earliest,
+            releaseTypeLabel: `${earliest.releaseTypeLabel} (Earliest)`,
+          });
+        } else {
+          for (const rel of movieCandidateReleases) {
+            if (normalizedTypes.includes(rel.releaseType)) {
+              formattedReleases.push(rel);
+            }
+          }
+        }
+      } else {
+        // mediaType === "tv"
+        const tvShow = item;
+        const showTitle = tvShow.name || tvShow.title || "TV Series";
+
+        if (excludeShorts && /\b(short|short film)\b/i.test(showTitle)) {
+          return;
+        }
+
+        const tvDetails = await getTvDetails(tvShow.id, customApiKey);
+        const tvCandidateReleases: FormattedRelease[] = [];
+        const showCountry = tvDetails?.origin_country?.[0] || country;
+
+        if (tvDetails?.seasons && tvDetails.seasons.length > 0) {
+          const validSeasons = tvDetails.seasons.filter((s) => s.season_number > 0 && s.air_date);
+          for (const season of validSeasons) {
+            const dateStr = season.air_date;
             if (!dateStr) continue;
-
-            const { category, label } = mapReleaseType(rd.type);
 
             // Window filter
             if (window === "upcoming" && dateStr < nowStr) continue;
             if (window === "all" && dateStr < oneYearAgoStr) continue;
 
-            movieCandidateReleases.push({
-              id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}`,
-              movieId: movie.id,
-              movieTitle: movie.title,
-              overview: movie.overview || "",
-              posterPath: movie.poster_path,
+            const seasonTitle = validSeasons.length > 1
+              ? `${tvDetails.name}: ${season.name}`
+              : tvDetails.name;
+
+            tvCandidateReleases.push({
+              id: `${tvShow.id}-s${season.season_number}-${dateStr}`,
+              mediaType: "tv",
+              movieId: tvShow.id,
+              movieTitle: seasonTitle,
+              overview: season.overview || tvDetails.overview || tvShow.overview || "",
+              posterPath: season.poster_path || tvDetails.poster_path || tvShow.poster_path,
               releaseDate: dateStr,
-              releaseType: category,
-              releaseTypeLabel: label,
-              country: countryData.iso_3166_1,
-              role: movieRoles.join(", "),
-              tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
+              releaseType: "home",
+              releaseTypeLabel: "TV",
+              country: showCountry,
+              role: combinedRole,
+              tmdbUrl: `https://www.themoviedb.org/tv/${tvShow.id}`,
             });
           }
         }
-      }
 
-      // Fallback to movie.release_date if no specific release entries
-      if (movieCandidateReleases.length === 0 && movie.release_date) {
-        const dateStr = movie.release_date;
-        const inWindow = !(window === "upcoming" && dateStr < nowStr) && !(window === "all" && dateStr < oneYearAgoStr);
+        // Fallback to first_air_date if no specific seasons matched
+        if (tvCandidateReleases.length === 0 && tvShow.first_air_date) {
+          const dateStr = tvShow.first_air_date;
+          const inWindow = !(window === "upcoming" && dateStr < nowStr) && !(window === "all" && dateStr < oneYearAgoStr);
 
-        if (inWindow) {
-          movieCandidateReleases.push({
-            id: `${movie.id}-general-${dateStr}`,
-            movieId: movie.id,
-            movieTitle: movie.title,
-            overview: movie.overview || "",
-            posterPath: movie.poster_path,
-            releaseDate: dateStr,
-            releaseType: "cinema",
-            releaseTypeLabel: "Cinema",
-            country,
-            role: movieRoles.join(", "),
-            tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
-          });
+          if (inWindow) {
+            tvCandidateReleases.push({
+              id: `${tvShow.id}-general-${dateStr}`,
+              mediaType: "tv",
+              movieId: tvShow.id,
+              movieTitle: showTitle,
+              overview: tvShow.overview || "",
+              posterPath: tvShow.poster_path,
+              releaseDate: dateStr,
+              releaseType: "home",
+              releaseTypeLabel: "TV",
+              country: showCountry,
+              role: combinedRole,
+              tmdbUrl: `https://www.themoviedb.org/tv/${tvShow.id}`,
+            });
+          }
         }
-      }
 
-      if (movieCandidateReleases.length === 0) return;
+        if (tvCandidateReleases.length === 0) return;
 
-      if (isEarliestOnly) {
-        // Sort ascending by date to find the earliest release
-        movieCandidateReleases.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
-        const earliest = movieCandidateReleases[0];
-        formattedReleases.push({
-          ...earliest,
-          releaseTypeLabel: `${earliest.releaseTypeLabel} (Earliest)`,
-        });
-      } else {
-        for (const rel of movieCandidateReleases) {
-          if (normalizedTypes.includes(rel.releaseType)) {
-            formattedReleases.push(rel);
+        if (isEarliestOnly) {
+          tvCandidateReleases.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
+          const earliest = tvCandidateReleases[0];
+          formattedReleases.push({
+            ...earliest,
+            releaseTypeLabel: "TV (Earliest)",
+          });
+        } else {
+          for (const rel of tvCandidateReleases) {
+            if (normalizedTypes.includes(rel.releaseType)) {
+              formattedReleases.push(rel);
+            }
           }
         }
       }

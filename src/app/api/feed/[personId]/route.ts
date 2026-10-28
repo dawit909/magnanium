@@ -18,13 +18,17 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url);
-    const rolesParam = searchParams.get("roles") || "director,actor";
+    const mediaParam = searchParams.get("media") || "movie,tv";
+    const rolesParam = searchParams.get("roles") || "actor,crew";
     const typesParam = searchParams.get("types") || "cinema,home";
     const country = searchParams.get("country") || "US";
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
     const excludeShorts = searchParams.get("exclude_shorts") === "true";
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
+    const media = mediaParam
+      .split(",")
+      .map((m) => m.trim().toLowerCase()) as ("movie" | "tv")[];
     const roles = rolesParam.split(",").map((r) => r.trim().toLowerCase());
     const types = typesParam
       .split(",")
@@ -33,6 +37,7 @@ export async function GET(
     const { personName, releases } = await getPersonReleases(
       {
         personId,
+        media,
         roles,
         types,
         country,
