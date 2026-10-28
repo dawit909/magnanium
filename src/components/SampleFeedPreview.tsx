@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   FileText,
   Star,
@@ -314,6 +314,162 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     new Set([currentArtist.items[0]?.id || "ts5"])
   );
 
+  // Draggable window state
+  const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const windowRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{
+    startX: number;
+    startY: number;
+    startOffsetX: number;
+    startOffsetY: number;
+    baselineLeft: number;
+    baselineTop: number;
+  }>({
+    startX: 0,
+    startY: 0,
+    startOffsetX: 0,
+    startOffsetY: 0,
+    baselineLeft: 0,
+    baselineTop: 0,
+  });
+
+  // Clamp offset to ensure window borders strictly never leave website borders
+  const clampOffset = useCallback(
+    (
+      proposedX: number,
+      proposedY: number,
+      bLeft?: number,
+      bTop?: number
+    ): { x: number; y: number } => {
+      if (!containerRef.current || !windowRef.current) {
+        return { x: proposedX, y: proposedY };
+      }
+
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const windowRect = windowRef.current.getBoundingClientRect();
+
+      const baselineLeft = bLeft ?? containerRect.left;
+      const baselineTop = bTop ?? containerRect.top;
+      const winWidth = windowRect.width;
+      const winHeight = windowRect.height;
+
+      // Website horizontal bounds (viewport width / client width)
+      const maxPageWidth = document.documentElement.clientWidth || window.innerWidth;
+      const minX = -baselineLeft;
+      const maxX = maxPageWidth - baselineLeft - winWidth;
+
+      let clampedX: number;
+      if (maxX < minX) {
+        // Narrower than window (e.g. mobile or high zoom): pin to left edge
+        clampedX = minX;
+      } else {
+        clampedX = Math.max(minX, Math.min(maxX, proposedX));
+      }
+
+      // Website vertical bounds
+      const docHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        window.innerHeight
+      );
+
+      // Top border cannot leave the top of the webpage or the top of the visible screen
+      const minY = Math.max(-baselineTop, -(baselineTop + window.scrollY));
+
+      // Bottom border cannot leave the bottom of the website
+      const maxY = docHeight - (baselineTop + window.scrollY + winHeight);
+
+      let clampedY: number;
+      if (maxY < minY) {
+        clampedY = minY;
+      } else {
+        clampedY = Math.max(minY, Math.min(maxY, proposedY));
+      }
+
+      return { x: clampedX, y: clampedY };
+    },
+    []
+  );
+
+  // Monitor window resize and zoom level changes to re-clamp window inside website border
+  useEffect(() => {
+    const handleResize = () => {
+      setOffset((curr) => {
+        const clamped = clampOffset(curr.x, curr.y);
+        if (clamped.x === curr.x && clamped.y === curr.y) return curr;
+        return clamped;
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
+
+    let ro: ResizeObserver | null = null;
+    if (windowRef.current && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => {
+        handleResize();
+      });
+      ro.observe(windowRef.current);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
+      ro?.disconnect();
+    };
+  }, [clampOffset]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return; // Primary button only
+
+    if (!containerRef.current || !windowRef.current) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startOffsetX: offset.x,
+      startOffsetY: offset.y,
+      baselineLeft: containerRect.left,
+      baselineTop: containerRect.top,
+    };
+
+    setIsDragging(true);
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const deltaX = moveEvent.clientX - dragStartRef.current.startX;
+      const deltaY = moveEvent.clientY - dragStartRef.current.startY;
+
+      const proposedX = dragStartRef.current.startOffsetX + deltaX;
+      const proposedY = dragStartRef.current.startOffsetY + deltaY;
+
+      const clamped = clampOffset(
+        proposedX,
+        proposedY,
+        dragStartRef.current.baselineLeft,
+        dragStartRef.current.baselineTop
+      );
+
+      setOffset(clamped);
+    };
+
+    const onPointerUp = () => {
+      setIsDragging(false);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+  };
+
   const activeItem =
     currentArtist.items.find((item) => item.id === selectedId) || currentArtist.items[0];
   const unreadCount = currentArtist.items.filter((item) => !readIds.has(item.id)).length;
@@ -347,20 +503,75 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto py-4 sm:py-8 space-y-4 animate-in fade-in duration-300">
+    <div
+      ref={containerRef}
+      className="w-full max-w-3xl mx-auto py-4 sm:py-8 space-y-4 animate-in fade-in duration-300 relative"
+    >
       {/* Mock macOS RSS Reader Window */}
-      <div className="rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] shadow-2xl overflow-hidden">
-        {/* macOS Window Title Bar */}
-        <div className="px-4 py-2.5 bg-neutral-100 dark:bg-[#202023] border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+      <div
+        ref={windowRef}
+        style={{
+          transform: `translate3d(${offset.x}px, ${offset.y}px, 0)`,
+          willChange: isDragging ? "transform" : "auto",
+        }}
+        className={`rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] overflow-hidden relative ${
+          isDragging
+            ? "z-40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] ring-2 ring-[#007aff]/40 transition-none"
+            : offset.x !== 0 || offset.y !== 0
+            ? "z-30 shadow-2xl transition-transform duration-200 ease-out"
+            : "shadow-2xl transition-transform duration-200 ease-out"
+        }`}
+      >
+        {/* macOS Window Title Bar (Draggable Handle) */}
+        <div
+          onPointerDown={handlePointerDown}
+          onDoubleClick={() => setOffset({ x: 0, y: 0 })}
+          className={`px-4 py-2.5 bg-neutral-100 dark:bg-[#202023] border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between select-none touch-none transition-colors ${
+            isDragging
+              ? "cursor-grabbing bg-neutral-200/80 dark:bg-[#28282c]"
+              : "cursor-grab hover:bg-neutral-200/50 dark:hover:bg-[#252528]"
+          }`}
+          title="Drag by top bar to move · Double-click to center"
+        >
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]" />
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                setOffset({ x: 0, y: 0 });
+              }}
+              title="Reset position"
+              className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] cursor-pointer hover:opacity-80 transition-opacity"
+            />
             <span className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]" />
-            <span className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]" />
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                setOffset({ x: 0, y: 0 });
+              }}
+              title="Center window"
+              className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] cursor-pointer hover:opacity-80 transition-opacity"
+            />
           </div>
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-            RSS Reader — Preview
-          </span>
-          <div className="w-12" />
+          <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
+            <span>RSS Reader — Preview</span>
+            <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-normal hidden sm:inline">
+              (drag to move)
+            </span>
+          </div>
+          <div className="w-12 text-right">
+            {(offset.x !== 0 || offset.y !== 0) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOffset({ x: 0, y: 0 });
+                }}
+                className="text-[10px] text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 underline"
+                title="Reset position"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Famous Artists Switcher Tabs */}
