@@ -1,7 +1,7 @@
 "use client";
 
 import { RefObject } from "react";
-import { Search, Sun, Moon, User } from "lucide-react";
+import { Search, Sun, Moon, User, Loader2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 
 interface HeaderProps {
@@ -48,7 +48,9 @@ export default function Header({
 
         {/* Search Bar in Header */}
         <div ref={searchContainerRef} className="flex-1 max-w-sm sm:max-w-md relative">
-          <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="absolute left-3 inset-y-0 flex items-center pointer-events-none">
+            <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500" />
+          </div>
           <input
             ref={searchInputRef}
             type="text"
@@ -56,15 +58,19 @@ export default function Header({
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Search actor, director, writer..."
-            className="w-full pl-8 pr-8 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors"
+            className="w-full pl-8 pr-8 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors block"
           />
           {isSearching && (
-            <div className="w-3 h-3 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+            <div className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+              <Loader2 className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 animate-spin" />
+            </div>
           )}
           {!isSearching && !query && (
-            <kbd className="pointer-events-none px-1.5 py-0.5 text-[10px] font-mono rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800/80 text-neutral-400 dark:text-neutral-500 absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-block">
-              /
-            </kbd>
+            <div className="absolute right-2.5 inset-y-0 flex items-center pointer-events-none hidden sm:flex">
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800/80 text-neutral-400 dark:text-neutral-500">
+                /
+              </kbd>
+            </div>
           )}
 
           {/* Autocomplete Dropdown */}
