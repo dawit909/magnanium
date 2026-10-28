@@ -454,12 +454,11 @@ export default function FeedApp({
 
           {/* RSS Feed Card */}
           <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/90 dark:border-neutral-800 shadow-sm space-y-2.5">
-            <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="flex items-center text-xs text-neutral-500 dark:text-neutral-400">
               <span className="flex items-center gap-1.5 font-medium text-neutral-700 dark:text-neutral-300">
                 <Rss className="w-3.5 h-3.5 text-amber-500" />
                 RSS Feed URL
               </span>
-              <span className="text-[11px] text-neutral-400">Subscribe in any reader</span>
             </div>
 
             <div className="flex gap-2">
