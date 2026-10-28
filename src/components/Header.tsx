@@ -55,7 +55,7 @@ export default function Header({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Search director, actor, artist..."
+            placeholder="Search actor, director, writer..."
             className="w-full pl-8 pr-8 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors"
           />
           {isSearching && (
@@ -112,7 +112,7 @@ export default function Header({
 
           {query.trim().length > 1 && !isSearching && searchResults.length === 0 && (
             <div className="absolute left-0 right-0 top-full mt-2 p-3 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-400 dark:text-neutral-500 shadow-xl z-50 text-center">
-              No matching artists found.
+              No matching people found.
             </div>
           )}
         </div>
