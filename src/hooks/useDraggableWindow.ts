@@ -200,12 +200,6 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       if (e.button !== 0) return; // Primary button only
       if (!containerRef.current || !windowRef.current) return;
 
-      const targetEl = e.currentTarget;
-      const pointerId = e.pointerId;
-      try {
-        targetEl.setPointerCapture(pointerId);
-      } catch {}
-
       const containerRect = containerRef.current.getBoundingClientRect();
 
       dragStartRef.current = {
@@ -247,10 +241,6 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       };
 
       const onPointerUp = () => {
-        try {
-          targetEl.releasePointerCapture(pointerId);
-        } catch {}
-
         if (dragRafRef.current !== null) {
           cancelAnimationFrame(dragRafRef.current);
           dragRafRef.current = null;
@@ -281,12 +271,6 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       e.preventDefault();
       if (e.button !== 0) return;
       if (!containerRef.current || !windowRef.current) return;
-
-      const targetEl = e.currentTarget;
-      const pointerId = e.pointerId;
-      try {
-        targetEl.setPointerCapture(pointerId);
-      } catch {}
 
       const winRect = windowRef.current.getBoundingClientRect();
       const containerRect = containerRef.current.getBoundingClientRect();
@@ -337,10 +321,9 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
           const maxAllowedWidth = maxPageWidth - (baselineLeft + startOffsetX);
           newWidth = Math.max(340, Math.min(maxAllowedWidth, startWidth + deltaX));
         } else if (currentDir.includes("w")) {
-          const minDeltaX = -(baselineLeft + startOffsetX);
-          const effectiveDeltaX = Math.max(minDeltaX, deltaX);
-          const maxPossibleWidth = startWidth - minDeltaX;
-          newWidth = Math.max(340, Math.min(maxPossibleWidth, startWidth - effectiveDeltaX));
+          const minX = -baselineLeft;
+          const maxPossibleWidth = startWidth + (startOffsetX - minX);
+          newWidth = Math.max(340, Math.min(maxPossibleWidth, startWidth - deltaX));
           newOffsetX = startOffsetX + (startWidth - newWidth);
         }
 
@@ -349,10 +332,9 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
           const maxAllowedHeight = docHeight - (baselineTop + window.scrollY + startOffsetY);
           newHeight = Math.max(320, Math.min(maxAllowedHeight, startHeight + deltaY));
         } else if (currentDir.includes("n")) {
-          const minDeltaY = -(baselineTop + window.scrollY + startOffsetY);
-          const effectiveDeltaY = Math.max(minDeltaY, deltaY);
-          const maxPossibleHeight = startHeight - minDeltaY;
-          newHeight = Math.max(320, Math.min(maxPossibleHeight, startHeight - effectiveDeltaY));
+          const minY = Math.max(-baselineTop, -(baselineTop + window.scrollY));
+          const maxPossibleHeight = startHeight + (startOffsetY - minY);
+          newHeight = Math.max(320, Math.min(maxPossibleHeight, startHeight - deltaY));
           newOffsetY = startOffsetY + (startHeight - newHeight);
         }
 
@@ -374,10 +356,6 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       };
 
       const onPointerUp = () => {
-        try {
-          targetEl.releasePointerCapture(pointerId);
-        } catch {}
-
         if (resizeRafRef.current !== null) {
           cancelAnimationFrame(resizeRafRef.current);
           resizeRafRef.current = null;

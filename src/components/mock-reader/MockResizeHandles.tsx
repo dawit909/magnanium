@@ -9,57 +9,59 @@ interface MockResizeHandlesProps {
 export function MockResizeHandles({ onResizePointerDown }: MockResizeHandlesProps) {
   return (
     <>
-      {/* Top border: generous 32px hit area (16px outside, 16px inside) */}
+      {/* Edge Handles (z-40): inset 16px from corners so corner zones take absolute precedence */}
+      {/* Top border */}
       <div
         onPointerDown={(e) => onResizePointerDown("n", e)}
-        className="absolute -top-4 left-6 right-6 h-8 cursor-ns-resize z-40 touch-none select-none"
+        className="absolute -top-[5px] left-4 right-4 h-[10px] cursor-ns-resize z-40 touch-none select-none"
         aria-label="Resize window top"
       />
-      {/* Bottom border: generous 32px hit area */}
+      {/* Bottom border */}
       <div
         onPointerDown={(e) => onResizePointerDown("s", e)}
-        className="absolute -bottom-4 left-6 right-6 h-8 cursor-ns-resize z-40 touch-none select-none"
+        className="absolute -bottom-[5px] left-4 right-4 h-[10px] cursor-ns-resize z-40 touch-none select-none"
         aria-label="Resize window bottom"
       />
-      {/* Left border: generous 32px hit area */}
+      {/* Left border */}
       <div
         onPointerDown={(e) => onResizePointerDown("w", e)}
-        className="absolute top-6 bottom-6 -left-4 w-8 cursor-ew-resize z-40 touch-none select-none"
+        className="absolute top-4 bottom-4 -left-[5px] w-[10px] cursor-ew-resize z-40 touch-none select-none"
         aria-label="Resize window left"
       />
-      {/* Right border: generous 32px hit area */}
+      {/* Right border */}
       <div
         onPointerDown={(e) => onResizePointerDown("e", e)}
-        className="absolute top-6 bottom-6 -right-4 w-8 cursor-ew-resize z-40 touch-none select-none"
+        className="absolute top-4 bottom-4 -right-[5px] w-[10px] cursor-ew-resize z-40 touch-none select-none"
         aria-label="Resize window right"
       />
 
-      {/* Top-Left corner: 36px x 36px touch zone */}
+      {/* Corner Handles (z-50): 20px x 20px hit zones, perfectly centered at the four window corners */}
+      {/* Top-Left corner */}
       <div
         onPointerDown={(e) => onResizePointerDown("nw", e)}
-        className="absolute -top-4.5 -left-4.5 w-9 h-9 cursor-nwse-resize z-40 touch-none select-none"
+        className="absolute -top-[10px] -left-[10px] w-[20px] h-[20px] cursor-nwse-resize z-50 touch-none select-none"
         aria-label="Resize window top left"
       />
-      {/* Top-Right corner: 36px x 36px touch zone */}
+      {/* Top-Right corner */}
       <div
         onPointerDown={(e) => onResizePointerDown("ne", e)}
-        className="absolute -top-4.5 -right-4.5 w-9 h-9 cursor-nesw-resize z-40 touch-none select-none"
+        className="absolute -top-[10px] -right-[10px] w-[20px] h-[20px] cursor-nesw-resize z-50 touch-none select-none"
         aria-label="Resize window top right"
       />
-      {/* Bottom-Left corner: 36px x 36px touch zone */}
+      {/* Bottom-Left corner */}
       <div
         onPointerDown={(e) => onResizePointerDown("sw", e)}
-        className="absolute -bottom-4.5 -left-4.5 w-9 h-9 cursor-nesw-resize z-40 touch-none select-none"
+        className="absolute -bottom-[10px] -left-[10px] w-[20px] h-[20px] cursor-nesw-resize z-50 touch-none select-none"
         aria-label="Resize window bottom left"
       />
-      {/* Bottom-Right corner: 36px x 36px touch zone */}
+      {/* Bottom-Right corner */}
       <div
         onPointerDown={(e) => onResizePointerDown("se", e)}
-        className="absolute -bottom-4.5 -right-4.5 w-9 h-9 cursor-nwse-resize z-40 touch-none select-none"
+        className="absolute -bottom-[10px] -right-[10px] w-[20px] h-[20px] cursor-nwse-resize z-50 touch-none select-none"
         aria-label="Resize window bottom right"
       />
 
-      {/* Subtle visual resize grip in the bottom-right corner for touch and desktop discovery */}
+      {/* Subtle visual resize grip in the bottom-right corner for discovery */}
       <div
         className="absolute bottom-1 right-1 pointer-events-none opacity-40 dark:opacity-30 z-30"
         aria-hidden="true"
