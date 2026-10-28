@@ -1,7 +1,8 @@
 "use client";
 
-import { Info } from "lucide-react";
-import { COUNTRIES } from "@/lib/constants";
+import { useState } from "react";
+import { Info, Settings2, ChevronDown } from "lucide-react";
+import { getCountryOptions } from "@/lib/constants";
 
 interface FeedFiltersProps {
   media: string[];
@@ -117,8 +118,20 @@ export default function FeedFilters({
   excludeShorts,
   onSetExcludeShorts,
 }: FeedFiltersProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const countryOptions = getCountryOptions(country);
+
+  const isFineTuned =
+    types.length !== 2 ||
+    !types.includes("cinema") ||
+    !types.includes("home") ||
+    alert !== "announced" ||
+    excludeShorts;
+
   return (
     <div className="space-y-3.5 text-xs">
+      {/* 1. Always Visible Primary Filters */}
       {/* Media */}
       <FilterRow label="Media">
         {MEDIA_OPTIONS.map((m) => (
@@ -145,95 +158,124 @@ export default function FeedFilters({
         ))}
       </FilterRow>
 
-      {/* Format */}
-      <FilterRow label="Format">
-        {FORMAT_OPTIONS.map((t) => (
-          <FilterPill
-            key={t.id}
-            active={types.includes(t.id)}
-            onClick={() => onToggleType(t.id)}
-          >
-            {t.label}
-          </FilterPill>
-        ))}
-        <InfoTooltip
-          ariaLabel="Format info"
-          width="w-72"
-          content={
-            <div className="space-y-1.5 text-left">
-              <p>
-                If you choose only <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Theatrical&rdquo;</strong>, TV shows will not appear.
-              </p>
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Home&rdquo;</strong> can send more than one alert for a single film or TV show (e.g. Digital, Streaming, and Physical).
-              </p>
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Earliest&rdquo;</strong> notifies only once per project on its first available release format.
-              </p>
-            </div>
-          }
-        />
-      </FilterRow>
-
-      {/* Alert */}
-      <FilterRow label="Alert">
-        {ALERT_OPTIONS.map((a) => (
-          <FilterPill
-            key={a.id}
-            active={alert === a.id}
-            onClick={() => onSetAlert(a.id as "announced" | "release_day" | "week_before")}
-          >
-            {a.label}
-          </FilterPill>
-        ))}
-        <InfoTooltip
-          ariaLabel="Alert timing info"
-          width="w-72"
-          content={
-            <div className="space-y-1.5 text-left">
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;When Announced&rdquo;</strong> alerts as soon as a future date is scheduled.
-              </p>
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Week Before Release&rdquo;</strong> alerts 7 days prior to release.
-              </p>
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;On Release Day&rdquo;</strong> alerts on the release date.
-              </p>
-            </div>
-          }
-        />
-      </FilterRow>
-
-      {/* Region */}
-      <div className="flex items-center gap-2">
-        <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Region:</span>
-        <select
-          value={country}
-          onChange={(e) => onSetCountry(e.target.value)}
-          className="px-3 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs focus:outline-none shadow-sm"
+      {/* 2. Collapsible Fine-tune Trigger */}
+      <div className="pt-1">
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors py-1 group focus:outline-none"
+          aria-expanded={isExpanded}
         >
-          {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.name} ({c.code})
-            </option>
-          ))}
-        </select>
+          <Settings2 className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
+          <span className="font-medium">Fine-tune (Format, Timing, Region)</span>
+          {isFineTuned && (
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-blue-500 ring-2 ring-blue-500/20"
+              title="Customized feed settings active"
+            />
+          )}
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-transform duration-200 ${
+              isExpanded ? "rotate-180" : ""
+            }`}
+          />
+        </button>
       </div>
 
-      {/* Short films toggle */}
-      <div className="flex items-center gap-2 pt-0.5">
-        <span className="w-14"></span>
-        <label className="flex items-center gap-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
-          <input
-            type="checkbox"
-            checked={excludeShorts}
-            onChange={(e) => onSetExcludeShorts(e.target.checked)}
-            className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5"
-          />
-          <span>Exclude short films</span>
-        </label>
-      </div>
+      {/* 3. Collapsible Secondary Filters */}
+      {isExpanded && (
+        <div className="pt-2 pl-0.5 space-y-3.5 border-t border-neutral-100 dark:border-neutral-800 animate-in fade-in-50 duration-150">
+          {/* Format */}
+          <FilterRow label="Format">
+            {FORMAT_OPTIONS.map((t) => (
+              <FilterPill
+                key={t.id}
+                active={types.includes(t.id)}
+                onClick={() => onToggleType(t.id)}
+              >
+                {t.label}
+              </FilterPill>
+            ))}
+            <InfoTooltip
+              ariaLabel="Format info"
+              width="w-72"
+              content={
+                <div className="space-y-1.5 text-left">
+                  <p>
+                    If you choose only <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Theatrical&rdquo;</strong>, TV shows will not appear.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Home&rdquo;</strong> can send more than one alert for a single film or TV show (e.g. Digital, Streaming, and Physical).
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Earliest&rdquo;</strong> notifies only once per project on its first available release format.
+                  </p>
+                </div>
+              }
+            />
+          </FilterRow>
+
+          {/* Alert Timing */}
+          <FilterRow label="Alert">
+            {ALERT_OPTIONS.map((a) => (
+              <FilterPill
+                key={a.id}
+                active={alert === a.id}
+                onClick={() => onSetAlert(a.id as "announced" | "release_day" | "week_before")}
+              >
+                {a.label}
+              </FilterPill>
+            ))}
+            <InfoTooltip
+              ariaLabel="Alert timing info"
+              width="w-72"
+              content={
+                <div className="space-y-1.5 text-left">
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;When Announced&rdquo;</strong> alerts as soon as a future date is scheduled.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Week Before Release&rdquo;</strong> alerts 7 days prior to release.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;On Release Day&rdquo;</strong> alerts on the release date.
+                  </p>
+                </div>
+              }
+            />
+          </FilterRow>
+
+          {/* Region */}
+          <div className="flex items-center gap-2">
+            <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Region:</span>
+            <select
+              value={country}
+              onChange={(e) => onSetCountry(e.target.value)}
+              className="px-3 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs focus:outline-none shadow-sm cursor-pointer"
+            >
+              {countryOptions.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name} ({c.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Short films toggle */}
+          <div className="flex items-center gap-2 pt-0.5">
+            <span className="w-14"></span>
+            <label className="flex items-center gap-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
+              <input
+                type="checkbox"
+                checked={excludeShorts}
+                onChange={(e) => onSetExcludeShorts(e.target.checked)}
+                className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer"
+              />
+              <span>Exclude short films</span>
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

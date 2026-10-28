@@ -1,4 +1,4 @@
-import { COUNTRIES } from "./constants";
+import { COUNTRIES, detectBrowserCountry } from "./constants";
 
 export interface FeedOptionsSettings {
   media: string[];
@@ -47,8 +47,8 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       : inMemoryOptions.types;
 
   const validCountry =
-    typeof parsed.country === "string" && COUNTRIES.some((c) => c.code === parsed.country)
-      ? parsed.country
+    typeof parsed.country === "string" && /^[a-zA-Z]{2}$/.test(parsed.country)
+      ? parsed.country.toUpperCase()
       : inMemoryOptions.country;
 
   const validAlert =
@@ -72,7 +72,7 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
 }
 
 /**
- * Get current options (from memory or localStorage).
+ * Get current options (from memory, localStorage, or auto-detected browser region).
  */
 export function getSavedFeedOptions(): FeedOptionsSettings {
   if (typeof window !== "undefined") {
@@ -82,6 +82,16 @@ export function getSavedFeedOptions(): FeedOptionsSettings {
         const validated = validateFeedOptions(JSON.parse(stored));
         inMemoryOptions = validated;
         return validated;
+      }
+
+      // First-time visitor: zero-click browser country auto-detection
+      const detected = detectBrowserCountry();
+      if (detected) {
+        inMemoryOptions = {
+          ...inMemoryOptions,
+          country: detected,
+        };
+        return inMemoryOptions;
       }
     } catch {}
   }
