@@ -40,6 +40,9 @@ export default function FeedApp({
     activeIndex,
     setActiveIndex,
     isSearching,
+    hasSearched,
+    isOpen,
+    handleFocus,
     searchContainerRef,
     searchInputRef,
     resetSearch,
@@ -91,6 +94,9 @@ export default function FeedApp({
         onSetActiveIndex={setActiveIndex}
         onSelectPerson={handleSelectPerson}
         isSearching={isSearching}
+        hasSearched={hasSearched}
+        isOpen={isOpen}
+        onFocus={handleFocus}
         searchContainerRef={searchContainerRef}
         searchInputRef={searchInputRef}
         onKeyDown={handleKeyDown}

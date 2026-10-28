@@ -15,6 +15,8 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
   const [searchResults, setSearchResults] = useState<TMDBPersonSearchResult[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +35,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
         if (!isInput) {
           e.preventDefault();
           searchInputRef.current?.focus();
+          setIsOpen(true);
         }
       }
     };
@@ -45,11 +48,29 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        setSearchResults([]);
+        setIsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Handle input focus
+  const handleFocus = useCallback(() => {
+    if (query.trim().length >= 2) {
+      setIsOpen(true);
+    }
+  }, [query]);
+
+  // Handle query change
+  const handleQueryChange = useCallback((newQuery: string) => {
+    setQuery(newQuery);
+    if (newQuery.trim().length >= 2) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+      setHasSearched(false);
+    }
   }, []);
 
   // Delay updating search results while typing (600ms debounce)
@@ -65,6 +86,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
     if (trimmed.length < 2) {
       setSearchResults([]);
       setIsSearching(false);
+      setHasSearched(false);
       return;
     }
 
@@ -76,6 +98,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
       if (searchCache.has(cacheKey)) {
         setSearchResults(searchCache.get(cacheKey) || []);
         setIsSearching(false);
+        setHasSearched(true);
         return;
       }
 
@@ -95,6 +118,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
 
         searchCache.set(cacheKey, results);
         setSearchResults(results);
+        setHasSearched(true);
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== "AbortError") {
           console.error("Search error:", err);
@@ -129,6 +153,8 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
     setSearchResults([]);
     setActiveIndex(-1);
     setIsSearching(false);
+    setHasSearched(false);
+    setIsOpen(false);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -140,6 +166,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
       if (e.key === "ArrowDown") {
         if (searchResults.length === 0) return;
         e.preventDefault();
+        setIsOpen(true);
         setActiveIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : prev));
       } else if (e.key === "ArrowUp") {
         if (searchResults.length === 0) return;
@@ -176,6 +203,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
                 const fetchedResults: TMDBPersonSearchResult[] = data.results || [];
                 searchCache.set(cacheKey, fetchedResults);
                 results = fetchedResults;
+                setHasSearched(true);
               }
             } catch {}
           }
@@ -193,7 +221,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
           resetSearch();
         }
       } else if (e.key === "Escape") {
-        resetSearch();
+        setIsOpen(false);
       }
     },
     [query, searchResults, activeIndex, onSelect, resetSearch]
@@ -201,11 +229,14 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
 
   return {
     query,
-    setQuery,
+    setQuery: handleQueryChange,
     searchResults,
     activeIndex,
     setActiveIndex,
     isSearching,
+    hasSearched,
+    isOpen,
+    handleFocus,
     searchContainerRef,
     searchInputRef,
     resetSearch,

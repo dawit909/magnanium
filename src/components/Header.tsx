@@ -15,6 +15,9 @@ interface HeaderProps {
   onSetActiveIndex: (index: number) => void;
   onSelectPerson: (person: TMDBPersonSearchResult) => void;
   isSearching: boolean;
+  hasSearched: boolean;
+  isOpen: boolean;
+  onFocus: () => void;
   searchContainerRef: RefObject<HTMLDivElement | null>;
   searchInputRef: RefObject<HTMLInputElement | null>;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -31,6 +34,9 @@ export default function Header({
   onSetActiveIndex,
   onSelectPerson,
   isSearching,
+  hasSearched,
+  isOpen,
+  onFocus,
   searchContainerRef,
   searchInputRef,
   onKeyDown,
@@ -56,6 +62,7 @@ export default function Header({
             type="text"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
+            onFocus={onFocus}
             onKeyDown={onKeyDown}
             placeholder="Search actor, director, writer..."
             className="w-full pl-8 pr-8 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 text-xs shadow-sm focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 transition-colors block"
@@ -74,9 +81,9 @@ export default function Header({
           )}
 
           {/* Autocomplete Dropdown */}
-          {searchResults.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60 max-h-80 overflow-y-auto">
-              {searchResults.map((person, index) => {
+          {isOpen && searchResults.length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60">
+              {searchResults.slice(0, 6).map((person, index) => {
                 const isActive = activeIndex === index;
                 return (
                   <button
@@ -84,13 +91,13 @@ export default function Header({
                     id={`search-result-${index}`}
                     onClick={() => onSelectPerson(person)}
                     onMouseEnter={() => onSetActiveIndex(index)}
-                    className={`w-full text-left px-3.5 py-2.5 flex items-center justify-between text-xs transition-colors ${
+                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors ${
                       isActive
                         ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium ring-1 ring-inset ring-neutral-300 dark:ring-neutral-700"
                         : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
                       {person.profile_path ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -98,16 +105,16 @@ export default function Header({
                           alt={person.name}
                           loading="lazy"
                           decoding="async"
-                          className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
+                          className="w-6 h-6 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
-                          <User className="w-3.5 h-3.5" />
+                        <div className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                          <User className="w-3 h-3" />
                         </div>
                       )}
-                      <span className="font-medium truncate">{person.name}</span>
+                      <span className="font-medium truncate text-xs">{person.name}</span>
                     </div>
-                    <span className="text-neutral-400 dark:text-neutral-500 text-[11px] ml-2 flex-shrink-0">
+                    <span className="text-neutral-400 dark:text-neutral-500 text-[10px] ml-2 flex-shrink-0">
                       {person.known_for_department}
                     </span>
                   </button>
@@ -116,8 +123,8 @@ export default function Header({
             </div>
           )}
 
-          {query.trim().length > 1 && !isSearching && searchResults.length === 0 && (
-            <div className="absolute left-0 right-0 top-full mt-2 p-3 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-400 dark:text-neutral-500 shadow-xl z-50 text-center">
+          {isOpen && query.trim().length > 1 && !isSearching && hasSearched && searchResults.length === 0 && (
+            <div className="absolute left-0 right-0 top-full mt-2 p-2.5 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-400 dark:text-neutral-500 shadow-xl z-50 text-center">
               No matching people found.
             </div>
           )}
