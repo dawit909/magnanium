@@ -24,6 +24,11 @@ import {
   extractTvReleases,
   ReleaseExtractionContext,
 } from "./tmdb/releases";
+import {
+  isValidPersonId,
+  isPersonMarkedNotFound,
+  markPersonNotFound,
+} from "./negative-cache";
 
 // Re-export helpers for backward compatibility
 export { getResolvedApiKey, mapReleaseType };
@@ -57,13 +62,23 @@ export async function searchPerson(
  * Get artist details
  */
 export async function getPersonDetails(personId: number, customApiKey?: string) {
-  const { data } = await tmdbFetch<any>(
+  if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {
+    return null;
+  }
+
+  const { data, status } = await tmdbFetch<any>(
     `/person/${personId}`,
     {},
     86400,
     customApiKey
   );
-  return data || { id: personId, name: "Artist" };
+
+  if (status === 404 || !data || !data.id) {
+    markPersonNotFound(personId);
+    return null;
+  }
+
+  return data;
 }
 
 /**
@@ -90,7 +105,12 @@ export const getPersonCombinedCredits = getPersonCredits;
 export async function getPersonReleases(
   options: FeedFilterOptions,
   customApiKey?: string
-): Promise<{ personName: string; releases: FormattedRelease[]; profilePath?: string | null }> {
+): Promise<{
+  personName: string;
+  releases: FormattedRelease[];
+  profilePath?: string | null;
+  notFound?: boolean;
+}> {
   const {
     personId,
     media = ["movie", "tv"],
@@ -101,6 +121,16 @@ export async function getPersonReleases(
     alert = "announced",
     excludeShorts = false,
   } = options;
+
+  if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {
+    return { personName: "", releases: [], profilePath: null, notFound: true };
+  }
+
+  const person = await getPersonDetails(personId, customApiKey);
+  if (!person || !person.id) {
+    markPersonNotFound(personId);
+    return { personName: "", releases: [], profilePath: null, notFound: true };
+  }
 
   const includeMovies = media.includes("movie");
   const includeTv = media.includes("tv");
@@ -114,11 +144,7 @@ export async function getPersonReleases(
   });
   const isEarliestOnly = normalizedTypes.includes("earliest");
 
-  const [person, credits] = await Promise.all([
-    getPersonDetails(personId, customApiKey),
-    getPersonCombinedCredits(personId, customApiKey),
-  ]);
-
+  const credits = await getPersonCombinedCredits(personId, customApiKey);
   const personName = person.name || "Artist";
 
   const isActorSelected = roles.includes("all") || roles.includes("actor");
