@@ -443,24 +443,24 @@ export default function FeedApp({
         /* Selected Person Page */
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* Person Header */}
-          <div className="flex items-center gap-4 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80">
+          <div className="flex items-center gap-5 sm:gap-6 pb-6 border-b border-neutral-200/80 dark:border-neutral-800/80">
             {selectedPerson.profile_path ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`https://image.tmdb.org/t/p/w185${selectedPerson.profile_path}`}
+                src={`https://image.tmdb.org/t/p/h632${selectedPerson.profile_path}`}
                 alt={selectedPerson.name}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-md flex-shrink-0"
+                className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-md flex-shrink-0"
               />
             ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-neutral-400 flex-shrink-0">
-                <User className="w-8 h-8" />
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                <User className="w-16 h-16" />
               </div>
             )}
             <div>
               <h2 className="text-xl sm:text-2xl font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
                 {selectedPerson.name}
               </h2>
-              <span className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 inline-block">
+              <span className="text-xs text-neutral-400 dark:text-neutral-500 mt-1 inline-block">
                 {selectedPerson.known_for_department}
               </span>
             </div>
