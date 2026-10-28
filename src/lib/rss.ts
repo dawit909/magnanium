@@ -117,7 +117,7 @@ function renderRssItem(item: FormattedRelease, buildDate: string): string {
 
   return `
     <item>
-      <title>${escapeXml(`${item.movieTitle} - ${item.releaseTypeLabel}`)}</title>
+      <title>${escapeXml(item.movieTitle)}</title>
       <link>${escapeXml(item.tmdbUrl)}</link>
       <guid isPermaLink="false">${escapeXml(item.id)}</guid>
       <pubDate>${pubDate}</pubDate>
