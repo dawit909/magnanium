@@ -1,9 +1,9 @@
 import { createHash } from "crypto";
 
 /**
- * Generate a weak ETag based on string payload (SHA-1 prefix)
+ * Generate a weak ETag based on string or buffer payload (SHA-1 prefix)
  */
-export function generateEtag(content: string): string {
+export function generateEtag(content: string | Buffer): string {
   const hash = createHash("sha1").update(content).digest("hex").slice(0, 16);
   return `W/"${hash}"`;
 }

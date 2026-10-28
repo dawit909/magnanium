@@ -94,12 +94,15 @@ export async function GET(
     const protocol = host.includes("localhost") ? "http" : "https";
     const siteUrl = `${protocol}://${host}`;
     const feedUrl = request.url;
+    const avatarUrl = profilePath
+      ? `${siteUrl}/api/avatar/${personId}${clientKey ? `?api_key=${encodeURIComponent(clientKey)}` : ""}`
+      : null;
 
     let payload: string;
     let contentType: string;
 
     if (isJson) {
-      payload = JSON.stringify({ personName, releases, profilePath });
+      payload = JSON.stringify({ personName, releases, profilePath, avatarUrl });
       contentType = "application/json; charset=utf-8";
     } else {
       payload = generateRssFeed({
@@ -108,6 +111,7 @@ export async function GET(
         feedUrl,
         siteUrl,
         profilePath,
+        avatarUrl,
       });
       contentType = "application/rss+xml; charset=utf-8";
     }

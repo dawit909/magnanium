@@ -74,23 +74,27 @@ export function generateRssFeed({
   feedUrl,
   siteUrl,
   profilePath,
+  avatarUrl,
 }: {
   personName: string;
   releases: FormattedRelease[];
   feedUrl: string;
   siteUrl: string;
   profilePath?: string | null;
+  avatarUrl?: string | null;
 }): string {
   const channelTitle = personName;
   const channelDesc = `Movie & TV release dates for ${personName}`;
   const buildDate = new Date().toUTCString();
   const itemsXml = releases.map((item) => renderRssItem(item, buildDate)).join("\n");
 
-  const imageUrl = profilePath
-    ? profilePath.startsWith("http")
-      ? profilePath
-      : `https://image.tmdb.org/t/p/w342${profilePath}`
-    : null;
+  const imageUrl =
+    avatarUrl ||
+    (profilePath
+      ? profilePath.startsWith("http")
+        ? profilePath
+        : `https://image.tmdb.org/t/p/w342${profilePath}`
+      : null);
 
   const imageXml = imageUrl
     ? `
