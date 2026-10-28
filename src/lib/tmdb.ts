@@ -10,6 +10,7 @@ import { tmdbFetch, hasTmdbAuth } from "./tmdb/client";
 import {
   sortAndJoinRoles,
   isIgnoredCrewCredit,
+  isArchivalFootageCredit,
   matchesSpecificCrewRole,
   resolveCrewRoleLabel,
   isTalkShowOrGuestAppearance,
@@ -308,6 +309,7 @@ export async function getPersonReleases(
       if (!item.id || (!item.title && !item.name)) continue;
 
       if (isIgnoredCrewCredit(item)) continue;
+      if (isArchivalFootageCredit(item)) continue;
       if (!matchesSpecificCrewRole(item, roles)) continue;
 
       addCandidate(item, resolveCrewRoleLabel(item), mediaType);
@@ -322,6 +324,7 @@ export async function getPersonReleases(
       if (mediaType === "tv" && !includeTv) continue;
       if (!item.id || (!item.title && !item.name)) continue;
 
+      if (isArchivalFootageCredit(item)) continue;
       if (mediaType === "tv" && isTalkShowOrGuestAppearance(item)) continue;
 
       addCandidate(item, resolveCastRoleLabel(item), mediaType);

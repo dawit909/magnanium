@@ -87,6 +87,15 @@ export function isIgnoredCrewCredit(item: TMDBCreditItem): boolean {
   return false;
 }
 
+export const ARCHIVAL_FOOTAGE_REGEX =
+  /\b(archive|archival|stock)\s+(footage|sound|audio)\b|\((?:archive|archival|footage)\)/i;
+
+export function isArchivalFootageCredit(item: TMDBCreditItem): boolean {
+  const char = (item.character || "").trim();
+  const job = (item.job || "").trim();
+  return ARCHIVAL_FOOTAGE_REGEX.test(char) || ARCHIVAL_FOOTAGE_REGEX.test(job);
+}
+
 export function matchesSpecificCrewRole(item: TMDBCreditItem, rolesFilter: string[]): boolean {
   if (rolesFilter.includes("all")) return true;
 
