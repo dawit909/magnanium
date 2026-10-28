@@ -188,7 +188,20 @@ export default function FeedFilters({
         ))}
         <InfoTooltip
           ariaLabel="Alert timing info"
-          text="“When Announced” alerts as soon as a future date is scheduled. “Week Before Release” alerts 7 days prior. “On Release Day” alerts on the release date."
+          width="w-72"
+          content={
+            <div className="space-y-1.5 text-left">
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;When Announced&rdquo;</strong> alerts as soon as a future date is scheduled.
+              </p>
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Week Before Release&rdquo;</strong> alerts 7 days prior to release.
+              </p>
+              <p>
+                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;On Release Day&rdquo;</strong> alerts on the release date.
+              </p>
+            </div>
+          }
         />
       </FilterRow>
 
