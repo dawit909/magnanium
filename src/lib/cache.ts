@@ -1,17 +1,27 @@
 /**
- * Generic bounded in-memory cache with FIFO/LRU eviction to prevent unbounded memory growth.
+ * High-performance O(1) Least-Recently-Used (LRU) bounded cache.
+ * Leverages JavaScript Map's native insertion-order preservation.
  */
 export class BoundedMap<K, V> {
-  private map = new Map<K, V>();
+  private readonly map = new Map<K, V>();
 
   constructor(public readonly maxSize: number = 500) {}
 
   get(key: K): V | undefined {
-    return this.map.get(key);
+    const value = this.map.get(key);
+    if (value !== undefined) {
+      // Re-insert to mark as most recently used (O(1))
+      this.map.delete(key);
+      this.map.set(key, value);
+    }
+    return value;
   }
 
   set(key: K, value: V): this {
-    if (this.map.size >= this.maxSize && !this.map.has(key)) {
+    if (this.map.has(key)) {
+      this.map.delete(key);
+    } else if (this.map.size >= this.maxSize) {
+      // Evict least recently used item (first element in Map iterator, O(1))
       const oldestKey = this.map.keys().next().value;
       if (oldestKey !== undefined) {
         this.map.delete(oldestKey);
@@ -39,10 +49,10 @@ export class BoundedMap<K, V> {
 }
 
 /**
- * In-memory cache with Time-To-Live (TTL) expiration per entry.
+ * High-performance O(1) Timed Cache with TTL expiration and LRU eviction.
  */
 export class TimedCache<K, V> {
-  private map = new Map<K, { value: V; expiresAt: number }>();
+  private readonly map = new Map<K, { value: V; expiresAt: number }>();
 
   constructor(
     public readonly ttlMs: number,
@@ -58,11 +68,17 @@ export class TimedCache<K, V> {
       return undefined;
     }
 
+    // Refresh LRU order on access
+    this.map.delete(key);
+    this.map.set(key, entry);
+
     return entry.value;
   }
 
   set(key: K, value: V, customTtlMs?: number): this {
-    if (this.map.size >= this.maxSize && !this.map.has(key)) {
+    if (this.map.has(key)) {
+      this.map.delete(key);
+    } else if (this.map.size >= this.maxSize) {
       const oldestKey = this.map.keys().next().value;
       if (oldestKey !== undefined) {
         this.map.delete(oldestKey);
@@ -84,5 +100,9 @@ export class TimedCache<K, V> {
 
   clear(): void {
     this.map.clear();
+  }
+
+  get size(): number {
+    return this.map.size;
   }
 }

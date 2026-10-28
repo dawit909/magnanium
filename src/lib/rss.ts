@@ -1,22 +1,16 @@
 import { FormattedRelease } from "@/types/tmdb";
 
+const XML_ENTITIES: Record<string, string> = {
+  "<": "&lt;",
+  ">": "&gt;",
+  "&": "&amp;",
+  "'": "&apos;",
+  '"': "&quot;",
+};
+const XML_REGEX = /[<>&'"]/g;
+
 function escapeXml(unsafe: string): string {
-  return unsafe.replace(/[<>&'"]/g, (c) => {
-    switch (c) {
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case "&":
-        return "&amp;";
-      case "'":
-        return "&apos;";
-      case '"':
-        return "&quot;";
-      default:
-        return c;
-    }
-  });
+  return unsafe.replace(XML_REGEX, (c) => XML_ENTITIES[c] || c);
 }
 
 function formatPubDate(releaseDate: string, fallbackDate: string): string {

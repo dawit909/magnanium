@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
+import { BoundedMap } from "@/lib/cache";
 import {
   getSavedFeedOptions,
   saveFeedOption,
   FeedOptionsSettings,
 } from "@/lib/feed-options";
+
+const previewCache = new BoundedMap<string, FormattedRelease[]>(40);
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   const initial = getSavedFeedOptions();
@@ -124,7 +127,17 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
           format: "json",
         });
 
-        const res = await fetch(`/api/feed/${selectedPerson.id}?${params.toString()}`, {
+        const queryString = params.toString();
+        const cacheKey = `${selectedPerson.id}?${queryString}`;
+        const cached = previewCache.get(cacheKey);
+
+        if (cached) {
+          setPreviewReleases(cached);
+          setIsLoadingPreview(false);
+          return;
+        }
+
+        const res = await fetch(`/api/feed/${selectedPerson.id}?${queryString}`, {
           signal: controller.signal,
         });
 
@@ -132,6 +145,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
 
         const data = await res.json();
         if (data.releases) {
+          previewCache.set(cacheKey, data.releases);
           setPreviewReleases(data.releases);
         }
       } catch (err: unknown) {

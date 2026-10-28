@@ -5,10 +5,7 @@ import {
   FeedFilterOptions,
   TMDBCreditItem,
 } from "@/types/tmdb";
-import {
-  tmdbFetch,
-  hasTmdbAuth,
-} from "./tmdb/client";
+import { tmdbFetch, hasTmdbAuth } from "./tmdb/client";
 import {
   sortAndJoinRoles,
   isIgnoredCrewCredit,
@@ -18,7 +15,6 @@ import {
   resolveCastRoleLabel,
 } from "./tmdb/roles";
 import {
-  mapReleaseType,
   extractMovieReleases,
   extractTvReleases,
   ReleaseExtractionContext,
@@ -28,6 +24,40 @@ import {
   isPersonMarkedNotFound,
   markPersonNotFound,
 } from "./negative-cache";
+
+interface CandidateEntry {
+  item: TMDBCreditItem;
+  roles: string[];
+  mediaType: "movie" | "tv";
+  dateStr: string;
+}
+
+/**
+ * Execute async operations over an array with bounded concurrency.
+ * Prevents socket exhaustion, spikes, and rate-limiting while maintaining throughput.
+ */
+async function mapConcurrent<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results: R[] = new Array(items.length);
+  let currentIndex = 0;
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    async () => {
+      while (currentIndex < items.length) {
+        const idx = currentIndex++;
+        results[idx] = await fn(items[idx]);
+      }
+    }
+  );
+
+  await Promise.all(workers);
+  return results;
+}
 
 /**
  * Search TMDB for an artist (director, actor, crew, creator)
@@ -155,19 +185,22 @@ export async function getPersonReleases(
     roles.includes("music");
   const includeCrew = isCrewSelected || isSoundSelected;
 
-  // Deduplicate and aggregate multiple roles per project (e.g. Director & Writer)
-  const candidateMap = new Map<
-    string,
-    { item: TMDBCreditItem; roles: string[]; mediaType: "movie" | "tv" }
-  >();
+  // Deduplicate and aggregate multiple roles per project in O(N)
+  const candidateMap = new Map<string, CandidateEntry>();
 
-  const addCandidate = (item: TMDBCreditItem, roleStr: string, mediaType: "movie" | "tv") => {
+  const addCandidate = (
+    item: TMDBCreditItem,
+    roleStr: string,
+    mediaType: "movie" | "tv"
+  ) => {
     const key = `${mediaType}-${item.id}`;
     const existing = candidateMap.get(key);
     if (existing) {
       if (!existing.roles.includes(roleStr)) existing.roles.push(roleStr);
     } else {
-      candidateMap.set(key, { item, roles: [roleStr], mediaType });
+      const dateStr =
+        (mediaType === "tv" ? item.first_air_date : item.release_date) || "0000-00-00";
+      candidateMap.set(key, { item, roles: [roleStr], mediaType, dateStr });
     }
   };
 
@@ -200,18 +233,15 @@ export async function getPersonReleases(
     }
   }
 
-  // Sort candidates by date descending and take top 40 for details resolution
+  // Sort candidates by pre-extracted date descending (fast string comparison)
   const candidateList = Array.from(candidateMap.values());
-  candidateList.sort((a, b) => {
-    const dateA = (a.mediaType === "tv" ? a.item.first_air_date : a.item.release_date) || "0000-00-00";
-    const dateB = (b.mediaType === "tv" ? b.item.first_air_date : b.item.release_date) || "0000-00-00";
-    return dateB.localeCompare(dateA);
-  });
+  candidateList.sort((a, b) => (b.dateStr > a.dateStr ? 1 : b.dateStr < a.dateStr ? -1 : 0));
 
   const sliceCandidates = candidateList.slice(0, 40);
-  const nowStr = new Date().toISOString().split("T")[0];
-  const oneYearAgoStr = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const sevenDaysFromNowStr = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const now = Date.now();
+  const nowStr = new Date(now).toISOString().split("T")[0];
+  const oneYearAgoStr = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const sevenDaysFromNowStr = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   const ctx: ReleaseExtractionContext = {
     country,
@@ -226,18 +256,17 @@ export async function getPersonReleases(
     clientKey: customApiKey,
   };
 
-  const releasesNested = await Promise.all(
-    sliceCandidates.map(({ item, roles: candidateRoles, mediaType }) => {
-      const combinedRole = sortAndJoinRoles(candidateRoles);
-      if (mediaType === "movie") {
-        return extractMovieReleases(item, combinedRole, ctx);
-      }
-      return extractTvReleases(item, combinedRole, ctx);
-    })
-  );
+  // Execute extraction with pooled concurrency (10 parallel requests max)
+  const releasesNested = await mapConcurrent(sliceCandidates, 10, async ({ item, roles: candidateRoles, mediaType }) => {
+    const combinedRole = sortAndJoinRoles(candidateRoles);
+    if (mediaType === "movie") {
+      return extractMovieReleases(item, combinedRole, ctx);
+    }
+    return extractTvReleases(item, combinedRole, ctx);
+  });
 
   const formattedReleases = releasesNested.flat();
-  formattedReleases.sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+  formattedReleases.sort((a, b) => (b.releaseDate > a.releaseDate ? 1 : b.releaseDate < a.releaseDate ? -1 : 0));
 
   return {
     personName,
