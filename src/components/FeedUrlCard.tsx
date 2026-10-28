@@ -31,7 +31,8 @@ export default function FeedUrlCard({ feedUrl }: FeedUrlCardProps) {
           type="text"
           readOnly
           value={feedUrl}
-          className="flex-1 px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-700 dark:text-neutral-300 select-all focus:outline-none"
+          onFocus={(e) => e.currentTarget.select()}
+          className="flex-1 px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-700 dark:text-neutral-300 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 transition-colors"
         />
         <button
           onClick={handleCopy}
