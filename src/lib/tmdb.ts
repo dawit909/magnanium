@@ -240,7 +240,7 @@ export async function getPersonReleases(
     window = "all",
     alert = "announced",
     excludeShorts = false,
-    excludeReReleases = false,
+    excludeReReleases = true,
   } = options;
 
   if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {

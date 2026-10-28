@@ -19,7 +19,7 @@ export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
   country: "US",
   alert: "announced",
   excludeShorts: false,
-  excludeReReleases: false,
+  excludeReReleases: true,
 };
 
 // Global in-memory cache for instant client-side SPA navigation
