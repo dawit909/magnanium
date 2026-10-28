@@ -79,12 +79,43 @@ export interface ReleaseExtractionContext {
   window: "upcoming" | "all";
   alert: "announced" | "release_day" | "week_before";
   excludeShorts: boolean;
+  excludeReReleases: boolean;
   normalizedTypes: string[];
   isEarliestOnly: boolean;
   nowStr: string;
   oneYearAgoStr: string;
   sevenDaysFromNowStr: string;
   clientKey?: string;
+}
+
+const RE_RELEASE_REGEX =
+  /\b(re-?release|re-?issue|remaster(ed)?|restor(ation|ed)|director'?s (cut|edition)|extended (cut|edition|version)|special edition|final cut|anniversary|reestreno|relan[çc]amento)\b/i;
+
+export function isReReleaseOrRemaster(
+  note?: string,
+  title?: string,
+  releaseDateStr?: string,
+  originalReleaseDateStr?: string,
+  _releaseType?: number
+): boolean {
+  if (note && RE_RELEASE_REGEX.test(note)) return true;
+  if (title && RE_RELEASE_REGEX.test(title)) return true;
+
+  // Catalogue re-release occurring 3+ years after initial debut
+  if (
+    releaseDateStr &&
+    originalReleaseDateStr &&
+    releaseDateStr.length >= 4 &&
+    originalReleaseDateStr.length >= 4
+  ) {
+    const origYear = parseInt(originalReleaseDateStr.slice(0, 4), 10);
+    const relYear = parseInt(releaseDateStr.slice(0, 4), 10);
+    if (!isNaN(origYear) && !isNaN(relYear) && relYear - origYear >= 3) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 interface RawProviderEntry {
@@ -348,6 +379,10 @@ export async function extractMovieReleases(
     return [];
   }
 
+  if (ctx.excludeReReleases && isReReleaseOrRemaster(undefined, movieTitle)) {
+    return [];
+  }
+
   const { data: movieDetails } = await tmdbFetch<MovieDetailsWithReleases>(
     `/movie/${movie.id}`,
     { append_to_response: "release_dates,watch/providers,credits" },
@@ -402,7 +437,9 @@ export async function extractMovieReleases(
             ctx.nowStr,
             ctx.oneYearAgoStr,
             ctx.sevenDaysFromNowStr
-          )
+          ) ||
+          (ctx.excludeReReleases &&
+            isReReleaseOrRemaster(rd.note, movieTitle, dateStr, movie.release_date, rd.type))
         ) {
           continue;
         }
@@ -441,6 +478,8 @@ export async function extractMovieReleases(
   if (candidates.length === 0 && movie.release_date) {
     const dateStr = movie.release_date;
     if (
+      (!ctx.excludeReReleases ||
+        !isReReleaseOrRemaster(undefined, movieTitle, dateStr, movie.release_date)) &&
       isDateInWindow(
         dateStr,
         ctx.alert,
@@ -485,6 +524,10 @@ export async function extractTvReleases(
   const showTitle = tvShow.name || tvShow.title || "TV Series";
 
   if (ctx.excludeShorts && isShortFilmTitle(showTitle)) {
+    return [];
+  }
+
+  if (ctx.excludeReReleases && isReReleaseOrRemaster(undefined, showTitle)) {
     return [];
   }
 
@@ -533,6 +576,8 @@ export async function extractTvReleases(
           ? tvDetails.next_episode_to_air.air_date
           : null);
 
+      const seasonTitle = `${tvDetails.name}: ${season.name}`;
+
       if (
         !dateStr ||
         !isDateInWindow(
@@ -542,12 +587,12 @@ export async function extractTvReleases(
           ctx.nowStr,
           ctx.oneYearAgoStr,
           ctx.sevenDaysFromNowStr
-        )
+        ) ||
+        (ctx.excludeReReleases && isReReleaseOrRemaster(season.name, seasonTitle))
       ) {
         continue;
       }
 
-      const seasonTitle = `${tvDetails.name}: ${season.name}`;
       const premiereLabel = season.season_number === 1 ? "Series Premiere" : "Season Premiere";
 
       candidates.push(
@@ -577,6 +622,7 @@ export async function extractTvReleases(
   if (candidates.length === 0 && tvShow.first_air_date) {
     const dateStr = tvShow.first_air_date;
     if (
+      (!ctx.excludeReReleases || !isReReleaseOrRemaster(undefined, showTitle)) &&
       isDateInWindow(
         dateStr,
         ctx.alert,

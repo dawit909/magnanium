@@ -17,6 +17,8 @@ interface FeedFiltersProps {
   onSetCountry: (c: string) => void;
   excludeShorts: boolean;
   onSetExcludeShorts: (exclude: boolean) => void;
+  excludeReReleases: boolean;
+  onSetExcludeReReleases: (exclude: boolean) => void;
 }
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -117,6 +119,8 @@ export default function FeedFilters({
   onSetCountry,
   excludeShorts,
   onSetExcludeShorts,
+  excludeReReleases,
+  onSetExcludeReReleases,
 }: FeedFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -248,18 +252,33 @@ export default function FeedFilters({
             </select>
           </div>
 
-          {/* Short films toggle */}
-          <div className="flex items-center gap-2 pt-0.5">
-            <span className="w-14"></span>
-            <label className="flex items-center gap-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
-              <input
-                type="checkbox"
-                checked={excludeShorts}
-                onChange={(e) => onSetExcludeShorts(e.target.checked)}
-                className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer"
-              />
-              <span>Exclude short films</span>
-            </label>
+          {/* Exclude toggles */}
+          <div className="flex flex-col gap-2 pt-0.5">
+            <div className="flex items-center gap-2">
+              <span className="w-14"></span>
+              <label className="flex items-center gap-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeShorts}
+                  onChange={(e) => onSetExcludeShorts(e.target.checked)}
+                  className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer"
+                />
+                <span>Exclude short films</span>
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="w-14"></span>
+              <label className="flex items-center gap-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeReReleases}
+                  onChange={(e) => onSetExcludeReReleases(e.target.checked)}
+                  className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer"
+                />
+                <span>Exclude re-releases, remasters &amp; director&apos;s cuts</span>
+              </label>
+            </div>
           </div>
         </div>
       )}

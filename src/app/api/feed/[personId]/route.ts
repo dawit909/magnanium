@@ -40,6 +40,7 @@ export async function GET(
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
     const alert = (searchParams.get("alert") as "announced" | "release_day" | "week_before") || "announced";
     const excludeShorts = searchParams.get("exclude_shorts") === "true";
+    const excludeReReleases = searchParams.get("exclude_rereleases") === "true";
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
     const media = mediaParam.split(",").map((m) => m.trim().toLowerCase()) as ("movie" | "tv")[];
@@ -56,6 +57,7 @@ export async function GET(
         window,
         alert,
         excludeShorts,
+        excludeReReleases,
       },
       clientKey
     );

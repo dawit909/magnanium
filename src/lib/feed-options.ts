@@ -7,6 +7,7 @@ export interface FeedOptionsSettings {
   country: string;
   alert: "announced" | "release_day" | "week_before";
   excludeShorts: boolean;
+  excludeReReleases: boolean;
 }
 
 export const STORAGE_KEY = "magnanium_feed_options";
@@ -18,6 +19,7 @@ export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
   country: "US",
   alert: "announced",
   excludeShorts: false,
+  excludeReReleases: false,
 };
 
 // Global in-memory cache for instant client-side SPA navigation
@@ -61,6 +63,11 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       ? parsed.excludeShorts
       : inMemoryOptions.excludeShorts;
 
+  const validExcludeReReleases =
+    typeof parsed.excludeReReleases === "boolean"
+      ? parsed.excludeReReleases
+      : inMemoryOptions.excludeReReleases;
+
   return {
     media: validMedia,
     roles: validRoles,
@@ -68,6 +75,7 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
     country: validCountry,
     alert: validAlert,
     excludeShorts: validExcludeShorts,
+    excludeReReleases: validExcludeReReleases,
   };
 }
 

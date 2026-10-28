@@ -59,6 +59,8 @@ export default function FeedApp({
     setAlert,
     excludeShorts,
     setExcludeShorts,
+    excludeReReleases,
+    setExcludeReReleases,
     previewReleases,
     isLoadingPreview,
     feedUrl,
@@ -118,6 +120,8 @@ export default function FeedApp({
             onSetCountry={setCountry}
             excludeShorts={excludeShorts}
             onSetExcludeShorts={setExcludeShorts}
+            excludeReReleases={excludeReReleases}
+            onSetExcludeReReleases={setExcludeReReleases}
           />
 
           <FeedUrlCard

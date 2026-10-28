@@ -149,4 +149,5 @@ export interface FeedFilterOptions {
   window?: "upcoming" | "all";
   alert?: "announced" | "release_day" | "week_before";
   excludeShorts?: boolean;
+  excludeReReleases?: boolean;
 }

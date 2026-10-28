@@ -152,6 +152,7 @@ export async function getPersonReleases(
     window = "all",
     alert = "announced",
     excludeShorts = false,
+    excludeReReleases = false,
   } = options;
 
   if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {
@@ -260,6 +261,7 @@ export async function getPersonReleases(
     window,
     alert,
     excludeShorts,
+    excludeReReleases,
     normalizedTypes,
     isEarliestOnly,
     nowStr,
