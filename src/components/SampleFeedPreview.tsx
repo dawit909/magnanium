@@ -1,125 +1,330 @@
 "use client";
 
 import { useState } from "react";
-import { Rss, Film, CheckCircle2, Sparkles } from "lucide-react";
+import {
+  FileText,
+  Star,
+  CheckCircle2,
+  ExternalLink,
+  Search,
+  ChevronsRight,
+  Radio,
+  SlidersHorizontal,
+} from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
+
+interface SampleFeedItem {
+  id: string;
+  title: string;
+  role: string;
+  release: string;
+  dateDisplay: string;
+  runtime: string;
+  language: string;
+  director?: string;
+  writer?: string;
+  stars?: string;
+  image: string;
+  streaming?: string;
+  rentBuy?: string;
+  justWatchUrl: string;
+}
+
+const SAMPLE_ITEMS: SampleFeedItem[] = [
+  {
+    id: "americas",
+    title: "The Americas: A Wild 250th",
+    role: "Actor (Narrator)",
+    release: "2026-07-02 (US)",
+    dateDisplay: "Jul 2, 2026",
+    runtime: "42m",
+    language: "English",
+    director: "Anthony Geffen",
+    stars: "Tom Hanks",
+    image: "https://image.tmdb.org/t/p/w780/oFvZoKI6lvU03n4YoNGAll9rkas.jpg",
+    streaming: "[Stream on Peacock, NBC]",
+    justWatchUrl: "https://www.justwatch.com",
+  },
+  {
+    id: "ts5",
+    title: "Toy Story 5",
+    role: "Actor (Woody (voice))",
+    release: "2026-06-09 (US)",
+    dateDisplay: "Jun 9, 2026",
+    runtime: "1h 42m",
+    language: "English",
+    director: "Andrew Stanton",
+    writer: "Andrew Stanton, Kenna Harris",
+    stars: "Joan Cusack, Tom Hanks, Tim Allen",
+    image: "https://image.tmdb.org/t/p/w780/qjTqY5coNiz6sVtPng40IzltsoN.jpg",
+    streaming: "[Stream on Disney+]",
+    rentBuy: "[Rent on Amazon Video] · [Rent on Apple TV] · [Rent on Google Play]",
+    justWatchUrl: "https://www.justwatch.com/us/movie/toy-story-5",
+  },
+  {
+    id: "ww2",
+    title: "World War II with Tom Hanks: Season 1",
+    role: "Actor (Self - Presenter)",
+    release: "2026-05-25 (US)",
+    dateDisplay: "May 25, 2026",
+    runtime: "44m/ep",
+    language: "English",
+    director: "Matthew Wortman",
+    writer: "Tom Hanks, Matthew Wortman",
+    stars: "Tom Hanks",
+    image: "https://image.tmdb.org/t/p/w780/xVN8rq2VM9cvFmM0grv1AFnhO6d.jpg",
+    streaming: "[Stream on History Vault, Prime Video]",
+    justWatchUrl: "https://www.justwatch.com",
+  },
+  {
+    id: "shut-up",
+    title: "The Shut Up Fairy",
+    role: "Actor (Self (archival footage))",
+    release: "2026-05-03 (US)",
+    dateDisplay: "May 3, 2026",
+    runtime: "2h 4m",
+    language: "English",
+    director: "Gillian Robespierre",
+    writer: "Gillian Robespierre",
+    stars: "Tom Hanks, Rita Wilson",
+    image: "https://image.tmdb.org/t/p/w780/5VcrtQBVlZbYbi8hLoVlQ4xaMjX.jpg",
+    rentBuy: "[Rent on Apple TV] · [Rent on Amazon Video] · [Rent on Fandango]",
+    justWatchUrl: "https://www.justwatch.com",
+  },
+];
 
 interface SampleFeedPreviewProps {
   onSelectSampleArtist?: (person: TMDBPersonSearchResult) => void;
 }
 
 export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPreviewProps) {
-  const [selectedFormat, setSelectedFormat] = useState<"cinema" | "home">("cinema");
+  const [selectedId, setSelectedId] = useState<string>("ts5");
+  const [readIds, setReadIds] = useState<Set<string>>(new Set(["ts5"]));
 
-  const sampleArtist: TMDBPersonSearchResult = {
-    id: 525,
-    name: "Christopher Nolan",
-    original_name: "Christopher Nolan",
-    known_for_department: "Directing",
-    profile_path: "/xuAIuYSmsUzKlUMBFGVZaWsY3Z5.jpg",
-    popularity: 28.5,
+  const activeItem = SAMPLE_ITEMS.find((item) => item.id === selectedId) || SAMPLE_ITEMS[0];
+  const unreadCount = SAMPLE_ITEMS.filter((item) => !readIds.has(item.id)).length;
+
+  const handleSelectItem = (id: string) => {
+    setSelectedId(id);
+    setReadIds((prev) => new Set(prev).add(id));
+  };
+
+  const handleLoadTomHanks = () => {
+    onSelectSampleArtist?.({
+      id: 31,
+      name: "Tom Hanks",
+      original_name: "Tom Hanks",
+      known_for_department: "Acting",
+      profile_path: "/oFvZoKI6lvU03n4YoNGAll9rkas.jpg",
+      popularity: 10.9,
+    });
   };
 
   return (
-    <div className="max-w-lg mx-auto py-8 sm:py-12 space-y-6 animate-in fade-in duration-300">
-      {/* Introduction Subtitle */}
-      <div className="text-center space-y-1">
-        <span className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 dark:text-neutral-500 flex items-center justify-center gap-1.5">
-          <Rss className="w-3.5 h-3.5 text-amber-500" />
-          Interactive Feed Preview
-        </span>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          This is how release entries appear inside your favorite RSS reader.
-        </p>
-      </div>
-
-      {/* Mock Feed Reader Card */}
-      <div className="rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm p-4 sm:p-5 space-y-4">
-        {/* Top Channel Header */}
-        <div className="flex items-center justify-between text-xs pb-3 border-b border-neutral-100 dark:divide-neutral-800/80 border-neutral-100 dark:border-neutral-800/60">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-            <button
-              onClick={() => onSelectSampleArtist?.(sampleArtist)}
-              className="font-medium text-neutral-900 dark:text-neutral-100 hover:underline flex items-center gap-1.5 truncate"
-              title="Click to load Christopher Nolan's live feed"
-            >
-              <span>{sampleArtist.name}</span>
-              <Sparkles className="w-3 h-3 text-amber-500" />
-            </button>
+    <div className="w-full max-w-3xl mx-auto py-4 sm:py-8 space-y-4 animate-in fade-in duration-300">
+      {/* Mock macOS NetNewsWire Window */}
+      <div className="rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] shadow-2xl overflow-hidden">
+        {/* macOS Window Title Bar */}
+        <div className="px-4 py-2.5 bg-neutral-100 dark:bg-[#202023] border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]" />
+            <span className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]" />
+            <span className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]" />
           </div>
-          <span className="font-mono text-[11px] text-neutral-400 dark:text-neutral-500 flex-shrink-0">
-            {selectedFormat === "cinema" ? "2026-07-17" : "2026-10-25"}
-          </span>
+          <button
+            onClick={handleLoadTomHanks}
+            className="text-[11px] font-medium text-neutral-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            title="Click to view full live feed for Tom Hanks"
+          >
+            NetNewsWire — Tom Hanks Feed
+          </button>
+          <div className="w-12" />
         </div>
 
-        {/* Entry Content Body */}
-        <div className="flex gap-3.5 sm:gap-4 items-start">
-          {/* Poster Thumbnail */}
-          <div className="w-16 h-24 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 flex-shrink-0 overflow-hidden shadow-sm flex flex-col items-center justify-center text-neutral-400">
-            <Film className="w-6 h-6 stroke-[1.5]" />
-            <span className="text-[9px] font-mono mt-1 text-neutral-400">FILM</span>
+        {/* Master-Detail NetNewsWire Split View */}
+        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[460px]">
+          {/* Left Column: Feed Items List */}
+          <div className="md:col-span-5 bg-neutral-50/80 dark:bg-[#161618] border-r border-neutral-200 dark:border-neutral-800/80 flex flex-col">
+            {/* List Header */}
+            <div className="p-3 border-b border-neutral-200/80 dark:border-neutral-800/80 flex items-center justify-between text-xs">
+              <div>
+                <div className="font-semibold text-neutral-900 dark:text-neutral-100">
+                  Movies, Shows
+                </div>
+                <div className="text-[11px] text-neutral-400 dark:text-neutral-500">
+                  {unreadCount > 0 ? `${unreadCount} unread` : "All read"}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
+                <Radio className="w-3.5 h-3.5" />
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </div>
+            </div>
+
+            {/* Clickable Items */}
+            <div className="p-1.5 space-y-1 overflow-y-auto flex-1">
+              {SAMPLE_ITEMS.map((item) => {
+                const isSelected = item.id === selectedId;
+                const isUnread = !readIds.has(item.id);
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectItem(item.id)}
+                    className={`w-full text-left p-2 rounded-xl transition-all flex items-start gap-2 text-xs ${
+                      isSelected
+                        ? "bg-[#007aff] text-white shadow-sm ring-1 ring-blue-500"
+                        : "hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 text-neutral-900 dark:text-neutral-100"
+                    }`}
+                  >
+                    {/* Unread indicator */}
+                    <div className="pt-1 flex-shrink-0">
+                      {isUnread ? (
+                        <span
+                          className={`block w-2 h-2 rounded-full ${
+                            isSelected ? "bg-white" : "bg-[#007aff]"
+                          }`}
+                        />
+                      ) : (
+                        <span className="block w-2 h-2" />
+                      )}
+                    </div>
+
+                    {/* Artist avatar */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="https://image.tmdb.org/t/p/w180_and_h180_face/oFvZoKI6lvU03n4YoNGAll9rkas.jpg"
+                      alt="Tom Hanks"
+                      className="w-8 h-8 rounded-lg object-cover object-[center_20%] flex-shrink-0 border border-black/10 dark:border-white/10"
+                    />
+
+                    {/* Item info */}
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="font-semibold truncate leading-tight">
+                        {item.title}
+                      </div>
+                      <div
+                        className={`text-[11px] line-clamp-2 leading-tight ${
+                          isSelected ? "text-white/85" : "text-neutral-500 dark:text-neutral-400"
+                        }`}
+                      >
+                        Role: {item.role} Release: {item.release} Runtime: {item.runtime}...
+                      </div>
+                      <div
+                        className={`flex items-center justify-between text-[10px] pt-0.5 ${
+                          isSelected ? "text-white/75" : "text-neutral-400 dark:text-neutral-500"
+                        }`}
+                      >
+                        <span>Tom Hanks</span>
+                        <span>{item.dateDisplay}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Details */}
-          <div className="flex-1 min-w-0 space-y-1.5">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-semibold text-sm text-neutral-900 dark:text-neutral-100 leading-tight">
-                Untitled Christopher Nolan Event Film
-              </h3>
-            </div>
-
-            {/* Metadata Line */}
-            <div className="text-xs text-neutral-500 dark:text-neutral-400 flex flex-wrap items-center gap-1.5">
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Movie</span>
-              <span>·</span>
-              <span>Director, Writer</span>
-              <span>·</span>
-              <span>2h 45m</span>
-              <span>·</span>
-              <span>English</span>
-              <span>·</span>
-              <span>US 🇺🇸</span>
-            </div>
-
-            {/* Interactive Format Toggle */}
-            <div className="flex items-center gap-1.5 pt-1">
-              <button
-                type="button"
-                onClick={() => setSelectedFormat("cinema")}
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium transition-all ${
-                  selectedFormat === "cinema"
-                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 shadow-sm"
-                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
-                }`}
-              >
-                Theatrical
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedFormat("home")}
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium transition-all ${
-                  selectedFormat === "home"
-                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 shadow-sm"
-                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
-                }`}
-              >
-                Streaming / Digital
-              </button>
-            </div>
-
-            {/* Watch Providers / Status */}
-            {selectedFormat === "cinema" ? (
-              <div className="text-[11px] text-amber-700 dark:text-amber-400 font-medium pt-0.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-                <span>Opening in IMAX & Theaters nationwide</span>
+          {/* Right Column: Feed Content Reader */}
+          <div className="md:col-span-7 bg-white dark:bg-[#121214] flex flex-col">
+            {/* NetNewsWire Toolbar */}
+            <div className="p-2.5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between text-neutral-400 dark:text-neutral-500 text-xs">
+              <div className="flex items-center gap-3">
+                <FileText className="w-3.5 h-3.5 text-neutral-700 dark:text-neutral-300" />
+                <Star className="w-3.5 h-3.5 hover:text-amber-500 transition-colors cursor-pointer" />
+                <CheckCircle2 className="w-3.5 h-3.5 hover:text-emerald-500 transition-colors cursor-pointer" />
+                <ExternalLink className="w-3.5 h-3.5 hover:text-blue-500 transition-colors cursor-pointer" />
               </div>
-            ) : (
-              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-0.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
-                <span>Stream on Netflix, Apple TV · 4K HDR</span>
+              <div className="flex items-center gap-3">
+                <ChevronsRight className="w-3.5 h-3.5" />
+                <Search className="w-3.5 h-3.5" />
               </div>
-            )}
+            </div>
+
+            {/* Rendered Article Content */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs leading-relaxed">
+              {/* Image banner */}
+              <div className="rounded-xl overflow-hidden border border-neutral-200/80 dark:border-neutral-800 aspect-[16/9] bg-neutral-100 dark:bg-neutral-900 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={activeItem.image}
+                  alt={activeItem.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Formatted Metadata Lines */}
+              <div className="space-y-1 text-xs text-neutral-800 dark:text-neutral-200 font-sans">
+                <p>
+                  <strong className="font-semibold text-neutral-950 dark:text-white">Role:</strong>{" "}
+                  {activeItem.role}
+                </p>
+                <p>
+                  <strong className="font-semibold text-neutral-950 dark:text-white">Release:</strong>{" "}
+                  {activeItem.release}
+                </p>
+                <p>
+                  <strong className="font-semibold text-neutral-950 dark:text-white">Runtime:</strong>{" "}
+                  {activeItem.runtime}
+                </p>
+                <p>
+                  <strong className="font-semibold text-neutral-950 dark:text-white">Language:</strong>{" "}
+                  {activeItem.language}
+                </p>
+                {activeItem.director && (
+                  <p>
+                    <strong className="font-semibold text-neutral-950 dark:text-white">Director:</strong>{" "}
+                    {activeItem.director}
+                  </p>
+                )}
+                {activeItem.writer && (
+                  <p>
+                    <strong className="font-semibold text-neutral-950 dark:text-white">Writer:</strong>{" "}
+                    {activeItem.writer}
+                  </p>
+                )}
+                {activeItem.stars && (
+                  <p>
+                    <strong className="font-semibold text-neutral-950 dark:text-white">Stars:</strong>{" "}
+                    {activeItem.stars}
+                  </p>
+                )}
+              </div>
+
+              {/* Streaming Box (JustWatch) */}
+              <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 space-y-1 text-xs">
+                {activeItem.streaming && (
+                  <p>
+                    <strong className="font-semibold text-neutral-950 dark:text-white">
+                      Streaming in US:
+                    </strong>{" "}
+                    <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                      {activeItem.streaming}
+                    </span>
+                  </p>
+                )}
+                {activeItem.rentBuy && (
+                  <p>
+                    <strong className="font-semibold text-neutral-950 dark:text-white">
+                      Rent / Buy:
+                    </strong>{" "}
+                    <span className="text-neutral-600 dark:text-neutral-300">
+                      {activeItem.rentBuy}
+                    </span>
+                  </p>
+                )}
+                <div className="pt-1 text-[11px]">
+                  <a
+                    href={activeItem.justWatchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#007aff] dark:text-[#2997ff] hover:underline inline-flex items-center gap-1 font-medium"
+                  >
+                    View all streaming options on JustWatch &rarr;
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
