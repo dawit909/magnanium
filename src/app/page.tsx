@@ -26,7 +26,7 @@ export default function HomePage() {
 
   // Filters
   const [roles, setRoles] = useState<string[]>(["director", "actor"]);
-  const [types, setTypes] = useState<string[]>(["theatrical", "digital"]);
+  const [types, setTypes] = useState<string[]>(["cinema", "home"]);
   const [country, setCountry] = useState("US");
   const [excludeShorts, setExcludeShorts] = useState(false);
 
@@ -165,7 +165,18 @@ export default function HomePage() {
   };
 
   const toggleType = (t: string) => {
-    setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+    if (t === "earliest") {
+      setTypes(["earliest"]);
+      return;
+    }
+
+    setTypes((prev) => {
+      if (prev.includes("earliest")) {
+        return [t];
+      }
+      const next = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
+      return next.length > 0 ? next : ["cinema", "home"];
+    });
   };
 
   const handleCopy = () => {
@@ -310,8 +321,9 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <span className="w-14 text-neutral-400 dark:text-neutral-500">Format:</span>
               {[
-                { id: "theatrical", label: "Cinema" },
-                { id: "digital", label: "Streaming" },
+                { id: "cinema", label: "Cinema" },
+                { id: "home", label: "Home" },
+                { id: "earliest", label: "Earliest" },
               ].map((t) => (
                 <button
                   key={t.id}

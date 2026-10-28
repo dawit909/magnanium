@@ -16,22 +16,21 @@ export function getResolvedApiKey(clientKey?: string | null): string {
   return (clientKey && clientKey.trim()) || SERVER_API_KEY;
 }
 
-export function mapReleaseType(type: number): { category: ReleaseTypeCategory; label: string } {
+export function mapReleaseType(type: number): { category: "cinema" | "home"; label: string } {
   switch (type) {
-    case 1:
-      return { category: "premiere", label: "Premiere" };
     case 2:
-      return { category: "theatrical", label: "Theatrical" };
     case 3:
-      return { category: "theatrical", label: "Theatrical" };
+      return { category: "cinema", label: "Cinema" };
     case 4:
-      return { category: "digital", label: "Digital / Streaming" };
+      return { category: "home", label: "Home (Digital)" };
     case 5:
-      return { category: "physical", label: "Physical" };
+      return { category: "home", label: "Home (Physical)" };
     case 6:
-      return { category: "other", label: "TV" };
+      return { category: "home", label: "Home (TV)" };
+    case 1:
+      return { category: "home", label: "Home (Premiere)" };
     default:
-      return { category: "other", label: "Release" };
+      return { category: "home", label: "Home" };
   }
 }
 
@@ -164,11 +163,21 @@ export async function getPersonReleases(
   const {
     personId,
     roles = ["director", "actor"],
-    types = ["theatrical", "digital"],
+    types = ["cinema", "home"],
     country = "US",
     window = "all",
     excludeShorts = false,
   } = options;
+
+  // Normalize types
+  const normalizedTypes = types.map((t) => {
+    const lower = t.toLowerCase();
+    if (lower === "theatrical") return "cinema";
+    if (lower === "digital" || lower === "physical") return "home";
+    return lower;
+  });
+
+  const isEarliestOnly = normalizedTypes.includes("earliest");
 
   const [person, credits] = await Promise.all([
     getPersonDetails(personId, customApiKey),
@@ -195,7 +204,6 @@ export async function getPersonReleases(
       const job = (item.job || "").toLowerCase();
       const dept = (item.department || "").toLowerCase();
 
-      // Skip passive "Thanks" or "Special Thanks" credits
       if (job.includes("thanks") || dept === "crew") continue;
 
       if (checkRole("director") && (job.includes("director") || dept === "directing")) {
@@ -210,7 +218,6 @@ export async function getPersonReleases(
 
   if (credits.cast && checkRole("actor")) {
     for (const item of credits.cast) {
-      // Include all acting credits including guest, cameo, and special appearances
       addCandidate(item, item.character ? `Actor (${item.character})` : "Actor");
     }
   }
@@ -242,8 +249,8 @@ export async function getPersonReleases(
         return;
       }
 
-      let foundSpecific = false;
       const releaseDatesData = movieDetails?.release_dates;
+      const movieCandidateReleases: FormattedRelease[] = [];
 
       if (releaseDatesData && releaseDatesData.results) {
         const countryData =
@@ -257,11 +264,12 @@ export async function getPersonReleases(
             if (!dateStr) continue;
 
             const { category, label } = mapReleaseType(rd.type);
-            if (!types.includes(category)) continue;
+
+            // Window filter
             if (window === "upcoming" && dateStr < nowStr) continue;
             if (window === "all" && dateStr < oneYearAgoStr) continue;
 
-            formattedReleases.push({
+            movieCandidateReleases.push({
               id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}`,
               movieId: movie.id,
               movieTitle: movie.title,
@@ -274,29 +282,48 @@ export async function getPersonReleases(
               role: movieRoles.join(", "),
               tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
             });
-            foundSpecific = true;
           }
         }
       }
 
-      if (!foundSpecific && movie.release_date) {
+      // Fallback to movie.release_date if no specific release entries
+      if (movieCandidateReleases.length === 0 && movie.release_date) {
         const dateStr = movie.release_date;
-        if (window === "upcoming" && dateStr < nowStr) return;
-        if (window === "all" && dateStr < oneYearAgoStr) return;
+        const inWindow = !(window === "upcoming" && dateStr < nowStr) && !(window === "all" && dateStr < oneYearAgoStr);
 
+        if (inWindow) {
+          movieCandidateReleases.push({
+            id: `${movie.id}-general-${dateStr}`,
+            movieId: movie.id,
+            movieTitle: movie.title,
+            overview: movie.overview || "",
+            posterPath: movie.poster_path,
+            releaseDate: dateStr,
+            releaseType: "cinema",
+            releaseTypeLabel: "Cinema",
+            country,
+            role: movieRoles.join(", "),
+            tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
+          });
+        }
+      }
+
+      if (movieCandidateReleases.length === 0) return;
+
+      if (isEarliestOnly) {
+        // Sort ascending by date to find the earliest release
+        movieCandidateReleases.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
+        const earliest = movieCandidateReleases[0];
         formattedReleases.push({
-          id: `${movie.id}-general-${dateStr}`,
-          movieId: movie.id,
-          movieTitle: movie.title,
-          overview: movie.overview || "",
-          posterPath: movie.poster_path,
-          releaseDate: dateStr,
-          releaseType: "theatrical",
-          releaseTypeLabel: "Theatrical",
-          country,
-          role: movieRoles.join(", "),
-          tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
+          ...earliest,
+          releaseTypeLabel: `${earliest.releaseTypeLabel} (Earliest)`,
         });
+      } else {
+        for (const rel of movieCandidateReleases) {
+          if (normalizedTypes.includes(rel.releaseType)) {
+            formattedReleases.push(rel);
+          }
+        }
       }
     })
   );

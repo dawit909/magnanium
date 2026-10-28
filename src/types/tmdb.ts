@@ -51,7 +51,7 @@ export interface TMDBReleaseDatesResponse {
   }>;
 }
 
-export type ReleaseTypeCategory = "theatrical" | "digital" | "physical" | "premiere" | "other";
+export type ReleaseTypeCategory = "cinema" | "home" | "earliest" | "theatrical" | "digital" | "physical" | "premiere" | "other";
 
 export interface FormattedRelease {
   id: string;
@@ -70,7 +70,7 @@ export interface FormattedRelease {
 export interface FeedFilterOptions {
   personId: number;
   roles?: string[];
-  types?: ReleaseTypeCategory[];
+  types?: string[]; // "cinema", "home", "earliest"
   country?: string;
   window?: "upcoming" | "all";
   excludeShorts?: boolean;

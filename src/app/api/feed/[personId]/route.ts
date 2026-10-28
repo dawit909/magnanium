@@ -19,7 +19,7 @@ export async function GET(
 
     const { searchParams } = new URL(request.url);
     const rolesParam = searchParams.get("roles") || "director,actor";
-    const typesParam = searchParams.get("types") || "theatrical,digital";
+    const typesParam = searchParams.get("types") || "cinema,home";
     const country = searchParams.get("country") || "US";
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
     const excludeShorts = searchParams.get("exclude_shorts") === "true";
