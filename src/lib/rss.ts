@@ -62,6 +62,27 @@ function renderWatchProvidersHtml(item: FormattedRelease): string {
   `.trim();
 }
 
+function renderMetadataLines(item: FormattedRelease): string {
+  const lines: string[] = [];
+  if (item.role) {
+    lines.push(`<strong>Role:</strong> ${escapeXml(item.role)}`);
+  }
+  lines.push(`<strong>Release:</strong> ${item.releaseDate} (${escapeXml(item.country)})`);
+  if (item.runtime) {
+    lines.push(`<strong>Runtime:</strong> ${escapeXml(item.runtime)}`);
+  }
+  if (item.director) {
+    lines.push(`<strong>Director:</strong> ${escapeXml(item.director)}`);
+  }
+  if (item.writer) {
+    lines.push(`<strong>Writer:</strong> ${escapeXml(item.writer)}`);
+  }
+  if (item.stars && item.stars.length > 0) {
+    lines.push(`<strong>Stars:</strong> ${item.stars.map(escapeXml).join(", ")}`);
+  }
+  return lines.join("<br/>");
+}
+
 function renderItemDescription(item: FormattedRelease): string {
   const posterSrc = item.posterPath
     ? item.posterPath.startsWith("http")
@@ -73,13 +94,13 @@ function renderItemDescription(item: FormattedRelease): string {
     ? `<p><img src="${posterSrc}" alt="${escapeXml(item.movieTitle)}" style="max-width: 320px; border-radius: 8px; margin-bottom: 12px;" /></p>`
     : "";
 
-  const roleLine = item.role ? `<strong>Role:</strong> ${escapeXml(item.role)}<br/>` : "";
+  const metaHtml = renderMetadataLines(item);
   const overviewHtml = item.overview ? `<p>${escapeXml(item.overview)}</p>` : "";
   const watchHtml = renderWatchProvidersHtml(item);
 
   return `
 ${posterHtml}
-<p>${roleLine}<strong>Release:</strong> ${item.releaseDate} (${item.country})</p>
+<p style="line-height: 1.6;">${metaHtml}</p>
 ${watchHtml}
 ${overviewHtml}
   `.trim();

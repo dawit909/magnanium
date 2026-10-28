@@ -79,6 +79,8 @@ export interface TvDetails {
   status?: string;
   in_production?: boolean;
   origin_country?: string[];
+  created_by?: { id: number; name: string }[];
+  episode_run_time?: number[];
   next_episode_to_air?: {
     id: number;
     name: string;
@@ -112,6 +114,10 @@ export interface FormattedRelease {
   role: string;
   tmdbUrl: string;
   watchProviders?: WatchProvidersInfo | null;
+  director?: string | null;
+  writer?: string | null;
+  stars?: string[] | null;
+  runtime?: string | null;
 }
 
 export interface FeedFilterOptions {

@@ -109,6 +109,19 @@ interface MovieDetailsWithReleases {
   runtime?: number;
   release_dates?: TMDBReleaseDatesResponse;
   "watch/providers"?: RawWatchProvidersResponse;
+  credits?: {
+    cast?: { name: string; order?: number }[];
+    crew?: { name: string; job?: string; department?: string }[];
+  };
+}
+
+export function formatRuntime(minutes?: number | null): string | null {
+  if (!minutes || minutes <= 0) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0 && m > 0) return `${h}h ${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
 }
 
 export function extractWatchProviders(
@@ -196,6 +209,10 @@ function createReleaseItem(params: {
   country: string;
   role: string;
   watchProviders?: FormattedRelease["watchProviders"];
+  director?: string | null;
+  writer?: string | null;
+  stars?: string[] | null;
+  runtime?: string | null;
 }): FormattedRelease {
   return {
     id: params.id,
@@ -211,6 +228,10 @@ function createReleaseItem(params: {
     role: params.role,
     tmdbUrl: `https://www.themoviedb.org/${params.mediaType}/${params.movieId}`,
     watchProviders: params.watchProviders || null,
+    director: params.director || null,
+    writer: params.writer || null,
+    stars: params.stars && params.stars.length > 0 ? params.stars : null,
+    runtime: params.runtime || null,
   };
 }
 
@@ -227,7 +248,7 @@ export async function extractMovieReleases(
 
   const { data: movieDetails } = await tmdbFetch<MovieDetailsWithReleases>(
     `/movie/${movie.id}`,
-    { append_to_response: "release_dates,watch/providers" },
+    { append_to_response: "release_dates,watch/providers,credits" },
     43200,
     ctx.clientKey
   );
@@ -246,6 +267,28 @@ export async function extractMovieReleases(
     movieDetails?.["watch/providers"],
     ctx.country
   );
+
+  // Extract Director, Writer, Stars, Runtime
+  const directors = [
+    ...new Set(
+      movieDetails?.credits?.crew
+        ?.filter((c) => c.job === "Director")
+        .map((c) => c.name.trim())
+    ),
+  ];
+  const writers = [
+    ...new Set(
+      movieDetails?.credits?.crew
+        ?.filter((c) => c.job === "Screenplay" || c.job === "Writer")
+        .map((c) => c.name.trim())
+    ),
+  ];
+  const stars = movieDetails?.credits?.cast
+    ?.slice(0, 3)
+    .map((c) => c.name.trim());
+  const runtime = formatRuntime(movieDetails?.runtime);
+  const director = directors.length > 0 ? directors.join(", ") : null;
+  const writer = writers.length > 0 ? writers.join(", ") : null;
 
   const candidates: FormattedRelease[] = [];
   const releaseDatesData = movieDetails?.release_dates;
@@ -296,6 +339,10 @@ export async function extractMovieReleases(
             country: countryData.iso_3166_1,
             role: roleStr,
             watchProviders,
+            director,
+            writer,
+            stars,
+            runtime,
           })
         );
       }
@@ -329,6 +376,10 @@ export async function extractMovieReleases(
           country: ctx.country,
           role: roleStr,
           watchProviders,
+          director,
+          writer,
+          stars,
+          runtime,
         })
       );
     }
@@ -349,10 +400,16 @@ export async function extractTvReleases(
   }
 
   const { data: tvDetails } = await tmdbFetch<
-    TvDetails & { "watch/providers"?: RawWatchProvidersResponse }
+    TvDetails & {
+      "watch/providers"?: RawWatchProvidersResponse;
+      credits?: {
+        cast?: { name: string; order?: number }[];
+        crew?: { name: string; job?: string; department?: string }[];
+      };
+    }
   >(
     `/tv/${tvShow.id}`,
-    { append_to_response: "watch/providers" },
+    { append_to_response: "watch/providers,credits" },
     43200,
     ctx.clientKey
   );
@@ -361,6 +418,15 @@ export async function extractTvReleases(
     tvDetails?.["watch/providers"],
     ctx.country
   );
+
+  // Extract Creator, Stars, Runtime
+  const creators = tvDetails?.created_by?.map((c) => c.name.trim());
+  const tvStars = tvDetails?.credits?.cast?.slice(0, 3).map((c) => c.name.trim());
+  const tvRuntime =
+    tvDetails?.episode_run_time && tvDetails.episode_run_time.length > 0
+      ? formatRuntime(tvDetails.episode_run_time[0])
+      : null;
+  const creator = creators && creators.length > 0 ? creators.join(", ") : null;
 
   const candidates: FormattedRelease[] = [];
   const showCountry = tvDetails?.origin_country?.[0] || ctx.country;
@@ -405,6 +471,9 @@ export async function extractTvReleases(
           country: showCountry,
           role: roleStr,
           watchProviders,
+          director: creator,
+          stars: tvStars,
+          runtime: tvRuntime,
         })
       );
     }
@@ -437,6 +506,9 @@ export async function extractTvReleases(
           country: showCountry,
           role: roleStr,
           watchProviders,
+          director: creator,
+          stars: tvStars,
+          runtime: tvRuntime,
         })
       );
     }

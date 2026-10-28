@@ -81,9 +81,26 @@ export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
                         <span>{item.role}</span>
                       </>
                     )}
+                    {item.runtime && (
+                      <>
+                        <span>·</span>
+                        <span>{item.runtime}</span>
+                      </>
+                    )}
                     <span>·</span>
                     <span>{item.country}</span>
                   </div>
+
+                  {/* Director / Stars */}
+                  {(item.director || (item.stars && item.stars.length > 0)) && (
+                    <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">
+                      {item.director && <span>Dir: {item.director}</span>}
+                      {item.director && item.stars && item.stars.length > 0 && <span> · </span>}
+                      {item.stars && item.stars.length > 0 && (
+                        <span>Stars: {item.stars.join(", ")}</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Streaming & Watch Providers Badge */}
                   {item.watchProviders?.stream && item.watchProviders.stream.length > 0 ? (
