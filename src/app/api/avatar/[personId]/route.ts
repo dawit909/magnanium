@@ -62,16 +62,19 @@ export async function GET(
       return new NextResponse("Profile image not found", { status: 404 });
     }
 
-    // 5. Fetch source portrait & crop to 1:1 square centered JPEG
-    const tmdbImageUrl = `https://image.tmdb.org/t/p/w342${person.profile_path}`;
-    const imgRes = await fetch(tmdbImageUrl);
+    // 5. Fetch source portrait & crop to 1:1 square centered JPEG (using TMDB face crop or top-aligned fallback)
+    const tmdbFaceUrl = `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`;
+    let imgRes = await fetch(tmdbFaceUrl);
     if (!imgRes.ok) {
-      return new NextResponse("Image not found on TMDB", { status: imgRes.status });
+      imgRes = await fetch(`https://image.tmdb.org/t/p/w342${person.profile_path}`);
+      if (!imgRes.ok) {
+        return new NextResponse("Image not found on TMDB", { status: imgRes.status });
+      }
     }
 
     const sourceBuffer = Buffer.from(await imgRes.arrayBuffer());
     const squareBuffer = await sharp(sourceBuffer)
-      .resize(300, 300, { fit: "cover", position: "center" })
+      .resize(300, 300, { fit: "cover", position: "north" })
       .jpeg({ quality: 90 })
       .toBuffer();
 

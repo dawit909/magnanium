@@ -101,11 +101,14 @@ export default function Header({
                       {person.profile_path ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={`https://image.tmdb.org/t/p/w92${person.profile_path}`}
+                          src={`https://image.tmdb.org/t/p/w180_and_h180_face${person.profile_path}`}
                           alt={person.name}
                           loading="lazy"
                           decoding="async"
-                          className="w-6 h-6 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = `https://image.tmdb.org/t/p/w92${person.profile_path}`;
+                          }}
+                          className="w-6 h-6 rounded-full object-cover object-[center_20%] border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
                         />
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">

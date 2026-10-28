@@ -20,9 +20,12 @@ export default function ArtistHero({ person }: ArtistHeroProps) {
           title="View on TMDB"
         >
           <img
-            src={`https://image.tmdb.org/t/p/h632${person.profile_path}`}
+            src={`https://image.tmdb.org/t/p/w600_and_h600_face${person.profile_path}`}
             alt={person.name}
-            className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border border-neutral-200 dark:border-neutral-700 shadow-md"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = `https://image.tmdb.org/t/p/h632${person.profile_path}`;
+            }}
+            className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover object-[center_20%] border border-neutral-200 dark:border-neutral-700 shadow-md"
           />
         </a>
       ) : (
