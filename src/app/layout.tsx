@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Movie Release RSS",
-  description: "RSS feeds for movie releases by artist.",
+  title: "Magnanium",
+  description: "Movie release RSS feeds.",
 };
 
 export default function RootLayout({

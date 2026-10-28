@@ -165,7 +165,7 @@ export default function HomePage() {
     <div className="space-y-6 text-sm">
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
-        <span className="font-mono text-sm text-neutral-300">movie-release-rss</span>
+        <span className="font-medium text-sm text-neutral-200">Magnanium</span>
 
         <button
           onClick={() => setShowKeyInput(!showKeyInput)}
