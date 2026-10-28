@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
-import { createPersonSlug, parsePersonIdFromSlug } from "@/lib/slug";
+import { createPersonSlug } from "@/lib/slug";
 import { Search, Copy, Check, ExternalLink, Sun, Moon, User } from "lucide-react";
 
 const COUNTRIES = [
@@ -16,17 +17,27 @@ const COUNTRIES = [
   { code: "JP", name: "JP" },
 ];
 
+const SUGGESTIONS = [
+  { id: 525, name: "Christopher Nolan" },
+  { id: 45400, name: "Greta Gerwig" },
+  { id: 137427, name: "Denis Villeneuve" },
+  { id: 21684, name: "Bong Joon Ho" },
+  { id: 18897, name: "Quentin Tarantino" },
+];
+
 export default function FeedApp({
   initialPerson = null,
 }: {
   initialPerson?: TMDBPersonSearchResult | null;
 }) {
+  const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<TMDBPersonSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<TMDBPersonSearchResult | null>(initialPerson);
+  const [recentArtists, setRecentArtists] = useState<Array<{ id: number; name: string; slug: string }>>([]);
 
   // Filters
   const [roles, setRoles] = useState<string[]>(["director", "actor"]);
@@ -41,9 +52,17 @@ export default function FeedApp({
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize theme from localStorage (default light)
+  // Sync state whenever initialPerson changes (URL changes, Back/Forward browser navigation)
+  useEffect(() => {
+    setSelectedPerson(initialPerson);
+    setQuery("");
+    setSearchResults([]);
+  }, [initialPerson]);
+
+  // Load theme and recent history
   useEffect(() => {
     setOrigin(window.location.origin);
+
     const savedTheme = localStorage.getItem("magnanium_theme") as "light" | "dark" | null;
     if (savedTheme === "dark") {
       setTheme("dark");
@@ -52,7 +71,27 @@ export default function FeedApp({
       setTheme("light");
       document.documentElement.classList.remove("dark");
     }
+
+    const savedRecent = localStorage.getItem("magnanium_recent");
+    if (savedRecent) {
+      try {
+        setRecentArtists(JSON.parse(savedRecent));
+      } catch {}
+    }
   }, []);
+
+  // Save artist to recent history when viewed
+  useEffect(() => {
+    if (selectedPerson) {
+      const slug = createPersonSlug(selectedPerson.id, selectedPerson.name);
+      setRecentArtists((prev) => {
+        const filtered = prev.filter((a) => a.id !== selectedPerson.id);
+        const updated = [{ id: selectedPerson.id, name: selectedPerson.name, slug }, ...filtered].slice(0, 5);
+        localStorage.setItem("magnanium_recent", JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [selectedPerson]);
 
   // Close search dropdown on click outside
   useEffect(() => {
@@ -63,35 +102,6 @@ export default function FeedApp({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Listen to browser Back / Forward buttons (popstate)
-  useEffect(() => {
-    const handlePopState = async () => {
-      const path = window.location.pathname.replace(/^\/+/, "");
-      if (!path) {
-        setSelectedPerson(null);
-        setQuery("");
-        setSearchResults([]);
-      } else {
-        const id = parsePersonIdFromSlug(path);
-        if (id) {
-          try {
-            const res = await fetch(`/api/search?q=${id}`);
-            const data = await res.json();
-            const found = (data.results || []).find((p: TMDBPersonSearchResult) => p.id === id);
-            if (found) {
-              setSelectedPerson(found);
-            }
-          } catch (err) {
-            console.error("Popstate fetch error:", err);
-          }
-        }
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const toggleTheme = () => {
@@ -106,20 +116,16 @@ export default function FeedApp({
   };
 
   const goHome = () => {
-    setSelectedPerson(null);
     setQuery("");
     setSearchResults([]);
-    if (window.location.pathname !== "/") {
-      window.history.pushState(null, "", "/");
-    }
+    router.push("/");
   };
 
   const selectPerson = (person: TMDBPersonSearchResult) => {
-    setSelectedPerson(person);
     setQuery("");
     setSearchResults([]);
     const slug = createPersonSlug(person.id, person.name);
-    window.history.pushState(null, "", `/${slug}`);
+    router.push(`/${slug}`);
   };
 
   // Debounced search
@@ -322,13 +328,45 @@ export default function FeedApp({
 
       {/* Main Body */}
       {!selectedPerson ? (
-        <div className="py-20 text-center text-xs text-neutral-400 dark:text-neutral-500">
-          Search an actor or director above to generate an RSS feed.
+        <div className="pt-8 space-y-6">
+          {/* Recent Artists (if any exist in localStorage) */}
+          {recentArtists.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-xs text-neutral-400 dark:text-neutral-500 font-mono">recent</span>
+              <div className="flex flex-wrap gap-2">
+                {recentArtists.map((artist) => (
+                  <button
+                    key={artist.id}
+                    onClick={() => router.push(`/${artist.slug}`)}
+                    className="px-2.5 py-1 rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors"
+                  >
+                    {artist.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Examples */}
+          <div className="space-y-2">
+            <span className="text-xs text-neutral-400 dark:text-neutral-500 font-mono">popular</span>
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTIONS.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => router.push(`/${createPersonSlug(item.id, item.name)}`)}
+                  className="px-2.5 py-1 rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors"
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         /* Selected Person Page */
         <div className="space-y-5">
-          {/* Person Header with Profile Picture (No Change button) */}
+          {/* Person Header with Profile Picture */}
           <div className="flex items-center gap-3.5 pb-3 border-b border-neutral-200 dark:border-neutral-800">
             {selectedPerson.profile_path ? (
               // eslint-disable-next-line @next/next/no-img-element
