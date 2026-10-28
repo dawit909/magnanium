@@ -23,6 +23,7 @@ export async function GET(
     const typesParam = searchParams.get("types") || "cinema,home";
     const country = searchParams.get("country") || "US";
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
+    const alert = (searchParams.get("alert") as "announced" | "release_day") || "announced";
     const excludeShorts = searchParams.get("exclude_shorts") === "true";
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
@@ -42,6 +43,7 @@ export async function GET(
         types,
         country,
         window,
+        alert,
         excludeShorts,
       },
       clientKey

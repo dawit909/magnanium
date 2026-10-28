@@ -113,5 +113,6 @@ export interface FeedFilterOptions {
   types?: string[]; // "cinema", "home", "earliest"
   country?: string;
   window?: "upcoming" | "all";
+  alert?: "announced" | "release_day";
   excludeShorts?: boolean;
 }

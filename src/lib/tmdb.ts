@@ -207,6 +207,7 @@ export async function getPersonReleases(
     types = ["cinema", "home"],
     country = "US",
     window = "all",
+    alert = "announced",
     excludeShorts = false,
   } = options;
 
@@ -379,6 +380,9 @@ export async function getPersonReleases(
               if (!mapped) continue;
               const { category, label } = mapped;
 
+              // Alert mode: "release_day" excludes future unreleased dates
+              if (alert === "release_day" && dateStr > nowStr) continue;
+
               // Window filter
               if (window === "upcoming" && dateStr < nowStr) continue;
               if (window === "all" && dateStr < oneYearAgoStr) continue;
@@ -404,7 +408,10 @@ export async function getPersonReleases(
         // Fallback to movie.release_date if no specific release entries
         if (movieCandidateReleases.length === 0 && movie.release_date) {
           const dateStr = movie.release_date;
-          const inWindow = !(window === "upcoming" && dateStr < nowStr) && !(window === "all" && dateStr < oneYearAgoStr);
+          const inWindow =
+            !(alert === "release_day" && dateStr > nowStr) &&
+            !(window === "upcoming" && dateStr < nowStr) &&
+            !(window === "all" && dateStr < oneYearAgoStr);
 
           if (inWindow) {
             movieCandidateReleases.push({
@@ -464,6 +471,9 @@ export async function getPersonReleases(
 
             if (!dateStr) continue;
 
+            // Alert mode: "release_day" excludes future unreleased dates
+            if (alert === "release_day" && dateStr > nowStr) continue;
+
             // Window filter
             if (window === "upcoming" && dateStr < nowStr) continue;
             if (window === "all" && dateStr < oneYearAgoStr) continue;
@@ -491,7 +501,10 @@ export async function getPersonReleases(
         // Fallback to first_air_date if no specific seasons matched
         if (tvCandidateReleases.length === 0 && tvShow.first_air_date) {
           const dateStr = tvShow.first_air_date;
-          const inWindow = !(window === "upcoming" && dateStr < nowStr) && !(window === "all" && dateStr < oneYearAgoStr);
+          const inWindow =
+            !(alert === "release_day" && dateStr > nowStr) &&
+            !(window === "upcoming" && dateStr < nowStr) &&
+            !(window === "all" && dateStr < oneYearAgoStr);
 
           if (inWindow) {
             tvCandidateReleases.push({

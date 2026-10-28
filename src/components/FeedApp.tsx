@@ -37,6 +37,7 @@ export default function FeedApp({
   const [roles, setRoles] = useState<string[]>(["actor", "crew"]);
   const [types, setTypes] = useState<string[]>(["cinema", "home"]);
   const [country, setCountry] = useState("US");
+  const [alert, setAlert] = useState<"announced" | "release_day">("announced");
   const [excludeShorts, setExcludeShorts] = useState(false);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
@@ -184,7 +185,7 @@ export default function FeedApp({
 
   // Construct RSS Feed URL
   const feedUrl = selectedPerson
-    ? `${origin}/api/feed/${selectedPerson.id}?media=${media.join(",")}&roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&exclude_shorts=${excludeShorts}`
+    ? `${origin}/api/feed/${selectedPerson.id}?media=${media.join(",")}&roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&alert=${alert}&exclude_shorts=${excludeShorts}`
     : "";
 
   // Fetch preview items when artist or filters change
@@ -204,6 +205,7 @@ export default function FeedApp({
           roles: roles.join(","),
           types: types.join(","),
           country,
+          alert,
           exclude_shorts: String(excludeShorts),
         });
 
@@ -287,7 +289,7 @@ export default function FeedApp({
     return () => {
       isCurrent = false;
     };
-  }, [selectedPerson, media, roles, types, country, excludeShorts]);
+  }, [selectedPerson, media, roles, types, country, alert, excludeShorts]);
 
   const toggleMedia = (m: string) => {
     setMedia((prev) => {
@@ -575,6 +577,44 @@ export default function FeedApp({
                   </div>
                   <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-52 px-2.5 py-1.5 rounded-xl bg-neutral-900 text-neutral-100 dark:bg-neutral-800 dark:text-neutral-200 text-[11px] leading-snug shadow-xl border border-neutral-800 dark:border-neutral-700 text-center opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-150 pointer-events-none z-50">
                     TV shows do not have theatrical releases. If you choose only Theatrical, TV shows will not appear.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Alert */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Alert:</span>
+              <div className="flex items-center gap-1.5">
+                {[
+                  { id: "announced", label: "When Announced" },
+                  { id: "release_day", label: "On Release Day" },
+                ].map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => setAlert(a.id as "announced" | "release_day")}
+                    className={`px-3 py-1 rounded-full border text-xs transition-all ${
+                      alert === a.id
+                        ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
+                        : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
+                    }`}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+
+                {/* Info Tooltip */}
+                <div className="relative group/info inline-flex items-center ml-1">
+                  <div
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Alert timing info"
+                    className="text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors p-0.5 rounded-full cursor-help focus:outline-none"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 px-2.5 py-1.5 rounded-xl bg-neutral-900 text-neutral-100 dark:bg-neutral-800 dark:text-neutral-200 text-[11px] leading-snug shadow-xl border border-neutral-800 dark:border-neutral-700 text-center opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible group-focus-within/info:opacity-100 group-focus-within/info:visible transition-all duration-150 pointer-events-none z-50">
+                    &ldquo;When Announced&rdquo; alerts as soon as a future date is scheduled. &ldquo;On Release Day&rdquo; alerts on the release date.
                   </div>
                 </div>
               </div>
