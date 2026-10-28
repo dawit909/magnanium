@@ -37,7 +37,7 @@ export async function GET(
       .split(",")
       .map((t) => t.trim().toLowerCase()) as ReleaseTypeCategory[];
 
-    const { personName, releases } = await getPersonReleases(
+    const { personName, releases, profilePath } = await getPersonReleases(
       {
         personId,
         media,
@@ -55,7 +55,7 @@ export async function GET(
 
     if (format === "json" || acceptsJson) {
       return NextResponse.json(
-        { personName, releases },
+        { personName, releases, profilePath },
         {
           headers: {
             "Cache-Control": cacheHeader,
@@ -74,6 +74,7 @@ export async function GET(
       releases,
       feedUrl,
       siteUrl,
+      profilePath,
     });
 
     return new NextResponse(rssXml, {

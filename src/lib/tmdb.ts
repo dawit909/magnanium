@@ -90,7 +90,7 @@ export const getPersonCombinedCredits = getPersonCredits;
 export async function getPersonReleases(
   options: FeedFilterOptions,
   customApiKey?: string
-): Promise<{ personName: string; releases: FormattedRelease[] }> {
+): Promise<{ personName: string; releases: FormattedRelease[]; profilePath?: string | null }> {
   const {
     personId,
     media = ["movie", "tv"],
@@ -214,5 +214,9 @@ export async function getPersonReleases(
   const formattedReleases = releasesNested.flat();
   formattedReleases.sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
 
-  return { personName, releases: formattedReleases };
+  return {
+    personName,
+    releases: formattedReleases,
+    profilePath: person.profile_path || null,
+  };
 }
