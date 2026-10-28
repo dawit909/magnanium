@@ -62,6 +62,9 @@ export default function FeedApp({
     previewReleases,
     isLoadingPreview,
     feedUrl,
+    feedProtocolUrl,
+    feedlyUrl,
+    inoreaderUrl,
     calUrl,
     webcalUrl,
     googleCalUrl,
@@ -124,6 +127,9 @@ export default function FeedApp({
 
           <FeedUrlCard
             feedUrl={feedUrl}
+            feedProtocolUrl={feedProtocolUrl}
+            feedlyUrl={feedlyUrl}
+            inoreaderUrl={inoreaderUrl}
             calUrl={calUrl}
             webcalUrl={webcalUrl}
             googleCalUrl={googleCalUrl}
