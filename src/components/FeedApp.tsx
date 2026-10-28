@@ -190,21 +190,25 @@ export default function FeedApp({
           const imgMatch = desc.match(/src="([^"]+)"/);
           const posterUrl = imgMatch ? imgMatch[1] : null;
 
-          const dateMatch = title.match(/\((\d{4}-\d{2}-\d{2})\)/);
-          const releaseDate = dateMatch ? dateMatch[1] : pubDate;
+          const releaseMatch = desc.match(/<strong>Release:<\/strong>\s*(\d{4}-\d{2}-\d{2})/);
+          const titleDateMatch = title.match(/\((\d{4}-\d{2}-\d{2})\)/);
+          const releaseDate = releaseMatch ? releaseMatch[1] : titleDateMatch ? titleDateMatch[1] : pubDate;
 
           const isTv = categories.includes("TV") || link.includes("/tv/");
           const mediaType: "movie" | "tv" = isTv ? "tv" : "movie";
 
           const formatLabel =
             categories.find((c) =>
-              ["Cinema", "Home", "Season Premiere", "Series Premiere", "TV"].some((k) => c.startsWith(k))
+              ["Theatrical", "Cinema", "Home", "Season Premiere", "Series Premiere", "TV"].some((k) =>
+                c.startsWith(k)
+              )
             ) || (isTv ? "Season Premiere" : "Release");
 
           const roleLabel =
             categories.find(
               (c) =>
                 !["Movie", "TV"].includes(c) &&
+                !c.startsWith("Theatrical") &&
                 !c.startsWith("Cinema") &&
                 !c.startsWith("Home") &&
                 !c.startsWith("Season Premiere") &&
@@ -464,7 +468,7 @@ export default function FeedApp({
               <span className="w-14 text-neutral-400 dark:text-neutral-500 font-medium">Format:</span>
               <div className="flex items-center gap-1.5">
                 {[
-                  { id: "cinema", label: "Cinema" },
+                  { id: "cinema", label: "Theatrical" },
                   { id: "home", label: "Home" },
                   { id: "earliest", label: "Earliest" },
                 ].map((t) => (

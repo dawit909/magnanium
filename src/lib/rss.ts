@@ -30,7 +30,7 @@ export function generateRssFeed({
   feedUrl: string;
   siteUrl: string;
 }): string {
-  const channelTitle = `${personName} Releases`;
+  const channelTitle = personName;
   const channelDesc = `Movie & TV release dates for ${personName}`;
   const buildDate = new Date().toUTCString();
 
@@ -64,7 +64,7 @@ ${posterHtml}
 
       return `
     <item>
-      <title>${escapeXml(`${item.movieTitle} - ${item.releaseTypeLabel} (${item.releaseDate})`)}</title>
+      <title>${escapeXml(`${item.movieTitle} - ${item.releaseTypeLabel}`)}</title>
       <link>${escapeXml(item.tmdbUrl)}</link>
       <guid isPermaLink="false">${escapeXml(item.id)}</guid>
       <pubDate>${pubDate}</pubDate>

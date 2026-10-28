@@ -21,7 +21,7 @@ export function mapReleaseType(type: number): { category: "cinema" | "home"; lab
   switch (type) {
     case 2:
     case 3:
-      return { category: "cinema", label: "Cinema" };
+      return { category: "cinema", label: "Theatrical" };
     case 4:
       return { category: "home", label: "Home (Digital)" };
     case 5:
@@ -413,7 +413,7 @@ export async function getPersonReleases(
               posterPath: movie.poster_path,
               releaseDate: dateStr,
               releaseType: "cinema",
-              releaseTypeLabel: "Cinema",
+              releaseTypeLabel: "Theatrical",
               country,
               role: combinedRole,
               tmdbUrl: `https://www.themoviedb.org/movie/${movie.id}`,
