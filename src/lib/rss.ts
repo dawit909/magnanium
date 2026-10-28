@@ -30,13 +30,12 @@ export function generateRssFeed({
   feedUrl: string;
   siteUrl: string;
 }): string {
-  const channelTitle = `Movie Releases: ${personName}`;
-  const channelDesc = `Upcoming and recent movie releases featuring ${personName}.`;
+  const channelTitle = `${personName} - Movie Releases`;
+  const channelDesc = `Movie release dates for ${personName}`;
   const buildDate = new Date().toUTCString();
 
   const itemsXml = releases
     .map((item) => {
-      // Parse release date for pubDate
       let pubDate = buildDate;
       try {
         const d = new Date(item.releaseDate);
@@ -44,21 +43,20 @@ export function generateRssFeed({
           pubDate = d.toUTCString();
         }
       } catch {
-        // fallback to buildDate
+        // fallback
       }
 
       const posterHtml = item.posterPath
-        ? `<p><img src="https://image.tmdb.org/t/p/w342${item.posterPath}" alt="${escapeXml(item.movieTitle)}" style="max-width: 240px; border-radius: 8px; margin-bottom: 12px;" /></p>`
+        ? `<p><img src="https://image.tmdb.org/t/p/w342${item.posterPath}" alt="${escapeXml(item.movieTitle)}" style="max-width: 200px; margin-bottom: 8px;" /></p>`
         : "";
 
       const descriptionContent = `
 ${posterHtml}
-<p><strong>Release Date:</strong> ${item.releaseDate} (${item.country})</p>
-<p><strong>Type:</strong> ${item.releaseTypeLabel}</p>
+<p><strong>Release:</strong> ${item.releaseDate} (${item.country})</p>
+<p><strong>Format:</strong> ${item.releaseTypeLabel}</p>
 <p><strong>Role:</strong> ${escapeXml(item.role)}</p>
-<p><strong>Overview:</strong></p>
-<p>${escapeXml(item.overview || "No overview available.")}</p>
-<p><a href="${item.tmdbUrl}">View on The Movie Database (TMDB)</a></p>
+<p>${escapeXml(item.overview || "")}</p>
+<p><a href="${item.tmdbUrl}">TMDB entry</a></p>
       `.trim();
 
       return `

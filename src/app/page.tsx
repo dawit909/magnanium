@@ -5,14 +5,14 @@ import { TMDBPersonSearchResult, FormattedRelease } from "@/types/tmdb";
 import { Search, Copy, Check, ExternalLink, Key, X } from "lucide-react";
 
 const COUNTRIES = [
-  { code: "US", name: "United States (US)" },
-  { code: "GB", name: "United Kingdom (GB)" },
-  { code: "CA", name: "Canada (CA)" },
-  { code: "AU", name: "Australia (AU)" },
-  { code: "FR", name: "France (FR)" },
-  { code: "DE", name: "Germany (DE)" },
-  { code: "KR", name: "South Korea (KR)" },
-  { code: "JP", name: "Japan (JP)" },
+  { code: "US", name: "US" },
+  { code: "GB", name: "UK" },
+  { code: "CA", name: "CA" },
+  { code: "AU", name: "AU" },
+  { code: "FR", name: "FR" },
+  { code: "DE", name: "DE" },
+  { code: "KR", name: "KR" },
+  { code: "JP", name: "JP" },
 ];
 
 export default function HomePage() {
@@ -25,19 +25,16 @@ export default function HomePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<TMDBPersonSearchResult | null>(null);
 
-  // Filters
   const [roles, setRoles] = useState<string[]>(["director", "actor"]);
   const [types, setTypes] = useState<string[]>(["theatrical", "digital"]);
   const [country, setCountry] = useState("US");
   const [windowFilter, setWindowFilter] = useState<"upcoming" | "all">("all");
 
-  // Output
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
 
-  // Load API key from localStorage on mount
   useEffect(() => {
     setOrigin(window.location.origin);
     const saved = localStorage.getItem("tmdb_api_key");
@@ -50,7 +47,6 @@ export default function HomePage() {
     if (key.trim()) setNeedsApiKey(false);
   };
 
-  // Search logic
   useEffect(() => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -66,29 +62,23 @@ export default function HomePage() {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { headers });
         const data = await res.json();
         setSearchResults(data.results || []);
-        if (data.noApiKey && !apiKey) {
-          setNeedsApiKey(true);
-        } else {
-          setNeedsApiKey(false);
-        }
+        setNeedsApiKey(Boolean(data.noApiKey && !apiKey));
       } catch (err) {
         console.error("Search error:", err);
       } finally {
         setIsSearching(false);
       }
-    }, 250);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [query, apiKey]);
 
-  // Feed URL builder
   const feedUrl = selectedPerson
     ? `${origin}/api/feed/${selectedPerson.id}?roles=${roles.join(",")}&types=${types.join(",")}&country=${country}&window=${windowFilter}${
         apiKey ? `&api_key=${apiKey}` : ""
       }`
     : "";
 
-  // Load preview items
   useEffect(() => {
     if (!selectedPerson) {
       setPreviewReleases([]);
@@ -168,93 +158,75 @@ export default function HomePage() {
     if (!feedUrl) return;
     navigator.clipboard.writeText(feedUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), 1200);
   };
 
   return (
-    <div className="space-y-8">
-      {/* Top Bar: Title & optional API Key toggle */}
-      <div className="flex items-center justify-between border-b border-neutral-800 pb-5">
-        <div>
-          <h1 className="text-xl font-medium tracking-tight text-white">CineFeed</h1>
-          <p className="text-xs text-neutral-400 mt-0.5">RSS feeds for movie releases</p>
-        </div>
+    <div className="space-y-6 text-sm">
+      {/* Top Header */}
+      <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
+        <span className="font-mono text-sm text-neutral-300">movie-release-rss</span>
 
         <button
           onClick={() => setShowKeyInput(!showKeyInput)}
-          className="text-xs text-neutral-500 hover:text-neutral-300 flex items-center gap-1.5 transition-colors"
+          className="text-xs text-neutral-500 hover:text-neutral-300 flex items-center gap-1 font-mono transition-colors"
         >
-          <Key className="w-3.5 h-3.5" />
-          {apiKey ? "API Key Set" : "TMDB API Key"}
+          <Key className="w-3 h-3" />
+          {apiKey ? "key: set" : "set api key"}
         </button>
       </div>
 
-      {/* API Key prompt if not set or toggled */}
+      {/* API Key Form */}
       {(showKeyInput || needsApiKey) && (
-        <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-900/60 text-xs space-y-2">
-          <div className="flex items-center justify-between text-neutral-300 font-medium">
-            <span>The Movie Database (TMDB) API Key</span>
+        <div className="p-3 rounded-lg border border-neutral-800 bg-neutral-900/40 text-xs space-y-2">
+          <div className="flex items-center justify-between text-neutral-400">
+            <span>TMDB API key</span>
             {showKeyInput && (
-              <button onClick={() => setShowKeyInput(false)} className="text-neutral-500 hover:text-white">
+              <button onClick={() => setShowKeyInput(false)} className="text-neutral-500 hover:text-neutral-300">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
-          <p className="text-neutral-400 leading-relaxed">
-            Searching any actor or director requires a free TMDB API key. Add it to <code className="text-neutral-300">.env.local</code> as <code className="text-neutral-300">TMDB_API_KEY</code>, or paste it here:
-          </p>
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2">
             <input
               type="password"
               value={apiKey}
               onChange={(e) => saveApiKey(e.target.value)}
-              placeholder="Paste TMDB API Key (e.g. 8f4a...)"
-              className="flex-1 px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-700 text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-500"
+              placeholder="Paste key (or set TMDB_API_KEY in .env.local)"
+              className="flex-1 px-2.5 py-1.5 rounded bg-neutral-950 border border-neutral-800 text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-neutral-600 font-mono text-xs"
             />
             {apiKey && (
               <button
                 onClick={() => saveApiKey("")}
-                className="px-2.5 py-1.5 rounded-lg border border-neutral-700 text-neutral-400 hover:text-white"
+                className="px-2 py-1.5 rounded border border-neutral-800 text-neutral-400 hover:text-white"
               >
                 Clear
               </button>
             )}
           </div>
-          <p className="text-[11px] text-neutral-500">
-            Get one free in 1 minute at{" "}
-            <a
-              href="https://www.themoviedb.org/settings/api"
-              target="_blank"
-              rel="noreferrer"
-              className="text-neutral-400 underline hover:text-white"
-            >
-              themoviedb.org/settings/api
-            </a>
-          </p>
         </div>
       )}
 
       {/* Search Input */}
       {!selectedPerson ? (
-        <div className="relative">
+        <div className="space-y-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search an actor or director..."
+              placeholder="Search actor or director..."
               autoFocus
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-neutral-900 border border-neutral-800 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-600 transition-colors"
+              className="w-full pl-8 pr-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-200 placeholder-neutral-500 text-xs focus:outline-none focus:border-neutral-600"
             />
             {isSearching && (
-              <div className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-3.5 top-1/2 -translate-y-1/2" />
+              <div className="w-3 h-3 border border-neutral-400 border-t-transparent rounded-full animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
             )}
           </div>
 
-          {/* Autocomplete Results */}
           {searchResults.length > 0 && (
-            <div className="mt-2 rounded-xl border border-neutral-800 bg-neutral-900 overflow-hidden shadow-xl divide-y divide-neutral-800/60">
+            <div className="rounded-lg border border-neutral-800 bg-neutral-900 divide-y divide-neutral-800/50">
               {searchResults.map((person) => (
                 <button
                   key={person.id}
@@ -263,95 +235,83 @@ export default function HomePage() {
                     setQuery("");
                     setSearchResults([]);
                   }}
-                  className="w-full text-left px-4 py-2.5 flex items-center justify-between hover:bg-neutral-800/60 transition-colors"
+                  className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-neutral-800/50 text-xs"
                 >
-                  <span className="text-sm font-medium text-white">{person.name}</span>
-                  <span className="text-xs text-neutral-500">{person.known_for_department}</span>
+                  <span className="text-neutral-200">{person.name}</span>
+                  <span className="text-neutral-500">{person.known_for_department}</span>
                 </button>
               ))}
             </div>
           )}
 
           {query.trim().length > 1 && !isSearching && searchResults.length === 0 && (
-            <p className="text-xs text-neutral-500 mt-2 px-1">
-              No results found. {needsApiKey && "(TMDB API key required for full live search)"}
+            <p className="text-xs text-neutral-500">
+              No results. {needsApiKey && "API key needed for live search."}
             </p>
           )}
         </div>
       ) : (
-        /* Selected Artist & Feed Configuration */
-        <div className="space-y-6">
-          {/* Header */}
+        /* Selected Person View */
+        <div className="space-y-5">
           <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
             <div>
-              <h2 className="text-lg font-medium text-white">{selectedPerson.name}</h2>
-              <p className="text-xs text-neutral-500">{selectedPerson.known_for_department}</p>
+              <span className="text-neutral-200 font-medium">{selectedPerson.name}</span>
+              <span className="text-neutral-500 text-xs ml-2">({selectedPerson.known_for_department})</span>
             </div>
             <button
               onClick={() => setSelectedPerson(null)}
-              className="text-xs text-neutral-400 hover:text-white px-2.5 py-1 rounded-md border border-neutral-800 hover:border-neutral-700 transition-colors"
+              className="text-xs text-neutral-400 hover:text-white"
             >
               Change
             </button>
           </div>
 
-          {/* Simple Options */}
-          <div className="space-y-4 text-xs">
-            {/* Roles */}
-            <div className="flex items-center gap-3">
-              <span className="w-16 text-neutral-500">Role:</span>
-              <div className="flex items-center gap-2">
-                {[
-                  { id: "director", label: "Director" },
-                  { id: "actor", label: "Actor" },
-                  { id: "writer", label: "Writer" },
-                ].map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => toggleRole(r.id)}
-                    className={`px-3 py-1 rounded-lg border transition-colors ${
-                      roles.includes(r.id)
-                        ? "bg-neutral-200 text-neutral-900 border-neutral-200 font-medium"
-                        : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-700"
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
+          {/* Filters */}
+          <div className="space-y-2.5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-14 text-neutral-500">Role:</span>
+              {(["director", "actor", "writer"] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => toggleRole(r)}
+                  className={`px-2.5 py-1 rounded border transition-colors capitalize ${
+                    roles.includes(r)
+                      ? "bg-neutral-200 text-neutral-900 border-neutral-200"
+                      : "bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-700"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
             </div>
 
-            {/* Formats */}
-            <div className="flex items-center gap-3">
-              <span className="w-16 text-neutral-500">Format:</span>
-              <div className="flex items-center gap-2">
-                {[
-                  { id: "theatrical", label: "Cinema" },
-                  { id: "digital", label: "Streaming" },
-                  { id: "physical", label: "Physical" },
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => toggleType(t.id)}
-                    className={`px-3 py-1 rounded-lg border transition-colors ${
-                      types.includes(t.id)
-                        ? "bg-neutral-200 text-neutral-900 border-neutral-200 font-medium"
-                        : "bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-700"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="w-14 text-neutral-500">Format:</span>
+              {[
+                { id: "theatrical", label: "Cinema" },
+                { id: "digital", label: "Streaming" },
+                { id: "physical", label: "Physical" },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => toggleType(t.id)}
+                  className={`px-2.5 py-1 rounded border transition-colors ${
+                    types.includes(t.id)
+                      ? "bg-neutral-200 text-neutral-900 border-neutral-200"
+                      : "bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-700"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
 
-            {/* Region & Time */}
-            <div className="flex items-center gap-3">
-              <span className="w-16 text-neutral-500">Region:</span>
+            <div className="flex items-center gap-2">
+              <span className="w-14 text-neutral-500">Region:</span>
               <select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 focus:outline-none"
+                className="px-2 py-1 rounded bg-neutral-900 border border-neutral-800 text-neutral-300 text-xs focus:outline-none"
               >
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -363,7 +323,7 @@ export default function HomePage() {
               <select
                 value={windowFilter}
                 onChange={(e) => setWindowFilter(e.target.value as "upcoming" | "all")}
-                className="px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 focus:outline-none ml-2"
+                className="px-2 py-1 rounded bg-neutral-900 border border-neutral-800 text-neutral-300 text-xs focus:outline-none ml-1"
               >
                 <option value="all">Recent & Upcoming</option>
                 <option value="upcoming">Upcoming Only</option>
@@ -371,19 +331,19 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* RSS Feed URL Box */}
-          <div className="space-y-2 pt-2">
-            <span className="text-xs text-neutral-500">RSS Feed URL</span>
+          {/* RSS Feed Output */}
+          <div className="pt-2 space-y-1.5">
+            <div className="text-xs text-neutral-500">Feed URL</div>
             <div className="flex gap-2">
               <input
                 type="text"
                 readOnly
                 value={feedUrl}
-                className="flex-1 px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-800 text-xs font-mono text-neutral-300 select-all focus:outline-none"
+                className="flex-1 px-2.5 py-1.5 rounded bg-neutral-900 border border-neutral-800 text-xs font-mono text-neutral-300 select-all focus:outline-none"
               />
               <button
                 onClick={handleCopy}
-                className="px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-white text-neutral-900 font-medium text-xs flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 rounded bg-neutral-200 hover:bg-white text-neutral-900 text-xs font-medium flex items-center gap-1 transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? "Copied" : "Copy"}
@@ -392,32 +352,31 @@ export default function HomePage() {
                 href={feedUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white flex items-center justify-center transition-colors"
-                title="Open feed"
+                className="px-2.5 py-1.5 rounded border border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white flex items-center"
               >
-                <ExternalLink className="w-4 h-4" />
+                <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
           </div>
 
-          {/* Releases list preview */}
-          <div className="space-y-3 pt-4 border-t border-neutral-800/80">
+          {/* Release List */}
+          <div className="pt-4 border-t border-neutral-800/70 space-y-2">
             <div className="flex items-center justify-between text-xs text-neutral-500">
-              <span>Preview</span>
+              <span>Feed entries</span>
               {isLoadingPreview && <span>Loading...</span>}
             </div>
 
             {previewReleases.length === 0 ? (
-              <p className="text-xs text-neutral-500 py-3">No releases found for selected options.</p>
+              <p className="text-xs text-neutral-500 py-2">No entries found.</p>
             ) : (
               <div className="divide-y divide-neutral-900 border-t border-b border-neutral-900">
                 {previewReleases.map((item) => (
-                  <div key={item.id} className="py-2.5 flex items-center justify-between text-xs">
-                    <div className="truncate mr-4">
-                      <span className="text-neutral-200 font-medium">{item.movieTitle}</span>
-                      <span className="text-neutral-500 ml-2">({item.role})</span>
+                  <div key={item.id} className="py-2 flex items-center justify-between text-xs">
+                    <div className="truncate mr-3">
+                      <span className="text-neutral-200">{item.movieTitle}</span>
+                      <span className="text-neutral-500 ml-1.5">({item.role})</span>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0 text-neutral-400 font-mono">
+                    <div className="flex items-center gap-2 flex-shrink-0 text-neutral-400 font-mono text-[11px]">
                       <span>{item.releaseTypeLabel}</span>
                       <span>{item.releaseDate}</span>
                     </div>
