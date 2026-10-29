@@ -68,12 +68,17 @@ function renderMetadataLines(item: FormattedRelease): string {
   if (item.role) {
     lines.push(`<strong>Role:</strong> ${escapeXml(item.role)}`);
   }
-  if (item.releaseTypeLabel) {
-    lines.push(`<strong>Format:</strong> ${escapeXml(item.releaseTypeLabel)}`);
+  if (item.director) {
+    lines.push(`<strong>Director:</strong> ${escapeXml(item.director)}`);
   }
-  const formatNote = getInformativeNote(item.note, item.releaseTypeLabel);
-  if (formatNote) {
-    lines.push(`<strong>Format Note:</strong> ${escapeXml(formatNote)}`);
+  if (item.writer) {
+    lines.push(`<strong>Writer:</strong> ${escapeXml(item.writer)}`);
+  }
+  if (item.stars && item.stars.length > 0) {
+    lines.push(`<strong>Stars:</strong> ${item.stars.map(escapeXml).join(", ")}`);
+  }
+  if (item.runtime) {
+    lines.push(`<strong>Runtime:</strong> ${escapeXml(item.runtime)}`);
   }
   lines.push(`<strong>Release:</strong> ${item.releaseDate} (${escapeXml(item.country)})`);
   if (item.mediaType === "tv" && typeof item.episodeCount === "number" && item.episodeCount > 0) {
@@ -83,20 +88,15 @@ function renderMetadataLines(item: FormattedRelease): string {
       }`
     );
   }
-  if (item.runtime) {
-    lines.push(`<strong>Runtime:</strong> ${escapeXml(item.runtime)}`);
+  if (item.releaseTypeLabel) {
+    lines.push(`<strong>Format:</strong> ${escapeXml(item.releaseTypeLabel)}`);
+  }
+  const formatNote = getInformativeNote(item.note, item.releaseTypeLabel);
+  if (formatNote) {
+    lines.push(`<strong>Format Note:</strong> ${escapeXml(formatNote)}`);
   }
   if (item.language) {
     lines.push(`<strong>Language:</strong> ${escapeXml(item.language)}`);
-  }
-  if (item.director) {
-    lines.push(`<strong>Director:</strong> ${escapeXml(item.director)}`);
-  }
-  if (item.writer) {
-    lines.push(`<strong>Writer:</strong> ${escapeXml(item.writer)}`);
-  }
-  if (item.stars && item.stars.length > 0) {
-    lines.push(`<strong>Stars:</strong> ${item.stars.map(escapeXml).join(", ")}`);
   }
   return lines.join("<br/>");
 }

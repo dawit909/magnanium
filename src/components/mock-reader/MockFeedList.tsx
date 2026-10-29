@@ -85,7 +85,19 @@ export function MockFeedList({
                     isSelected ? "text-white/85" : "text-neutral-500 dark:text-neutral-400"
                   }`}
                 >
-                  Role: {item.role} Release: {item.release} Runtime: {item.runtime}...
+                  {[
+                    item.role && `Role: ${item.role}`,
+                    item.director && `Director: ${item.director}`,
+                    item.writer && `Writer: ${item.writer}`,
+                    item.stars && `Stars: ${item.stars}`,
+                    item.runtime && `Runtime: ${item.runtime}`,
+                    item.release && `Release: ${item.release}`,
+                    item.format && `Format: ${item.format}`,
+                    item.language && `Language: ${item.language}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  ...
                 </div>
                 <div
                   className={`flex items-center justify-between text-[10px] pt-0.5 ${

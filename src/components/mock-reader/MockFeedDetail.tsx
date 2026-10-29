@@ -79,40 +79,12 @@ export function MockFeedDetail({ activeItem, onArtistClick }: MockFeedDetailProp
 
         {/* Formatted Metadata Lines */}
         <div className="space-y-1 text-xs text-neutral-800 dark:text-neutral-200 font-sans">
-          <p>
-            <strong className="font-semibold text-neutral-950 dark:text-white">Role:</strong>{" "}
-            {activeItem.role}
-          </p>
-          {activeItem.format && (
+          {activeItem.role && (
             <p>
-              <strong className="font-semibold text-neutral-950 dark:text-white">Format:</strong>{" "}
-              {activeItem.format}
+              <strong className="font-semibold text-neutral-950 dark:text-white">Role:</strong>{" "}
+              {activeItem.role}
             </p>
           )}
-          {activeItem.formatNote && (
-            <p>
-              <strong className="font-semibold text-neutral-950 dark:text-white">Format Note:</strong>{" "}
-              {activeItem.formatNote}
-            </p>
-          )}
-          <p>
-            <strong className="font-semibold text-neutral-950 dark:text-white">Release:</strong>{" "}
-            {activeItem.release}
-          </p>
-          {typeof activeItem.episodes === "number" && activeItem.episodes > 0 && (
-            <p>
-              <strong className="font-semibold text-neutral-950 dark:text-white">Episodes:</strong>{" "}
-              {activeItem.episodes} {activeItem.episodes === 1 ? "episode" : "episodes"}
-            </p>
-          )}
-          <p>
-            <strong className="font-semibold text-neutral-950 dark:text-white">Runtime:</strong>{" "}
-            {activeItem.runtime}
-          </p>
-          <p>
-            <strong className="font-semibold text-neutral-950 dark:text-white">Language:</strong>{" "}
-            {activeItem.language}
-          </p>
           {activeItem.director && (
             <p>
               <strong className="font-semibold text-neutral-950 dark:text-white">Director:</strong>{" "}
@@ -129,6 +101,42 @@ export function MockFeedDetail({ activeItem, onArtistClick }: MockFeedDetailProp
             <p>
               <strong className="font-semibold text-neutral-950 dark:text-white">Stars:</strong>{" "}
               {activeItem.stars}
+            </p>
+          )}
+          {activeItem.runtime && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Runtime:</strong>{" "}
+              {activeItem.runtime}
+            </p>
+          )}
+          {activeItem.release && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Release:</strong>{" "}
+              {activeItem.release}
+            </p>
+          )}
+          {typeof activeItem.episodes === "number" && activeItem.episodes > 0 && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Episodes:</strong>{" "}
+              {activeItem.episodes} {activeItem.episodes === 1 ? "episode" : "episodes"}
+            </p>
+          )}
+          {activeItem.format && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Format:</strong>{" "}
+              {activeItem.format}
+            </p>
+          )}
+          {activeItem.formatNote && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Format Note:</strong>{" "}
+              {activeItem.formatNote}
+            </p>
+          )}
+          {activeItem.language && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Language:</strong>{" "}
+              {activeItem.language}
             </p>
           )}
         </div>
