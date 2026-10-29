@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { User, ExternalLink } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 
@@ -8,7 +8,7 @@ interface ArtistHeroProps {
   person: TMDBPersonSearchResult;
 }
 
-export default function ArtistHero({ person }: ArtistHeroProps) {
+const ArtistHero = memo(function ArtistHero({ person }: ArtistHeroProps) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
@@ -69,4 +69,6 @@ export default function ArtistHero({ person }: ArtistHeroProps) {
       </div>
     </div>
   );
-}
+});
+
+export default ArtistHero;

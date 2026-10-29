@@ -28,27 +28,33 @@ export function mapReleaseType(
   }
 }
 
+const SMALL_WORDS = new Set(["and", "or", "of", "in", "on", "at", "to", "for", "the", "a", "an", "vs"]);
+
+const KNOWN_NOTE_ACRONYMS: Record<string, string> = {
+  "4k": "4K",
+  "dvd": "DVD",
+  "blu-ray": "Blu-ray",
+  "bluray": "Blu-ray",
+  "uhd": "UHD",
+  "vod": "VOD",
+  "hbo": "HBO",
+  "imax": "IMAX",
+  "tv": "TV",
+};
+
 export function normalizeDistributorNote(note: string): string {
   const trimmed = note.trim();
   if (!trimmed) return "";
 
   // Normalize slash spacing: e.g. "4k/Blu-ray/DVD" -> "4k / Blu-ray / DVD"
-  let formatted = trimmed.replace(/\s*\/\s*/g, " / ");
+  const formatted = trimmed.replace(/\s*\/\s*/g, " / ");
 
-  const smallWords = new Set(["and", "or", "of", "in", "on", "at", "to", "for", "the", "a", "an", "vs"]);
-
-  formatted = formatted.replace(/\b([a-zA-Z0-9-]+)\b/g, (word, index) => {
+  const normalized = formatted.replace(/\b([a-zA-Z0-9-]+)\b/g, (word, index) => {
     const lower = word.toLowerCase();
 
-    // Exact acronyms and brand spellings
-    if (lower === "4k") return "4K";
-    if (lower === "dvd") return "DVD";
-    if (lower === "blu-ray" || lower === "bluray") return "Blu-ray";
-    if (lower === "uhd") return "UHD";
-    if (lower === "vod") return "VOD";
-    if (lower === "hbo") return "HBO";
-    if (lower === "imax") return "IMAX";
-    if (lower === "tv") return "TV";
+    // Fast-path known acronyms and brand spellings
+    const acronym = KNOWN_NOTE_ACRONYMS[lower];
+    if (acronym) return acronym;
 
     // If word is all-caps acronym with length >= 2 (e.g. NYC, LA, SCAD, GEMS, BFI, USA, UK), preserve as-is
     if (word === word.toUpperCase() && word.length >= 2) {
@@ -56,7 +62,7 @@ export function normalizeDistributorNote(note: string): string {
     }
 
     // Small words stay lowercase unless at the very beginning of the string
-    if (index > 0 && smallWords.has(lower)) {
+    if (index > 0 && SMALL_WORDS.has(lower)) {
       return lower;
     }
 
@@ -65,7 +71,7 @@ export function normalizeDistributorNote(note: string): string {
   });
 
   // Ensure first character of entire note is capitalized
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 export function isDateInWindow(
@@ -394,12 +400,10 @@ export function extractTvCredits(
   };
 }
 
+const SHORT_FILM_TITLE_REGEX = /\((?:short|short film)\)$|\bshort film\b|^short\s*:/i;
+
 function isShortFilmTitle(title: string): boolean {
-  return (
-    /\((short|short film)\)$/i.test(title) ||
-    /\bshort film\b/i.test(title) ||
-    /^short\s*:/i.test(title)
-  );
+  return SHORT_FILM_TITLE_REGEX.test(title);
 }
 
 function createReleaseItem(params: {

@@ -118,19 +118,22 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     setExcludeUncreditedState(defaults.excludeUncredited);
   }, []);
 
-  const isCustomized = useMemo(() => {
-    const defaultCountry =
+  const defaultCountryRef = useRef<string | null>(null);
+  if (!defaultCountryRef.current) {
+    defaultCountryRef.current =
       typeof window !== "undefined"
         ? detectBrowserCountry() || DEFAULT_FEED_OPTIONS.country
         : DEFAULT_FEED_OPTIONS.country;
+  }
 
+  const isCustomized = useMemo(() => {
     const rolesMatch =
       roles.length === DEFAULT_FEED_OPTIONS.roles.length &&
       roles.every((r) => DEFAULT_FEED_OPTIONS.roles.includes(r));
     const typesMatch =
       types.length === DEFAULT_FEED_OPTIONS.types.length &&
       types.every((t) => DEFAULT_FEED_OPTIONS.types.includes(t));
-    const countryMatch = country === defaultCountry;
+    const countryMatch = country === defaultCountryRef.current;
     const alertMatch = alert === DEFAULT_FEED_OPTIONS.alert;
     const shortsMatch = excludeShorts === DEFAULT_FEED_OPTIONS.excludeShorts;
     const reReleasesMatch = excludeReReleases === DEFAULT_FEED_OPTIONS.excludeReReleases;
@@ -170,7 +173,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       feedUrl: feed,
       feedProtocolUrl: feedProtocol,
     };
-  }, [selectedPerson, origin, media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
+  }, [selectedPerson?.id, origin, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
   // Fetch artist's raw releases for the selected country (1 network request per artist/country)
   useEffect(() => {
@@ -242,7 +245,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       excludeUncredited,
     });
   }, [
-    selectedPerson,
+    selectedPerson?.id,
     rawReleases,
     roles,
     types,

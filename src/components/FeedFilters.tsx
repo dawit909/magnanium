@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, memo } from "react";
 import { Info, Settings2, ChevronRight, RotateCcw } from "lucide-react";
 import { getCountryOptions } from "@/lib/constants";
 
@@ -109,7 +109,7 @@ const ALERT_OPTIONS = [
   { id: "week_before", label: "Week Before Release" },
 ];
 
-export default function FeedFilters({
+const FeedFilters = memo(function FeedFilters({
   roles,
   onToggleRole,
   types,
@@ -129,7 +129,7 @@ export default function FeedFilters({
 }: FeedFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const countryOptions = getCountryOptions(country);
+  const countryOptions = useMemo(() => getCountryOptions(country), [country]);
 
   return (
     <div className="space-y-3 text-xs">
@@ -344,4 +344,6 @@ export default function FeedFilters({
       )}
     </div>
   );
-}
+});
+
+export default FeedFilters;

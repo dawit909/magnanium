@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Rss, Copy, Check, ExternalLink } from "lucide-react";
 
 interface FeedUrlCardProps {
@@ -8,7 +8,10 @@ interface FeedUrlCardProps {
   feedProtocolUrl?: string;
 }
 
-export default function FeedUrlCard({ feedUrl, feedProtocolUrl }: FeedUrlCardProps) {
+const FeedUrlCard = memo(function FeedUrlCard({
+  feedUrl,
+  feedProtocolUrl,
+}: FeedUrlCardProps) {
   const [copied, setCopied] = useState(false);
 
   const resolvedFeedProtocol =
@@ -63,4 +66,6 @@ export default function FeedUrlCard({ feedUrl, feedProtocolUrl }: FeedUrlCardPro
       </div>
     </div>
   );
-}
+});
+
+export default FeedUrlCard;

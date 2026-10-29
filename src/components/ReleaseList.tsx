@@ -151,7 +151,11 @@ const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: Formatte
   );
 });
 
-export default function ReleaseList({ releases, isLoading, totalCount }: ReleaseListProps) {
+const ReleaseList = memo(function ReleaseList({
+  releases,
+  isLoading,
+  totalCount,
+}: ReleaseListProps) {
   const isFiltered = typeof totalCount === "number" && totalCount !== releases.length;
 
   return (
@@ -207,4 +211,6 @@ export default function ReleaseList({ releases, isLoading, totalCount }: Release
       )}
     </div>
   );
-}
+});
+
+export default ReleaseList;
