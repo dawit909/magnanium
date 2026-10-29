@@ -159,7 +159,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
         });
 
         const queryString = params.toString();
-        const cacheKey = `${selectedPerson.id}?${queryString}`;
+        const cacheKey = `v2:${selectedPerson.id}?${queryString}`;
         const cached = previewCache.get(cacheKey);
 
         if (cached) {
@@ -170,6 +170,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
 
         const res = await fetch(`/api/feed/${selectedPerson.id}?${queryString}`, {
           signal: controller.signal,
+          cache: "no-store",
         });
 
         if (!res.ok) return;
@@ -221,7 +222,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
         });
 
         const queryString = params.toString();
-        const cacheKey = `${selectedPerson.id}?${queryString}`;
+        const cacheKey = `v2:${selectedPerson.id}?${queryString}`;
         const cached = previewCache.get(cacheKey);
 
         if (cached) {
@@ -231,6 +232,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
 
         const res = await fetch(`/api/feed/${selectedPerson.id}?${queryString}`, {
           signal: controller.signal,
+          cache: "no-store",
         });
 
         if (!res.ok) return;

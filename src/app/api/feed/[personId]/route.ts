@@ -100,9 +100,9 @@ export async function GET(
     return buildCachedResponse({
       content: payload,
       contentType,
-      maxAge: 3600,
-      sMaxAge: 43200,
-      staleWhileRevalidate: 86400,
+      maxAge: isJson ? 0 : 3600,
+      sMaxAge: isJson ? 0 : 43200,
+      staleWhileRevalidate: isJson ? 0 : 86400,
       etagPayload: payload,
       ifNoneMatch: request.headers.get("if-none-match"),
       rateLimitHeaders: rateGuard.headers,
