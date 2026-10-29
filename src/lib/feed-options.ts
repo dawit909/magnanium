@@ -41,23 +41,17 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       : inMemoryOptions.media;
 
   let validRoles = inMemoryOptions.roles;
-  if (Array.isArray(parsed.roles) && parsed.roles.length > 0) {
-    const filtered = parsed.roles.filter((r: string) =>
+  if (Array.isArray(parsed.roles)) {
+    validRoles = parsed.roles.filter((r: string) =>
       ["actor", "director", "writer", "producer", "crew", "all"].includes(r)
     );
-    if (filtered.length > 0) {
-      validRoles = filtered;
-    }
   }
 
   let validTypes = inMemoryOptions.types;
-  if (Array.isArray(parsed.types) && parsed.types.length > 0) {
-    const filtered = parsed.types.filter((t: string) =>
+  if (Array.isArray(parsed.types)) {
+    validTypes = parsed.types.filter((t: string) =>
       ["cinema", "home", "tv", "premiere", "earliest"].includes(t.toLowerCase())
     );
-    if (filtered.length > 0) {
-      validTypes = filtered;
-    }
   }
 
   const validCountry =

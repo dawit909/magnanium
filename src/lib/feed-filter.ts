@@ -13,6 +13,7 @@ export interface ClientFilterOptions {
  * Check if a release's combined role matches active roles in the filter.
  */
 export function matchesRoleFilter(roleStr: string, activeRoles: string[]): boolean {
+  if (activeRoles.length === 0) return false;
   if (activeRoles.includes("all") || activeRoles.length >= 5) return true;
   if (!roleStr) return false;
 
@@ -94,12 +95,18 @@ export function filterReleases(
     list = list.filter((item) => !item.isUncredited);
   }
 
-  // 2. Roles
+  // 2. Roles: If nothing selected, display nothing
+  if (roles.length === 0) {
+    return [];
+  }
   if (!roles.includes("all") && roles.length < 5) {
     list = list.filter((item) => matchesRoleFilter(item.role, roles));
   }
 
-  // 3. Format / Channel
+  // 3. Format / Channel: If nothing selected, display nothing
+  if (types.length === 0) {
+    return [];
+  }
   const isEarliestOnly = types.includes("earliest");
   if (isEarliestOnly) {
     // Group by project (mediaType + movieId) and keep the earliest debut

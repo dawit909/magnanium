@@ -70,22 +70,20 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   }, []);
 
   const toggleRole = useCallback((r: string) => {
-    setRoles((prev) => {
-      const filtered = prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r];
-      return filtered.length > 0 ? filtered : [...DEFAULT_FEED_OPTIONS.roles];
-    });
+    setRoles((prev) =>
+      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
+    );
   }, []);
 
   const toggleType = useCallback((t: string) => {
     setTypes((prev) => {
       if (t === "earliest") {
-        return prev.includes("earliest") ? [...DEFAULT_FEED_OPTIONS.types] : ["earliest"];
+        return prev.includes("earliest") ? [] : ["earliest"];
       }
       if (prev.includes("earliest")) {
         return [t];
       }
-      const filtered = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
-      return filtered.length > 0 ? filtered : [...DEFAULT_FEED_OPTIONS.types];
+      return prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
     });
   }, []);
 
