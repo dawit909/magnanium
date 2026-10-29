@@ -68,6 +68,9 @@ function renderMetadataLines(item: FormattedRelease): string {
     lines.push(`<strong>Role:</strong> ${escapeXml(item.role)}`);
   }
   lines.push(`<strong>Release:</strong> ${item.releaseDate} (${escapeXml(item.country)})`);
+  if (item.note) {
+    lines.push(`<strong>Note:</strong> ${escapeXml(item.note)}`);
+  }
   if (item.runtime) {
     lines.push(`<strong>Runtime:</strong> ${escapeXml(item.runtime)}`);
   }

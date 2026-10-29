@@ -10,12 +10,53 @@ interface ReleaseListProps {
   totalCount?: number | null;
 }
 
+const GENERIC_NOTE_TERMS = new Set([
+  "theatrical",
+  "theatrical release",
+  "cinema",
+  "cinema release",
+  "wide",
+  "wide release",
+  "limited",
+  "limited release",
+  "premiere",
+  "festival",
+  "digital",
+  "digital release",
+  "physical",
+  "physical release",
+]);
+
+function getInformativeNote(note?: string | null, releaseTypeLabel?: string): string | null {
+  if (!note) return null;
+  const clean = note.trim();
+  if (!clean) return null;
+
+  const lower = clean.toLowerCase();
+  if (GENERIC_NOTE_TERMS.has(lower)) {
+    return null;
+  }
+
+  if (releaseTypeLabel && lower === releaseTypeLabel.toLowerCase()) {
+    return null;
+  }
+
+  return clean;
+}
+
 const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: FormattedRelease }) {
   const posterSrc = item.posterPath
     ? item.posterPath.startsWith("http")
       ? item.posterPath
       : `https://image.tmdb.org/t/p/w185${item.posterPath}`
     : null;
+
+  const informativeNote = getInformativeNote(item.note, item.releaseTypeLabel);
+  const streamProviders = item.watchProviders?.stream?.slice(0, 3);
+  const rentProviders = item.watchProviders?.rent?.slice(0, 2);
+  const hasStream = Boolean(streamProviders && streamProviders.length > 0);
+  const hasRent = Boolean(!hasStream && rentProviders && rentProviders.length > 0);
+  const hasWatchProviders = hasStream || hasRent;
 
   return (
     <div className="py-3 flex items-center justify-between gap-3 group">
@@ -89,21 +130,38 @@ const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: Formatte
             </div>
           )}
 
-          {/* Streaming & Watch Providers Badge */}
-          {item.watchProviders?.stream && item.watchProviders.stream.length > 0 ? (
-            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
-              <span className="truncate">
-                Stream on {item.watchProviders.stream.slice(0, 3).join(", ")}
-              </span>
+          {/* Sub-line: Rollout/Festival/Edition Note & Watch Providers */}
+          {(informativeNote || hasWatchProviders) && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] leading-tight min-w-0">
+              {informativeNote && (
+                <span
+                  className="text-neutral-500 dark:text-neutral-400 truncate max-w-full font-normal"
+                  title={informativeNote}
+                >
+                  {informativeNote}
+                </span>
+              )}
+              {informativeNote && hasWatchProviders && (
+                <span className="text-neutral-300 dark:text-neutral-700 select-none flex-shrink-0">
+                  ·
+                </span>
+              )}
+              {hasStream ? (
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium truncate flex-shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                  <span className="truncate">
+                    Stream on {streamProviders!.join(", ")}
+                  </span>
+                </div>
+              ) : hasRent ? (
+                <div className="text-neutral-500 dark:text-neutral-400 truncate flex-shrink-0">
+                  <span className="truncate">
+                    Rent on {rentProviders!.join(", ")}
+                  </span>
+                </div>
+              ) : null}
             </div>
-          ) : item.watchProviders?.rent && item.watchProviders.rent.length > 0 ? (
-            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
-              <span className="truncate">
-                Rent on {item.watchProviders.rent.slice(0, 2).join(", ")}
-              </span>
-            </div>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -111,7 +169,7 @@ const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: Formatte
       <div className="text-right flex-shrink-0 space-y-1">
         <span
           className="inline-block max-w-[260px] sm:max-w-[340px] truncate align-middle px-2 py-0.5 rounded-full text-[10px] font-medium border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 shadow-sm"
-          title={item.releaseTypeLabel}
+          title={informativeNote ? `${item.releaseTypeLabel} (${informativeNote})` : item.releaseTypeLabel}
         >
           {item.releaseTypeLabel}
         </span>

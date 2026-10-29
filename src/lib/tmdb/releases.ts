@@ -8,66 +8,19 @@ import { tmdbFetch } from "./client";
 
 export function mapReleaseType(
   type: number,
-  note?: string
+  _note?: string
 ): { category: "cinema" | "home"; label: string } | null {
-  const cleanNote = note ? note.trim() : "";
   switch (type) {
-    case 2: {
-      if (!cleanNote) {
-        return { category: "cinema", label: "Cinema (Limited)" };
-      }
-      const noteLabel = /limited/i.test(cleanNote)
-        ? cleanNote
-        : `Limited - ${cleanNote}`;
-      return { category: "cinema", label: `Cinema (${noteLabel})` };
-    }
-    case 3: {
-      if (!cleanNote) {
-        return { category: "cinema", label: "Cinema (Wide)" };
-      }
-      const isRedundant =
-        cleanNote.toLowerCase() === "theatrical" ||
-        cleanNote.toLowerCase() === "theatrical release" ||
-        cleanNote.toLowerCase() === "cinema" ||
-        cleanNote.toLowerCase() === "cinema release";
-      if (isRedundant) {
-        return { category: "cinema", label: "Cinema (Wide)" };
-      }
-      const noteLabel = /wide/i.test(cleanNote)
-        ? cleanNote
-        : `Wide - ${cleanNote}`;
-      return { category: "cinema", label: `Cinema (${noteLabel})` };
-    }
-    case 4: {
-      const isRedundant =
-        !cleanNote ||
-        cleanNote.toLowerCase() === "digital" ||
-        cleanNote.toLowerCase() === "digital release";
-      return {
-        category: "home",
-        label: isRedundant ? "Digital" : `Digital (${cleanNote})`,
-      };
-    }
-    case 5: {
-      const isRedundant =
-        !cleanNote ||
-        cleanNote.toLowerCase() === "physical" ||
-        cleanNote.toLowerCase() === "physical release";
-      return {
-        category: "home",
-        label: isRedundant ? "Physical" : `Physical (${cleanNote})`,
-      };
-    }
-    case 1: {
-      const isRedundant =
-        !cleanNote ||
-        cleanNote.toLowerCase() === "premiere" ||
-        cleanNote.toLowerCase() === "festival";
-      return {
-        category: "cinema",
-        label: isRedundant ? "Premiere" : `Premiere (${cleanNote})`,
-      };
-    }
+    case 2:
+      return { category: "cinema", label: "Cinema (Limited)" };
+    case 3:
+      return { category: "cinema", label: "Cinema (Wide)" };
+    case 1:
+      return { category: "cinema", label: "Premiere" };
+    case 4:
+      return { category: "home", label: "Digital" };
+    case 5:
+      return { category: "home", label: "Physical" };
     default:
       // Excludes cable/TV rebroadcast (type 6) and unrecognized types
       return null;
