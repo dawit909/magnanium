@@ -48,8 +48,6 @@ export default function FeedApp({
   } = useSearch(handleSelectPerson);
 
   const {
-    media,
-    toggleMedia,
     roles,
     toggleRole,
     types,

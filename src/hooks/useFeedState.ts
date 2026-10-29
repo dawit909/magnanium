@@ -17,7 +17,6 @@ const rawReleasesCache = new BoundedMap<string, FormattedRelease[]>(120);
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   // Read saved feed options synchronously on client initialization to eliminate first-click lag/overwrite
-  const [media, setMedia] = useState<string[]>(() => getSavedFeedOptions().media);
   const [roles, setRoles] = useState<string[]>(() => getSavedFeedOptions().roles);
   const [types, setTypes] = useState<string[]>(() => getSavedFeedOptions().types);
   const [country, setCountryState] = useState<string>(() => getSavedFeedOptions().country);
@@ -49,7 +48,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     }
 
     saveAllFeedOptions({
-      media,
+      media: DEFAULT_FEED_OPTIONS.media,
       roles,
       types,
       country,
@@ -58,16 +57,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       excludeReReleases,
       excludeUncredited,
     });
-  }, [media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
-
-  const toggleMedia = useCallback((m: string) => {
-    setMedia((prev) => {
-      if (prev.includes(m)) {
-        return prev.length > 1 ? prev.filter((x) => x !== m) : prev;
-      }
-      return [...prev, m];
-    });
-  }, []);
+  }, [roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
   const toggleRole = useCallback((r: string) => {
     setRoles((prev) =>
@@ -262,8 +252,6 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   }, [selectedPerson, rawReleases]);
 
   return {
-    media,
-    toggleMedia,
     roles,
     toggleRole,
     types,

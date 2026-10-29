@@ -1,11 +1,13 @@
 import {
   FormattedRelease,
   ReleaseTypeCategory,
+  AlertTimingWindow,
   TMDBCreditItem,
   TMDBReleaseDatesResponse,
   TvDetails,
 } from "@/types/tmdb";
 import { tmdbFetch } from "./client";
+import { compareReleasesAscending } from "../feed-filter";
 
 export function mapReleaseType(
   type: number,
@@ -113,7 +115,7 @@ export function getInformativeNote(
 
 export function isDateInWindow(
   dateStr: string,
-  alert: "announced" | "month_before" | "week_before",
+  alert: AlertTimingWindow,
   window: "upcoming" | "all",
   nowStr: string,
   oneYearAgoStr: string,
@@ -188,7 +190,7 @@ export function isRealEarliestInWindow(
 export interface ReleaseExtractionContext {
   country: string;
   window: "upcoming" | "all";
-  alert: "announced" | "month_before" | "week_before";
+  alert: AlertTimingWindow;
   excludeShorts: boolean;
   excludeReReleases: boolean;
   normalizedTypes: string[];
@@ -658,14 +660,7 @@ export async function extractMovieReleases(
   }
 
   // Sort chronologically (earliest first). On tie, prefer theatrical/cinema over digital/physical.
-  allReleases.sort((a, b) => {
-    const cmp = a.releaseDate.localeCompare(b.releaseDate);
-    if (cmp !== 0) return cmp;
-    if (a.releaseType !== b.releaseType) {
-      return a.releaseType === "cinema" ? -1 : 1;
-    }
-    return a.id.localeCompare(b.id);
-  });
+  allReleases.sort(compareReleasesAscending);
 
   if (ctx.isEarliestOnly) {
     const earliest = allReleases[0];

@@ -1,11 +1,12 @@
 import { COUNTRIES, detectBrowserCountry } from "./constants";
+import { AlertTimingWindow } from "@/types/tmdb";
 
 export interface FeedOptionsSettings {
   media: string[];
   roles: string[];
   types: string[];
   country: string;
-  alert: "announced" | "month_before" | "week_before";
+  alert: AlertTimingWindow;
   excludeShorts: boolean;
   excludeReReleases: boolean;
   excludeUncredited: boolean;
@@ -115,27 +116,6 @@ export function getSavedFeedOptions(): FeedOptionsSettings {
       }
     } catch {}
   }
-  return inMemoryOptions;
-}
-
-/**
- * Persist an updated option value to in-memory cache and localStorage.
- */
-export function saveFeedOption<K extends keyof FeedOptionsSettings>(
-  key: K,
-  value: FeedOptionsSettings[K]
-): FeedOptionsSettings {
-  inMemoryOptions = {
-    ...inMemoryOptions,
-    [key]: value,
-  };
-
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryOptions));
-    } catch {}
-  }
-
   return inMemoryOptions;
 }
 

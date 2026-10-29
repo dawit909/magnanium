@@ -124,6 +124,8 @@ export interface TvDetails {
 
 export type ReleaseTypeCategory = "cinema" | "home" | "tv" | "premiere" | "earliest";
 
+export type AlertTimingWindow = "announced" | "month_before" | "week_before";
+
 export interface WatchProvidersInfo {
   link?: string;
   stream?: string[];
@@ -165,7 +167,7 @@ export interface FeedFilterOptions {
   types?: string[]; // "cinema", "home", "earliest"
   country?: string;
   window?: "upcoming" | "all";
-  alert?: "announced" | "month_before" | "week_before";
+  alert?: AlertTimingWindow;
   excludeShorts?: boolean;
   excludeReReleases?: boolean;
   excludeUncredited?: boolean;

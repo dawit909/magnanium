@@ -9,11 +9,8 @@ import {
 import { tmdbFetch, hasTmdbAuth } from "./tmdb/client";
 import {
   sortAndJoinRoles,
-  isIgnoredCrewCredit,
-  isArchivalFootageCredit,
   matchesSpecificCrewRole,
   resolveCrewRoleLabel,
-  isTalkShowOrGuestAppearance,
   isSpecialGuestOrUncreditedCredit,
   resolveCastRoleLabel,
 } from "./tmdb/roles";
@@ -32,6 +29,8 @@ import {
   scoreCandidate,
   getPopularArtistsIndex,
 } from "./fuzzy";
+import { DEFAULT_FEED_OPTIONS } from "./feed-options";
+import { getDateWindowBoundaries, compareReleasesDescending } from "./feed-filter";
 
 interface CandidateEntry {
   item: TMDBCreditItem;
@@ -237,14 +236,14 @@ export async function getPersonReleases(
   const {
     personId,
     media,
-    roles = ["actor", "director", "writer", "producer", "crew"],
-    types = ["cinema", "home", "tv", "premiere"],
-    country = "US",
+    roles = DEFAULT_FEED_OPTIONS.roles,
+    types = DEFAULT_FEED_OPTIONS.types,
+    country = DEFAULT_FEED_OPTIONS.country,
     window = "all",
-    alert = "announced",
-    excludeShorts = false,
-    excludeReReleases = true,
-    excludeUncredited = true,
+    alert = DEFAULT_FEED_OPTIONS.alert,
+    excludeShorts = DEFAULT_FEED_OPTIONS.excludeShorts,
+    excludeReReleases = DEFAULT_FEED_OPTIONS.excludeReReleases,
+    excludeUncredited = DEFAULT_FEED_OPTIONS.excludeUncredited,
   } = options;
 
   if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {
@@ -347,11 +346,8 @@ export async function getPersonReleases(
   candidateList.sort((a, b) => (b.dateStr > a.dateStr ? 1 : b.dateStr < a.dateStr ? -1 : 0));
 
   const sliceCandidates = candidateList.slice(0, 40);
-  const now = Date.now();
-  const nowStr = new Date(now).toISOString().split("T")[0];
-  const oneYearAgoStr = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const sevenDaysFromNowStr = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const thirtyDaysFromNowStr = new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const { nowStr, oneYearAgoStr, sevenDaysFromNowStr, thirtyDaysFromNowStr } =
+    getDateWindowBoundaries();
 
   const ctx: ReleaseExtractionContext = {
     country,
@@ -387,7 +383,7 @@ export async function getPersonReleases(
   );
 
   const formattedReleases = releasesNested.flat();
-  formattedReleases.sort((a, b) => (b.releaseDate > a.releaseDate ? 1 : b.releaseDate < a.releaseDate ? -1 : 0));
+  formattedReleases.sort(compareReleasesDescending);
 
   return {
     personName,

@@ -1,18 +1,56 @@
-import { FormattedRelease } from "@/types/tmdb";
+import { FormattedRelease, AlertTimingWindow } from "@/types/tmdb";
+import { ROLE_REGEX } from "./tmdb/roles";
 
 export interface ClientFilterOptions {
   roles: string[];
   types: string[];
-  alert: "announced" | "month_before" | "week_before";
+  alert: AlertTimingWindow;
   excludeShorts: boolean;
   excludeReReleases: boolean;
   excludeUncredited: boolean;
 }
 
-const DIRECTOR_REGEX = /director/i;
-const WRITER_REGEX = /writer|screenplay|creator|teleplay|story/i;
-const PRODUCER_REGEX = /producer/i;
-const ACTOR_REGEX = /actor/i;
+export interface DateWindowBoundaries {
+  nowStr: string;
+  oneYearAgoStr: string;
+  sevenDaysFromNowStr: string;
+  thirtyDaysFromNowStr: string;
+}
+
+/**
+ * Precomputes ISO 8601 date boundary strings once to eliminate repeated Date allocations.
+ */
+export function getDateWindowBoundaries(nowMs: number = Date.now()): DateWindowBoundaries {
+  return {
+    nowStr: new Date(nowMs).toISOString().split("T")[0],
+    oneYearAgoStr: new Date(nowMs - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    sevenDaysFromNowStr: new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    thirtyDaysFromNowStr: new Date(nowMs + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+  };
+}
+
+/**
+ * Fast ISO 8601 release date sorting (direct byte/string comparison, ~10x faster than localeCompare).
+ */
+export function compareReleasesDescending(a: FormattedRelease, b: FormattedRelease): number {
+  if (b.releaseDate !== a.releaseDate) {
+    return b.releaseDate > a.releaseDate ? 1 : -1;
+  }
+  if (a.releaseType !== b.releaseType) {
+    return a.releaseType === "cinema" ? -1 : 1;
+  }
+  return a.id > b.id ? 1 : a.id < b.id ? -1 : 0;
+}
+
+export function compareReleasesAscending(a: FormattedRelease, b: FormattedRelease): number {
+  if (a.releaseDate !== b.releaseDate) {
+    return a.releaseDate > b.releaseDate ? 1 : -1;
+  }
+  if (a.releaseType !== b.releaseType) {
+    return a.releaseType === "cinema" ? -1 : 1;
+  }
+  return a.id > b.id ? 1 : a.id < b.id ? -1 : 0;
+}
 
 /**
  * Check if a release's combined role matches active roles with zero unnecessary allocations.
@@ -27,28 +65,28 @@ export function matchesRoleFilter(
 ): boolean {
   if (!roleStr) return false;
 
-  if (hasDirector && DIRECTOR_REGEX.test(roleStr)) return true;
-  if (hasWriter && WRITER_REGEX.test(roleStr)) return true;
-  if (hasProducer && PRODUCER_REGEX.test(roleStr)) return true;
-  if (hasActor && ACTOR_REGEX.test(roleStr)) return true;
+  if (hasDirector && ROLE_REGEX.director.test(roleStr)) return true;
+  if (hasWriter && ROLE_REGEX.writer.test(roleStr)) return true;
+  if (hasProducer && ROLE_REGEX.producer.test(roleStr)) return true;
+  if (hasActor && ROLE_REGEX.actor.test(roleStr)) return true;
 
   if (hasCrew) {
     if (!roleStr.includes(",")) {
       return (
-        !DIRECTOR_REGEX.test(roleStr) &&
-        !WRITER_REGEX.test(roleStr) &&
-        !PRODUCER_REGEX.test(roleStr) &&
-        !ACTOR_REGEX.test(roleStr)
+        !ROLE_REGEX.director.test(roleStr) &&
+        !ROLE_REGEX.writer.test(roleStr) &&
+        !ROLE_REGEX.producer.test(roleStr) &&
+        !ROLE_REGEX.actor.test(roleStr)
       );
     }
     const parts = roleStr.split(",");
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
       if (
-        !DIRECTOR_REGEX.test(p) &&
-        !WRITER_REGEX.test(p) &&
-        !PRODUCER_REGEX.test(p) &&
-        !ACTOR_REGEX.test(p)
+        !ROLE_REGEX.director.test(p) &&
+        !ROLE_REGEX.writer.test(p) &&
+        !ROLE_REGEX.producer.test(p) &&
+        !ROLE_REGEX.actor.test(p)
       ) {
         return true;
       }
@@ -56,19 +94,6 @@ export function matchesRoleFilter(
   }
 
   return false;
-}
-
-/**
- * Fast ISO 8601 release date sorting (direct character comparison, 10x faster than localeCompare).
- */
-function compareReleasesChronological(a: FormattedRelease, b: FormattedRelease): number {
-  if (b.releaseDate !== a.releaseDate) {
-    return b.releaseDate > a.releaseDate ? 1 : -1;
-  }
-  if (a.releaseType !== b.releaseType) {
-    return a.releaseType === "cinema" ? -1 : 1;
-  }
-  return a.id > b.id ? 1 : a.id < b.id ? -1 : 0;
 }
 
 /**
@@ -103,10 +128,8 @@ export function filterReleases(
   const hasCrew = roles.includes("crew");
 
   // Precompute alert window date boundaries once outside the loop (0 Date allocations in loop)
-  const now = Date.now();
-  const oneYearAgoStr = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const sevenDaysFromNowStr = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const thirtyDaysFromNowStr = new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const boundaries = getDateWindowBoundaries();
+  const { oneYearAgoStr, sevenDaysFromNowStr, thirtyDaysFromNowStr } = boundaries;
 
   const isEarliestOnly = types.includes("earliest");
   const typeSet = isEarliestOnly ? null : new Set(types);
@@ -172,11 +195,11 @@ export function filterReleases(
         it.releaseTypeLabel = `${it.releaseTypeLabel} (Earliest)`;
       }
     }
-    earliestList.sort(compareReleasesChronological);
+    earliestList.sort(compareReleasesDescending);
     return earliestList;
   }
 
   // 6. Chronological sort
-  result.sort(compareReleasesChronological);
+  result.sort(compareReleasesDescending);
   return result;
 }

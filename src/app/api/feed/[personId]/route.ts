@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPersonReleases } from "@/lib/tmdb";
 import { generateRssFeed } from "@/lib/rss";
-import { ReleaseTypeCategory, FeedFilterOptions } from "@/types/tmdb";
+import { ReleaseTypeCategory, FeedFilterOptions, AlertTimingWindow } from "@/types/tmdb";
+import { DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
 import {
   guardRateLimit,
   validatePersonId,
@@ -39,11 +40,11 @@ export async function GET(
 
     const isRaw = searchParams.get("raw") === "true";
     const mediaParam = searchParams.get("media");
-    const rolesParam = searchParams.get("roles") || "actor,director,writer,producer,crew";
-    const typesParam = searchParams.get("types") || "cinema,home,tv,premiere";
-    const country = searchParams.get("country") || "US";
+    const rolesParam = searchParams.get("roles") || DEFAULT_FEED_OPTIONS.roles.join(",");
+    const typesParam = searchParams.get("types") || DEFAULT_FEED_OPTIONS.types.join(",");
+    const country = searchParams.get("country") || DEFAULT_FEED_OPTIONS.country;
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
-    const alert = (searchParams.get("alert") as "announced" | "month_before" | "week_before") || "announced";
+    const alert = (searchParams.get("alert") as AlertTimingWindow) || DEFAULT_FEED_OPTIONS.alert;
     const excludeShorts = searchParams.get("exclude_shorts") === "true";
     const excludeReReleases = searchParams.get("exclude_rereleases") !== "false";
     const excludeUncredited =
@@ -56,16 +57,16 @@ export async function GET(
       : undefined;
     const roles = searchParams.has("roles")
       ? (rolesParam ? rolesParam.split(",").map((r) => r.trim().toLowerCase()).filter(Boolean) : [])
-      : ["actor", "director", "writer", "producer", "crew"];
+      : DEFAULT_FEED_OPTIONS.roles;
     const types = searchParams.has("types")
       ? (typesParam ? (typesParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean) as ReleaseTypeCategory[]) : [])
-      : (["cinema", "home", "tv", "premiere"] as ReleaseTypeCategory[]);
+      : (DEFAULT_FEED_OPTIONS.types as ReleaseTypeCategory[]);
 
     const filterOptions: FeedFilterOptions = isRaw
       ? {
           personId,
-          roles: ["actor", "director", "writer", "producer", "crew"],
-          types: ["cinema", "home", "tv", "premiere"],
+          roles: DEFAULT_FEED_OPTIONS.roles,
+          types: DEFAULT_FEED_OPTIONS.types as ReleaseTypeCategory[],
           country,
           window: "all",
           alert: "announced",

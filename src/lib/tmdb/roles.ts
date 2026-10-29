@@ -13,9 +13,12 @@ export const ROLE_PRIORITY = [
   "songs",
 ];
 
-const DIRECTOR_REGEX = /director/i;
-const WRITER_REGEX = /writer|screenplay/i;
-const PRODUCER_REGEX = /producer/i;
+export const ROLE_REGEX = {
+  director: /director/i,
+  writer: /writer|screenplay|creator|teleplay|story/i,
+  producer: /producer/i,
+  actor: /actor/i,
+} as const;
 
 function getRoleRank(role: string): number {
   const lower = role.toLowerCase();
