@@ -64,7 +64,7 @@ export function mapReleaseType(
         cleanNote.toLowerCase() === "premiere" ||
         cleanNote.toLowerCase() === "festival";
       return {
-        category: "home",
+        category: "cinema",
         label: isRedundant ? "Premiere" : `Premiere (${cleanNote})`,
       };
     }
