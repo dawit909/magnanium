@@ -75,6 +75,40 @@ export function filterReleasesByType(
   return candidates.filter((rel) => normalizedTypes.includes(rel.releaseType));
 }
 
+export function isRealEarliestInWindow(
+  earliestCountryReleaseDate: string,
+  movieReleaseDate: string | undefined,
+  ctx: ReleaseExtractionContext
+): boolean {
+  const countryInWindow = isDateInWindow(
+    earliestCountryReleaseDate,
+    ctx.alert,
+    ctx.window,
+    ctx.nowStr,
+    ctx.oneYearAgoStr,
+    ctx.sevenDaysFromNowStr,
+    ctx.thirtyDaysFromNowStr
+  );
+  if (!countryInWindow) return false;
+
+  // If the movie has a global release date that is earlier than this country release date,
+  // ensure that global debut is also within the window (not years in the past)
+  if (movieReleaseDate && movieReleaseDate < earliestCountryReleaseDate) {
+    const globalInWindow = isDateInWindow(
+      movieReleaseDate,
+      ctx.alert,
+      ctx.window,
+      ctx.nowStr,
+      ctx.oneYearAgoStr,
+      ctx.sevenDaysFromNowStr,
+      ctx.thirtyDaysFromNowStr
+    );
+    if (!globalInWindow) return false;
+  }
+
+  return true;
+}
+
 export interface ReleaseExtractionContext {
   country: string;
   window: "upcoming" | "all";
@@ -419,7 +453,7 @@ export async function extractMovieReleases(
     movieDetails?.original_language || movie.original_language
   );
 
-  const candidates: FormattedRelease[] = [];
+  const allReleases: FormattedRelease[] = [];
   const releaseDatesData = movieDetails?.release_dates;
 
   if (releaseDatesData?.results?.length) {
@@ -437,15 +471,7 @@ export async function extractMovieReleases(
 
         if (
           !mapped ||
-          !isDateInWindow(
-            dateStr,
-            ctx.alert,
-            ctx.window,
-            ctx.nowStr,
-            ctx.oneYearAgoStr,
-            ctx.sevenDaysFromNowStr,
-            ctx.thirtyDaysFromNowStr
-          ) ||
+          !dateStr ||
           (ctx.excludeReReleases &&
             isReReleaseOrRemaster(rd.note, movieTitle, dateStr, movie.release_date, rd.type))
         ) {
@@ -457,7 +483,7 @@ export async function extractMovieReleases(
             ? `-${rd.note.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
             : "";
 
-        candidates.push(
+        allReleases.push(
           createReleaseItem({
             id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}${noteSlug}`,
             mediaType: "movie",
@@ -483,46 +509,87 @@ export async function extractMovieReleases(
   }
 
   // Fallback to general movie.release_date if no specific country entries matched
-  if (candidates.length === 0 && movie.release_date) {
+  if (
+    allReleases.length === 0 &&
+    movie.release_date &&
+    (!ctx.excludeReReleases ||
+      !isReReleaseOrRemaster(undefined, movieTitle, movie.release_date, movie.release_date))
+  ) {
     const dateStr = movie.release_date;
-    if (
-      (!ctx.excludeReReleases ||
-        !isReReleaseOrRemaster(undefined, movieTitle, dateStr, movie.release_date)) &&
-      isDateInWindow(
-        dateStr,
-        ctx.alert,
-        ctx.window,
-        ctx.nowStr,
-        ctx.oneYearAgoStr,
-        ctx.sevenDaysFromNowStr,
-        ctx.thirtyDaysFromNowStr
-      )
-    ) {
-      candidates.push(
-        createReleaseItem({
-          id: `${movie.id}-general-${dateStr}`,
-          mediaType: "movie",
-          movieId: movie.id,
-          movieTitle,
-          overview: movie.overview,
-          posterPath: movie.poster_path,
-          releaseDate: dateStr,
-          releaseType: "cinema",
-          releaseTypeLabel: "Theatrical",
-          country: ctx.country,
-          role: roleStr,
-          watchProviders,
-          director,
-          writer,
-          stars,
-          runtime,
-          language,
-        })
-      );
-    }
+    allReleases.push(
+      createReleaseItem({
+        id: `${movie.id}-general-${dateStr}`,
+        mediaType: "movie",
+        movieId: movie.id,
+        movieTitle,
+        overview: movie.overview,
+        posterPath: movie.poster_path,
+        releaseDate: dateStr,
+        releaseType: "cinema",
+        releaseTypeLabel: "Theatrical",
+        country: ctx.country,
+        role: roleStr,
+        watchProviders,
+        director,
+        writer,
+        stars,
+        runtime,
+        language,
+      })
+    );
   }
 
-  return filterReleasesByType(candidates, ctx.normalizedTypes, ctx.isEarliestOnly);
+  if (allReleases.length === 0) {
+    return [];
+  }
+
+  // Sort chronologically (earliest first). On tie, prefer theatrical/cinema over digital/physical.
+  allReleases.sort((a, b) => {
+    const cmp = a.releaseDate.localeCompare(b.releaseDate);
+    if (cmp !== 0) return cmp;
+    if (a.releaseType !== b.releaseType) {
+      return a.releaseType === "cinema" ? -1 : 1;
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  if (ctx.isEarliestOnly) {
+    const earliest = allReleases[0];
+    const isRealEarliest = isRealEarliestInWindow(
+      earliest.releaseDate,
+      movie.release_date,
+      ctx
+    );
+
+    if (!isRealEarliest) {
+      return [];
+    }
+
+    return [
+      {
+        ...earliest,
+        releaseTypeLabel: `${earliest.releaseTypeLabel} (Earliest)`,
+      },
+    ];
+  }
+
+  // Filter by requested release categories (cinema, home)
+  const typeFiltered = allReleases.filter((rel) =>
+    ctx.normalizedTypes.includes(rel.releaseType)
+  );
+
+  // Filter by requested date window & alert
+  return typeFiltered.filter((rel) =>
+    isDateInWindow(
+      rel.releaseDate,
+      ctx.alert,
+      ctx.window,
+      ctx.nowStr,
+      ctx.oneYearAgoStr,
+      ctx.sevenDaysFromNowStr,
+      ctx.thirtyDaysFromNowStr
+    )
+  );
 }
 
 interface SeasonCreditsResponse {
