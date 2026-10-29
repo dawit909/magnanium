@@ -6,59 +6,38 @@ import {
 } from "@/types/tmdb";
 import { tmdbFetch } from "./client";
 
-export function formatCinemaLabel(type: number, note?: string): string {
-  let clean = (note || "").trim();
-
-  // Normalize location abbreviations
-  clean = clean.replace(/New York City(?:,\s*NY)?/gi, "NYC");
-  clean = clean.replace(/New York(?:,\s*NY)?/gi, "NYC");
-  clean = clean.replace(/Los Angeles(?:,\s*CA)?/gi, "LA");
-  clean = clean.replace(/\s*\/\s*/g, " / ");
-
-  if (type === 2) {
-    if (!clean || /^limited(?:\s+release)?$/i.test(clean)) {
-      return "Cinema (Limited)";
-    }
-    if (/^limited\s+expansion$/i.test(clean) || /^expansion$/i.test(clean)) {
-      return "Cinema (Expansion)";
-    }
-    clean = clean.replace(/^limited\s*[-:]\s*/i, "");
-    return `Cinema (${clean})`;
-  }
-
-  // Type 3: Wide cinema
-  if (
-    !clean ||
-    /^wide(?:\s+release)?$/i.test(clean) ||
-    /^(?:theatrical|cinema)(?:\s+release)?$/i.test(clean)
-  ) {
-    return "Cinema (Wide)";
-  }
-
-  clean = clean.replace(/^wide\s*[-:]\s*/i, "");
-  return `Cinema (${clean})`;
-}
-
-export function formatPremiereLabel(note?: string): string {
-  let clean = (note || "").trim();
-  if (!clean || /^(premiere|festival)$/i.test(clean)) return "Premiere";
-
-  clean = clean.replace(/International Film Festival/gi, "Film Fest");
-  clean = clean.replace(/Film Festival/gi, "Film Fest");
-  clean = clean.replace(/\s*\/\s*/g, " / ");
-
-  return `Premiere (${clean})`;
-}
-
 export function mapReleaseType(
   type: number,
   note?: string
 ): { category: "cinema" | "home"; label: string } | null {
   const cleanNote = note ? note.trim() : "";
   switch (type) {
-    case 2:
-    case 3:
-      return { category: "cinema", label: formatCinemaLabel(type, note) };
+    case 2: {
+      if (!cleanNote) {
+        return { category: "cinema", label: "Cinema (Limited)" };
+      }
+      const noteLabel = /limited/i.test(cleanNote)
+        ? cleanNote
+        : `Limited - ${cleanNote}`;
+      return { category: "cinema", label: `Cinema (${noteLabel})` };
+    }
+    case 3: {
+      if (!cleanNote) {
+        return { category: "cinema", label: "Cinema (Wide)" };
+      }
+      const isRedundant =
+        cleanNote.toLowerCase() === "theatrical" ||
+        cleanNote.toLowerCase() === "theatrical release" ||
+        cleanNote.toLowerCase() === "cinema" ||
+        cleanNote.toLowerCase() === "cinema release";
+      if (isRedundant) {
+        return { category: "cinema", label: "Cinema (Wide)" };
+      }
+      const noteLabel = /wide/i.test(cleanNote)
+        ? cleanNote
+        : `Wide - ${cleanNote}`;
+      return { category: "cinema", label: `Cinema (${noteLabel})` };
+    }
     case 4: {
       const isRedundant =
         !cleanNote ||
@@ -80,9 +59,13 @@ export function mapReleaseType(
       };
     }
     case 1: {
+      const isRedundant =
+        !cleanNote ||
+        cleanNote.toLowerCase() === "premiere" ||
+        cleanNote.toLowerCase() === "festival";
       return {
         category: "home",
-        label: formatPremiereLabel(note),
+        label: isRedundant ? "Premiere" : `Premiere (${cleanNote})`,
       };
     }
     default:
@@ -434,6 +417,7 @@ function createReleaseItem(params: {
   releaseDate: string;
   releaseType: "cinema" | "home";
   releaseTypeLabel: string;
+  note?: string | null;
   country: string;
   role: string;
   watchProviders?: FormattedRelease["watchProviders"];
@@ -453,6 +437,7 @@ function createReleaseItem(params: {
     releaseDate: params.releaseDate,
     releaseType: params.releaseType,
     releaseTypeLabel: params.releaseTypeLabel,
+    note: params.note || null,
     country: params.country,
     role: params.role,
     tmdbUrl: `https://www.themoviedb.org/${params.mediaType}/${params.movieId}`,
@@ -550,6 +535,7 @@ export async function extractMovieReleases(
             releaseDate: dateStr,
             releaseType: mapped.category,
             releaseTypeLabel: mapped.label,
+            note: rd.note?.trim() || null,
             country: countryData.iso_3166_1,
             role: roleStr,
             watchProviders,

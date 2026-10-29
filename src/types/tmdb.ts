@@ -139,6 +139,7 @@ export interface FormattedRelease {
   releaseDate: string;
   releaseType: ReleaseTypeCategory;
   releaseTypeLabel: string;
+  note?: string | null;
   country: string;
   role: string;
   tmdbUrl: string;
