@@ -128,43 +128,9 @@ export default function FeedFilters({
   const countryOptions = getCountryOptions(country);
 
   return (
-    <div className="space-y-3.5 text-xs">
-      {/* 1. Always Visible Primary Filters */}
-      {/* Role */}
-      <FilterRow label="Role">
-        {ROLE_OPTIONS.map((r) => (
-          <FilterPill
-            key={r.id}
-            active={roles.includes(r.id)}
-            onClick={() => onToggleRole(r.id)}
-          >
-            {r.label}
-          </FilterPill>
-        ))}
-        <InfoTooltip
-          ariaLabel="Role info"
-          width="w-72"
-          content={
-            <div className="space-y-1.5 text-left">
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Director&rdquo;</strong> includes film and TV directors.
-              </p>
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Writer&rdquo;</strong> includes screenplays, teleplays, and TV creators / showrunners.
-              </p>
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Producer&rdquo;</strong> includes film producers and TV executive producers.
-              </p>
-              <p>
-                <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Crew&rdquo;</strong> includes sound, score, cinematography, editing, art, and VFX.
-              </p>
-            </div>
-          }
-        />
-      </FilterRow>
-
-      {/* 2. Collapsible Fine-tune Trigger */}
-      <div className="pt-1">
+    <div className="space-y-3 text-xs">
+      {/* Collapsible Options Trigger */}
+      <div>
         <button
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
@@ -172,7 +138,9 @@ export default function FeedFilters({
           aria-expanded={isExpanded}
         >
           <Settings2 className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
-          <span className="font-medium">Fine-tune (Format, Timing, Region)</span>
+          <span className="font-medium">
+            {isExpanded ? "Hide options" : "Show options"}
+          </span>
           <ChevronRight
             className={`w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-transform duration-200 ${
               isExpanded ? "rotate-90" : ""
@@ -181,9 +149,41 @@ export default function FeedFilters({
         </button>
       </div>
 
-      {/* 3. Collapsible Secondary Filters */}
+      {/* All Options Panel */}
       {isExpanded && (
         <div className="pt-2 pl-0.5 space-y-3.5 border-t border-neutral-100 dark:border-neutral-800 animate-in fade-in-50 duration-150">
+          {/* Role */}
+          <FilterRow label="Role">
+            {ROLE_OPTIONS.map((r) => (
+              <FilterPill
+                key={r.id}
+                active={roles.includes(r.id)}
+                onClick={() => onToggleRole(r.id)}
+              >
+                {r.label}
+              </FilterPill>
+            ))}
+            <InfoTooltip
+              ariaLabel="Role info"
+              width="w-72"
+              content={
+                <div className="space-y-1.5 text-left">
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Director&rdquo;</strong> includes film and TV directors.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Writer&rdquo;</strong> includes screenplays, teleplays, and TV creators / showrunners.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Producer&rdquo;</strong> includes film producers and TV executive producers.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Crew&rdquo;</strong> includes sound, score, cinematography, editing, art, and VFX.
+                  </p>
+                </div>
+              }
+            />
+          </FilterRow>
           {/* Format */}
           <FilterRow label="Format">
             {FORMAT_OPTIONS.map((t) => (
