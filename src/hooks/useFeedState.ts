@@ -71,10 +71,8 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
 
   const toggleRole = useCallback((r: string) => {
     setRoles((prev) => {
-      if (prev.includes(r)) {
-        return prev.length > 1 ? prev.filter((x) => x !== r) : prev;
-      }
-      return [...prev, r];
+      const filtered = prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r];
+      return filtered.length > 0 ? filtered : [...DEFAULT_FEED_OPTIONS.roles];
     });
   }, []);
 

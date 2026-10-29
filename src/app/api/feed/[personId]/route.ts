@@ -49,7 +49,12 @@ export async function GET(
     const media = mediaParam
       ? (mediaParam.split(",").map((m) => m.trim().toLowerCase()) as ("movie" | "tv")[])
       : undefined;
-    const roles = rolesParam.split(",").map((r) => r.trim().toLowerCase());
+    const parsedRoles = rolesParam
+      .split(",")
+      .map((r) => r.trim().toLowerCase())
+      .filter(Boolean);
+    const roles =
+      parsedRoles.length > 0 ? parsedRoles : ["actor", "director", "writer", "producer", "crew"];
     const types = typesParam.split(",").map((t) => t.trim().toLowerCase()) as ReleaseTypeCategory[];
 
     const { personName, releases, profilePath, notFound } = await getPersonReleases(
