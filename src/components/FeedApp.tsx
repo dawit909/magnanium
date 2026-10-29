@@ -119,8 +119,6 @@ export default function FeedApp({
           <ArtistHero person={selectedPerson} />
 
           <FeedFilters
-            media={media}
-            onToggleMedia={toggleMedia}
             roles={roles}
             onToggleRole={toggleRole}
             types={types}

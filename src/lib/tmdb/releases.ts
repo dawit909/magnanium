@@ -1,5 +1,6 @@
 import {
   FormattedRelease,
+  ReleaseTypeCategory,
   TMDBCreditItem,
   TMDBReleaseDatesResponse,
   TvDetails,
@@ -9,14 +10,14 @@ import { tmdbFetch } from "./client";
 export function mapReleaseType(
   type: number,
   _note?: string
-): { category: "cinema" | "home"; label: string } | null {
+): { category: "cinema" | "home" | "premiere"; label: string } | null {
   switch (type) {
     case 2:
       return { category: "cinema", label: "Cinema (Limited)" };
     case 3:
       return { category: "cinema", label: "Cinema (Wide)" };
     case 1:
-      return { category: "cinema", label: "Premiere" };
+      return { category: "premiere", label: "Premiere" };
     case 4:
       return { category: "home", label: "Digital" };
     case 5:
@@ -408,7 +409,7 @@ function createReleaseItem(params: {
   overview?: string;
   posterPath?: string | null;
   releaseDate: string;
-  releaseType: "cinema" | "home";
+  releaseType: ReleaseTypeCategory;
   releaseTypeLabel: string;
   note?: string | null;
   country: string;
@@ -790,7 +791,7 @@ export async function extractTvReleases(
           overview: season.overview || tvDetails?.overview || tvShow.overview,
           posterPath: season.poster_path || tvDetails?.poster_path || tvShow.poster_path,
           releaseDate: dateStr,
-          releaseType: "home",
+          releaseType: "tv",
           releaseTypeLabel: premiereLabel,
           country: showCountry,
           role: roleStr,
@@ -828,7 +829,7 @@ export async function extractTvReleases(
           overview: tvShow.overview,
           posterPath: tvShow.poster_path,
           releaseDate: dateStr,
-          releaseType: "home",
+          releaseType: "tv",
           releaseTypeLabel: "Series Premiere",
           country: showCountry,
           role: roleStr,

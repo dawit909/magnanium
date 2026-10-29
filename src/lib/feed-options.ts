@@ -16,7 +16,7 @@ export const STORAGE_KEY = "magnanium_feed_options";
 export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
   media: ["movie", "tv"],
   roles: ["actor", "director", "writer", "producer", "crew"],
-  types: ["cinema", "home"],
+  types: ["cinema", "home", "tv"],
   country: "US",
   alert: "announced",
   excludeShorts: false,
@@ -50,10 +50,15 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
     }
   }
 
-  const validTypes =
-    Array.isArray(parsed.types) && parsed.types.length > 0
-      ? parsed.types
-      : inMemoryOptions.types;
+  let validTypes = inMemoryOptions.types;
+  if (Array.isArray(parsed.types) && parsed.types.length > 0) {
+    const filtered = parsed.types.filter((t: string) =>
+      ["cinema", "home", "tv", "premiere", "earliest"].includes(t.toLowerCase())
+    );
+    if (filtered.length > 0) {
+      validTypes = filtered;
+    }
+  }
 
   const validCountry =
     typeof parsed.country === "string" && /^[a-zA-Z]{2}$/.test(parsed.country)

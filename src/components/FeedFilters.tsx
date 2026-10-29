@@ -5,8 +5,6 @@ import { Info, Settings2, ChevronRight } from "lucide-react";
 import { getCountryOptions } from "@/lib/constants";
 
 interface FeedFiltersProps {
-  media: string[];
-  onToggleMedia: (m: string) => void;
   roles: string[];
   onToggleRole: (r: string) => void;
   types: string[];
@@ -87,11 +85,6 @@ function InfoTooltip({
   );
 }
 
-const MEDIA_OPTIONS = [
-  { id: "movie", label: "Movie" },
-  { id: "tv", label: "TV" },
-];
-
 const ROLE_OPTIONS = [
   { id: "actor", label: "Actor" },
   { id: "director", label: "Director" },
@@ -103,6 +96,8 @@ const ROLE_OPTIONS = [
 const FORMAT_OPTIONS = [
   { id: "cinema", label: "Cinema" },
   { id: "home", label: "Home" },
+  { id: "tv", label: "TV" },
+  { id: "premiere", label: "Premiere" },
   { id: "earliest", label: "Earliest" },
 ];
 
@@ -113,8 +108,6 @@ const ALERT_OPTIONS = [
 ];
 
 export default function FeedFilters({
-  media,
-  onToggleMedia,
   roles,
   onToggleRole,
   types,
@@ -137,19 +130,6 @@ export default function FeedFilters({
   return (
     <div className="space-y-3.5 text-xs">
       {/* 1. Always Visible Primary Filters */}
-      {/* Media */}
-      <FilterRow label="Media">
-        {MEDIA_OPTIONS.map((m) => (
-          <FilterPill
-            key={m.id}
-            active={media.includes(m.id)}
-            onClick={() => onToggleMedia(m.id)}
-          >
-            {m.label}
-          </FilterPill>
-        ))}
-      </FilterRow>
-
       {/* Role */}
       <FilterRow label="Role">
         {ROLE_OPTIONS.map((r) => (
@@ -221,13 +201,19 @@ export default function FeedFilters({
               content={
                 <div className="space-y-1.5 text-left">
                   <p>
-                    If you choose only <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Cinema&rdquo;</strong>, TV shows will not appear.
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Cinema&rdquo;</strong> includes wide and limited commercial theatrical releases.
                   </p>
                   <p>
-                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Home&rdquo;</strong> can send more than one alert for a single film or TV show (e.g. Digital, Streaming, and Physical).
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Home&rdquo;</strong> includes digital streaming/VOD and physical disc releases (4K, Blu-ray, DVD).
                   </p>
                   <p>
-                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Earliest&rdquo;</strong> notifies only once per project on its first available release format.
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;TV&rdquo;</strong> includes television and streaming series or season debuts.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Premiere&rdquo;</strong> includes film festival circuit screenings and red-carpet premieres.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Earliest&rdquo;</strong> notifies only once per project on its first available release event.
                   </p>
                 </div>
               }

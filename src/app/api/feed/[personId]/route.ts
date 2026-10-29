@@ -33,9 +33,9 @@ export async function GET(
     }
     const personId = validation.personId!;
 
-    const mediaParam = searchParams.get("media") || "movie,tv";
+    const mediaParam = searchParams.get("media");
     const rolesParam = searchParams.get("roles") || "actor,director,writer,producer,crew";
-    const typesParam = searchParams.get("types") || "cinema,home";
+    const typesParam = searchParams.get("types") || "cinema,home,tv";
     const country = searchParams.get("country") || "US";
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
     const alert = (searchParams.get("alert") as "announced" | "month_before" | "week_before") || "announced";
@@ -46,7 +46,9 @@ export async function GET(
       searchParams.get("exclude_special") !== "false";
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
-    const media = mediaParam.split(",").map((m) => m.trim().toLowerCase()) as ("movie" | "tv")[];
+    const media = mediaParam
+      ? (mediaParam.split(",").map((m) => m.trim().toLowerCase()) as ("movie" | "tv")[])
+      : undefined;
     const roles = rolesParam.split(",").map((r) => r.trim().toLowerCase());
     const types = typesParam.split(",").map((t) => t.trim().toLowerCase()) as ReleaseTypeCategory[];
 

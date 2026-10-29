@@ -78,13 +78,13 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   const toggleType = useCallback((t: string) => {
     setTypes((prev) => {
       if (t === "earliest") {
-        return prev.includes("earliest") ? ["cinema", "home"] : ["earliest"];
+        return prev.includes("earliest") ? ["cinema", "home", "tv"] : ["earliest"];
       }
       if (prev.includes("earliest")) {
         return [t];
       }
       const filtered = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
-      return filtered.length > 0 ? filtered : ["cinema", "home"];
+      return filtered.length > 0 ? filtered : ["cinema", "home", "tv"];
     });
   }, []);
 
@@ -114,7 +114,6 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       return { feedUrl: "", feedProtocolUrl: "" };
     }
     const params = new URLSearchParams({
-      media: media.join(","),
       roles: roles.join(","),
       types: types.join(","),
       country,
@@ -147,7 +146,6 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     const loadReleases = async () => {
       try {
         const params = new URLSearchParams({
-          media: media.join(","),
           roles: roles.join(","),
           types: types.join(","),
           country,
@@ -210,9 +208,8 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     const loadUnfilteredCount = async () => {
       try {
         const params = new URLSearchParams({
-          media: "movie,tv",
           roles: "all",
-          types: "cinema,home",
+          types: "cinema,home,tv,premiere",
           country,
           alert: "announced",
           exclude_shorts: "false",

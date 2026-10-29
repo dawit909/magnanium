@@ -235,9 +235,9 @@ export async function getPersonReleases(
 }> {
   const {
     personId,
-    media = ["movie", "tv"],
+    media,
     roles = ["actor", "director", "writer", "producer", "crew"],
-    types = ["cinema", "home"],
+    types = ["cinema", "home", "tv"],
     country = "US",
     window = "all",
     alert = "announced",
@@ -261,9 +261,6 @@ export async function getPersonReleases(
     return { personName: "", releases: [], profilePath: null, notFound: true };
   }
 
-  const includeMovies = media.includes("movie");
-  const includeTv = media.includes("tv");
-
   // Normalize release types
   const normalizedTypes = types.map((t) => {
     const lower = t.toLowerCase();
@@ -272,6 +269,15 @@ export async function getPersonReleases(
     return lower;
   });
   const isEarliestOnly = normalizedTypes.includes("earliest");
+
+  // Determine media inclusion (if media is passed explicitly, respect it; otherwise derive from types)
+  const includeMovies = media
+    ? media.includes("movie")
+    : normalizedTypes.some((t) => ["cinema", "home", "premiere"].includes(t)) || isEarliestOnly || normalizedTypes.length === 0;
+
+  const includeTv = media
+    ? media.includes("tv")
+    : normalizedTypes.includes("tv") || isEarliestOnly;
 
   const personName = person.name || "Artist";
 

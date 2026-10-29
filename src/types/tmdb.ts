@@ -120,7 +120,7 @@ export interface TvDetails {
   seasons?: TvSeasonItem[];
 }
 
-export type ReleaseTypeCategory = "cinema" | "home" | "earliest";
+export type ReleaseTypeCategory = "cinema" | "home" | "tv" | "premiere" | "earliest";
 
 export interface WatchProvidersInfo {
   link?: string;
