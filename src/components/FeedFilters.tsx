@@ -101,7 +101,7 @@ const ROLE_OPTIONS = [
 ];
 
 const FORMAT_OPTIONS = [
-  { id: "cinema", label: "Theatrical" },
+  { id: "cinema", label: "Cinema" },
   { id: "home", label: "Home" },
   { id: "earliest", label: "Earliest" },
 ];
@@ -221,7 +221,7 @@ export default function FeedFilters({
               content={
                 <div className="space-y-1.5 text-left">
                   <p>
-                    If you choose only <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Theatrical&rdquo;</strong>, TV shows will not appear.
+                    If you choose only <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Cinema&rdquo;</strong>, TV shows will not appear.
                   </p>
                   <p>
                     <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Home&rdquo;</strong> can send more than one alert for a single film or TV show (e.g. Digital, Streaming, and Physical).

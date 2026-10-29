@@ -17,26 +17,26 @@ export function formatCinemaLabel(type: number, note?: string): string {
 
   if (type === 2) {
     if (!clean || /^limited(?:\s+release)?$/i.test(clean)) {
-      return "Theatrical (Limited)";
+      return "Cinema (Limited)";
     }
     if (/^limited\s+expansion$/i.test(clean) || /^expansion$/i.test(clean)) {
-      return "Theatrical (Expansion)";
+      return "Cinema (Expansion)";
     }
     clean = clean.replace(/^limited\s*[-:]\s*/i, "");
-    return `Theatrical (${clean})`;
+    return `Cinema (${clean})`;
   }
 
-  // Type 3: Wide theatrical
+  // Type 3: Wide cinema
   if (
     !clean ||
     /^wide(?:\s+release)?$/i.test(clean) ||
-    /^theatrical(?:\s+release)?$/i.test(clean)
+    /^(?:theatrical|cinema)(?:\s+release)?$/i.test(clean)
   ) {
-    return "Theatrical (Wide)";
+    return "Cinema (Wide)";
   }
 
   clean = clean.replace(/^wide\s*[-:]\s*/i, "");
-  return `Theatrical (${clean})`;
+  return `Cinema (${clean})`;
 }
 
 export function formatPremiereLabel(note?: string): string {
@@ -582,7 +582,7 @@ export async function extractMovieReleases(
         posterPath: movie.poster_path,
         releaseDate: dateStr,
         releaseType: "cinema",
-        releaseTypeLabel: "Theatrical (Wide)",
+        releaseTypeLabel: "Cinema (Wide)",
         country: ctx.country,
         role: roleStr,
         watchProviders,
