@@ -35,7 +35,7 @@ export async function GET(
 
     const mediaParam = searchParams.get("media");
     const rolesParam = searchParams.get("roles") || "actor,director,writer,producer,crew";
-    const typesParam = searchParams.get("types") || "cinema,home,tv";
+    const typesParam = searchParams.get("types") || "cinema,home,tv,premiere";
     const country = searchParams.get("country") || "US";
     const window = (searchParams.get("window") as "upcoming" | "all") || "all";
     const alert = (searchParams.get("alert") as "announced" | "month_before" | "week_before") || "announced";

@@ -81,13 +81,13 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   const toggleType = useCallback((t: string) => {
     setTypes((prev) => {
       if (t === "earliest") {
-        return prev.includes("earliest") ? ["cinema", "home", "tv"] : ["earliest"];
+        return prev.includes("earliest") ? [...DEFAULT_FEED_OPTIONS.types] : ["earliest"];
       }
       if (prev.includes("earliest")) {
         return [t];
       }
       const filtered = prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t];
-      return filtered.length > 0 ? filtered : ["cinema", "home", "tv"];
+      return filtered.length > 0 ? filtered : [...DEFAULT_FEED_OPTIONS.types];
     });
   }, []);
 

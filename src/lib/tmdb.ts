@@ -237,7 +237,7 @@ export async function getPersonReleases(
     personId,
     media,
     roles = ["actor", "director", "writer", "producer", "crew"],
-    types = ["cinema", "home", "tv"],
+    types = ["cinema", "home", "tv", "premiere"],
     country = "US",
     window = "all",
     alert = "announced",

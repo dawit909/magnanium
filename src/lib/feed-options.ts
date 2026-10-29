@@ -16,7 +16,7 @@ export const STORAGE_KEY = "magnanium_feed_options";
 export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
   media: ["movie", "tv"],
   roles: ["actor", "director", "writer", "producer", "crew"],
-  types: ["cinema", "home", "tv"],
+  types: ["cinema", "home", "tv", "premiere"],
   country: "US",
   alert: "announced",
   excludeShorts: false,
