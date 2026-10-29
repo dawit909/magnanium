@@ -7,6 +7,7 @@ import { FormattedRelease } from "@/types/tmdb";
 interface ReleaseListProps {
   releases: FormattedRelease[];
   isLoading: boolean;
+  totalCount?: number | null;
 }
 
 const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: FormattedRelease }) {
@@ -119,7 +120,9 @@ const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: Formatte
   );
 });
 
-export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
+export default function ReleaseList({ releases, isLoading, totalCount }: ReleaseListProps) {
+  const isFiltered = typeof totalCount === "number" && totalCount !== releases.length;
+
   return (
     <div className="space-y-3 pt-2">
       <div className="flex items-center justify-between text-xs">
@@ -127,8 +130,24 @@ export default function ReleaseList({ releases, isLoading }: ReleaseListProps) {
           <span className="font-semibold text-neutral-900 dark:text-neutral-100">
             Releases
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-            {releases.length}
+          <span
+            className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
+            title={
+              isFiltered
+                ? `${releases.length} releases shown of ${totalCount} unfiltered`
+                : undefined
+            }
+          >
+            {isFiltered ? (
+              <span>
+                {releases.length}{" "}
+                <span className="text-neutral-400 dark:text-neutral-500 font-normal">
+                  / {totalCount}
+                </span>
+              </span>
+            ) : (
+              releases.length
+            )}
           </span>
         </div>
         {isLoading && (

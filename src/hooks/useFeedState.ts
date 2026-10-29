@@ -23,6 +23,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   const [excludeUncredited, setExcludeUncreditedState] = useState<boolean>(() => getSavedFeedOptions().excludeUncredited);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
+  const [totalUnfilteredCount, setTotalUnfilteredCount] = useState<number | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [origin, setOrigin] = useState(() =>
     typeof window !== "undefined" ? window.location.origin : ""
@@ -196,6 +197,63 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     };
   }, [selectedPerson, media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
+  // Fetch baseline unfiltered count (when all options filter out nothing)
+  useEffect(() => {
+    if (!selectedPerson) {
+      setTotalUnfilteredCount(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadUnfilteredCount = async () => {
+      try {
+        const params = new URLSearchParams({
+          media: "movie,tv",
+          roles: "all",
+          types: "cinema,home",
+          country,
+          alert: "announced",
+          exclude_shorts: "false",
+          exclude_rereleases: "false",
+          exclude_uncredited: "false",
+          format: "json",
+        });
+
+        const queryString = params.toString();
+        const cacheKey = `${selectedPerson.id}?${queryString}`;
+        const cached = previewCache.get(cacheKey);
+
+        if (cached) {
+          setTotalUnfilteredCount(cached.length);
+          return;
+        }
+
+        const res = await fetch(`/api/feed/${selectedPerson.id}?${queryString}`, {
+          signal: controller.signal,
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.releases) {
+          previewCache.set(cacheKey, data.releases);
+          setTotalUnfilteredCount(data.releases.length);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== "AbortError") {
+          console.error("Unfiltered count fetch error:", err);
+        }
+      }
+    };
+
+    loadUnfilteredCount();
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedPerson?.id, country]);
+
   return {
     media,
     toggleMedia,
@@ -214,6 +272,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     excludeUncredited,
     setExcludeUncredited,
     previewReleases,
+    totalUnfilteredCount,
     isLoadingPreview,
     feedUrl,
     feedProtocolUrl,

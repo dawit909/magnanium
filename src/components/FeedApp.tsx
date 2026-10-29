@@ -68,6 +68,7 @@ export default function FeedApp({
     excludeUncredited,
     setExcludeUncredited,
     previewReleases,
+    totalUnfilteredCount,
     isLoadingPreview,
     feedUrl,
     feedProtocolUrl,
@@ -143,6 +144,7 @@ export default function FeedApp({
 
           <ReleaseList
             releases={previewReleases}
+            totalCount={totalUnfilteredCount}
             isLoading={isLoadingPreview}
           />
         </div>
