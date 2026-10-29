@@ -19,8 +19,12 @@ export async function GET(
     const format = searchParams.get("format");
     const isJson = format === "json" || Boolean(request.headers.get("accept")?.includes("application/json"));
 
-    // 1. IP Rate Limiting (10 requests per minute)
-    const rateGuard = guardRateLimit(request, "feed", 10, 60 * 1000, isJson);
+    // 1. IP Rate Limiting:
+    // - Interactive JSON preview in UI: 120 req/min with dedicated prefix so rapid filtering never starves.
+    // - External XML/RSS feed polling: 30 req/min for feed reader background refresh.
+    const rateLimit = isJson ? 120 : 30;
+    const ratePrefix = isJson ? "feed-preview" : "feed-rss";
+    const rateGuard = guardRateLimit(request, ratePrefix, rateLimit, 60 * 1000, isJson);
     if (!rateGuard.allowed) {
       return rateGuard.response!;
     }

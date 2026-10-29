@@ -12,7 +12,7 @@ import {
 } from "@/lib/feed-options";
 import { detectBrowserCountry } from "@/lib/constants";
 
-const previewCache = new BoundedMap<string, FormattedRelease[]>(40);
+const previewCache = new BoundedMap<string, FormattedRelease[]>(120);
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   // Read saved feed options synchronously on client initialization to eliminate first-click lag/overwrite
@@ -174,45 +174,54 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     };
   }, [selectedPerson, origin, media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
-  // Fetch preview items with AbortController to cancel stale in-flight requests
+  // Fetch preview items with debouncing for smooth interactive filtering
   useEffect(() => {
     if (!selectedPerson) {
       setPreviewReleases([]);
+      setIsLoadingPreview(false);
       return;
     }
 
-    const controller = new AbortController();
+    const sortedRoles = [...roles].sort().join(",");
+    const sortedTypes = [...types].sort().join(",");
+
+    const params = new URLSearchParams({
+      roles: sortedRoles,
+      types: sortedTypes,
+      country,
+      alert,
+      exclude_shorts: String(excludeShorts),
+      exclude_rereleases: String(excludeReReleases),
+      exclude_uncredited: String(excludeUncredited),
+      format: "json",
+    });
+
+    const queryString = params.toString();
+    const cacheKey = `v2:${selectedPerson.id}?${queryString}`;
+    const cached = previewCache.get(cacheKey);
+
+    // If cached in memory, apply immediately with 0ms delay
+    if (cached) {
+      setPreviewReleases(cached);
+      setIsLoadingPreview(false);
+      return;
+    }
+
     setIsLoadingPreview(true);
+    const controller = new AbortController();
 
-    const loadReleases = async () => {
+    // 80ms debounce coalesces rapid button toggles into a single request
+    const timer = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({
-          roles: roles.join(","),
-          types: types.join(","),
-          country,
-          alert,
-          exclude_shorts: String(excludeShorts),
-          exclude_rereleases: String(excludeReReleases),
-          exclude_uncredited: String(excludeUncredited),
-          format: "json",
-        });
-
-        const queryString = params.toString();
-        const cacheKey = `v2:${selectedPerson.id}?${queryString}`;
-        const cached = previewCache.get(cacheKey);
-
-        if (cached) {
-          setPreviewReleases(cached);
-          setIsLoadingPreview(false);
-          return;
-        }
-
         const res = await fetch(`/api/feed/${selectedPerson.id}?${queryString}`, {
           signal: controller.signal,
           cache: "no-store",
         });
 
-        if (!res.ok) return;
+        if (!res.ok) {
+          console.warn(`Feed preview fetch returned HTTP ${res.status}`);
+          return;
+        }
 
         const data = await res.json();
         if (data.releases) {
@@ -228,14 +237,22 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
           setIsLoadingPreview(false);
         }
       }
-    };
-
-    loadReleases();
+    }, 80);
 
     return () => {
+      clearTimeout(timer);
       controller.abort();
     };
-  }, [selectedPerson, media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
+  }, [
+    selectedPerson?.id,
+    roles,
+    types,
+    country,
+    alert,
+    excludeShorts,
+    excludeReReleases,
+    excludeUncredited,
+  ]);
 
   // Fetch baseline unfiltered count (when all options filter out nothing)
   useEffect(() => {
@@ -244,30 +261,30 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       return;
     }
 
+    const params = new URLSearchParams({
+      roles: "all",
+      types: "cinema,home,tv,premiere",
+      country,
+      alert: "announced",
+      exclude_shorts: "false",
+      exclude_rereleases: "false",
+      exclude_uncredited: "false",
+      format: "json",
+    });
+
+    const queryString = params.toString();
+    const cacheKey = `v2:${selectedPerson.id}?${queryString}`;
+    const cached = previewCache.get(cacheKey);
+
+    if (cached) {
+      setTotalUnfilteredCount(cached.length);
+      return;
+    }
+
     const controller = new AbortController();
 
-    const loadUnfilteredCount = async () => {
+    const timer = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({
-          roles: "all",
-          types: "cinema,home,tv,premiere",
-          country,
-          alert: "announced",
-          exclude_shorts: "false",
-          exclude_rereleases: "false",
-          exclude_uncredited: "false",
-          format: "json",
-        });
-
-        const queryString = params.toString();
-        const cacheKey = `v2:${selectedPerson.id}?${queryString}`;
-        const cached = previewCache.get(cacheKey);
-
-        if (cached) {
-          setTotalUnfilteredCount(cached.length);
-          return;
-        }
-
         const res = await fetch(`/api/feed/${selectedPerson.id}?${queryString}`, {
           signal: controller.signal,
           cache: "no-store",
@@ -285,11 +302,10 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
           console.error("Unfiltered count fetch error:", err);
         }
       }
-    };
-
-    loadUnfilteredCount();
+    }, 120);
 
     return () => {
+      clearTimeout(timer);
       controller.abort();
     };
   }, [selectedPerson?.id, country]);
