@@ -74,6 +74,43 @@ export function normalizeDistributorNote(note: string): string {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
+export const GENERIC_NOTE_TERMS = new Set([
+  "theatrical",
+  "theatrical release",
+  "cinema",
+  "cinema release",
+  "wide",
+  "wide release",
+  "limited",
+  "limited release",
+  "premiere",
+  "festival",
+  "digital",
+  "digital release",
+  "physical",
+  "physical release",
+]);
+
+export function getInformativeNote(
+  note?: string | null,
+  releaseTypeLabel?: string
+): string | null {
+  if (!note) return null;
+  const clean = note.trim();
+  if (!clean) return null;
+
+  const lower = clean.toLowerCase();
+  if (GENERIC_NOTE_TERMS.has(lower)) {
+    return null;
+  }
+
+  if (releaseTypeLabel && lower === releaseTypeLabel.toLowerCase()) {
+    return null;
+  }
+
+  return normalizeDistributorNote(clean);
+}
+
 export function isDateInWindow(
   dateStr: string,
   alert: "announced" | "month_before" | "week_before",
@@ -425,6 +462,7 @@ function createReleaseItem(params: {
   stars?: string[] | null;
   runtime?: string | null;
   language?: string | null;
+  episodeCount?: number | null;
   originalReleaseDate?: string | null;
   isShort?: boolean;
   isReRelease?: boolean;
@@ -450,6 +488,7 @@ function createReleaseItem(params: {
     stars: params.stars && params.stars.length > 0 ? params.stars : null,
     runtime: params.runtime || null,
     language: params.language || null,
+    episodeCount: params.episodeCount ?? null,
     originalReleaseDate: params.originalReleaseDate || null,
     isShort: params.isShort ?? false,
     isReRelease: params.isReRelease ?? false,
@@ -844,6 +883,10 @@ export async function extractTvReleases(
           stars,
           runtime,
           language,
+          episodeCount:
+            typeof season.episode_count === "number" && season.episode_count > 0
+              ? season.episode_count
+              : null,
           originalReleaseDate: tvShow.first_air_date || null,
           isShort: false,
           isReRelease: isSeasonReRelease,
@@ -888,6 +931,12 @@ export async function extractTvReleases(
           stars,
           runtime,
           language,
+          episodeCount:
+            typeof tvDetails?.number_of_episodes === "number" && tvDetails.number_of_episodes > 0
+              ? tvDetails.number_of_episodes
+              : typeof tvShow.episode_count === "number" && tvShow.episode_count > 0
+              ? tvShow.episode_count
+              : null,
           originalReleaseDate: tvShow.first_air_date || null,
           isShort: false,
           isReRelease: isFallbackTvReRelease,

@@ -3,46 +3,12 @@
 import { memo } from "react";
 import { Film, Tv } from "lucide-react";
 import { FormattedRelease } from "@/types/tmdb";
-import { normalizeDistributorNote } from "@/lib/tmdb/releases";
+import { getInformativeNote } from "@/lib/tmdb/releases";
 
 interface ReleaseListProps {
   releases: FormattedRelease[];
   isLoading: boolean;
   totalCount?: number | null;
-}
-
-const GENERIC_NOTE_TERMS = new Set([
-  "theatrical",
-  "theatrical release",
-  "cinema",
-  "cinema release",
-  "wide",
-  "wide release",
-  "limited",
-  "limited release",
-  "premiere",
-  "festival",
-  "digital",
-  "digital release",
-  "physical",
-  "physical release",
-]);
-
-function getInformativeNote(note?: string | null, releaseTypeLabel?: string): string | null {
-  if (!note) return null;
-  const clean = note.trim();
-  if (!clean) return null;
-
-  const lower = clean.toLowerCase();
-  if (GENERIC_NOTE_TERMS.has(lower)) {
-    return null;
-  }
-
-  if (releaseTypeLabel && lower === releaseTypeLabel.toLowerCase()) {
-    return null;
-  }
-
-  return normalizeDistributorNote(clean);
 }
 
 const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: FormattedRelease }) {
@@ -97,6 +63,12 @@ const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: Formatte
               <>
                 <span>·</span>
                 <span>{item.role}</span>
+              </>
+            )}
+            {item.mediaType === "tv" && typeof item.episodeCount === "number" && item.episodeCount > 0 && (
+              <>
+                <span>·</span>
+                <span>{item.episodeCount} {item.episodeCount === 1 ? "episode" : "episodes"}</span>
               </>
             )}
             {item.runtime && (

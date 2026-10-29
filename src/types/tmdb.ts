@@ -117,6 +117,8 @@ export interface TvDetails {
     season_number: number;
     runtime?: number | null;
   } | null;
+  number_of_episodes?: number;
+  number_of_seasons?: number;
   seasons?: TvSeasonItem[];
 }
 
@@ -149,6 +151,7 @@ export interface FormattedRelease {
   stars?: string[] | null;
   runtime?: string | null;
   language?: string | null;
+  episodeCount?: number | null;
   originalReleaseDate?: string | null;
   isShort?: boolean;
   isReRelease?: boolean;

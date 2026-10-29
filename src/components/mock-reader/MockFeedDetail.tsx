@@ -83,10 +83,28 @@ export function MockFeedDetail({ activeItem, onArtistClick }: MockFeedDetailProp
             <strong className="font-semibold text-neutral-950 dark:text-white">Role:</strong>{" "}
             {activeItem.role}
           </p>
+          {activeItem.format && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Format:</strong>{" "}
+              {activeItem.format}
+            </p>
+          )}
+          {activeItem.formatNote && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Format Note:</strong>{" "}
+              {activeItem.formatNote}
+            </p>
+          )}
           <p>
             <strong className="font-semibold text-neutral-950 dark:text-white">Release:</strong>{" "}
             {activeItem.release}
           </p>
+          {typeof activeItem.episodes === "number" && activeItem.episodes > 0 && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Episodes:</strong>{" "}
+              {activeItem.episodes} {activeItem.episodes === 1 ? "episode" : "episodes"}
+            </p>
+          )}
           <p>
             <strong className="font-semibold text-neutral-950 dark:text-white">Runtime:</strong>{" "}
             {activeItem.runtime}

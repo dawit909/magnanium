@@ -11,9 +11,12 @@ export interface SampleFeedItem {
   title: string;
   artist: SampleArtistSummary;
   role: string;
+  format?: string;
+  formatNote?: string;
   release: string;
   dateDisplay: string;
   pubDateDisplay: string;
+  episodes?: number;
   runtime: string;
   language: string;
   director?: string;
@@ -97,6 +100,7 @@ export const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     title: "Avatar 4",
     artist: JAMES_CAMERON,
     role: "Director, Writer, Producer",
+    format: "Cinema (Wide)",
     release: "2029-12-19 (US)",
     dateDisplay: "Dec 19, 2029",
     pubDateDisplay: "DEC 19, 2029 AT 9:00 AM",
@@ -117,6 +121,7 @@ export const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     title: "The Angry Birds Movie 3",
     artist: EMMA_MYERS,
     role: "Actor (June (voice))",
+    format: "Cinema (Wide)",
     release: "2026-12-23 (US)",
     dateDisplay: "Dec 23, 2026",
     pubDateDisplay: "DEC 23, 2026 AT 9:00 AM",
@@ -137,6 +142,8 @@ export const RAW_SAMPLE_ITEMS: SampleFeedItem[] = [
     title: "Carrie",
     artist: SUMMER_H_HOWELL,
     role: "Actor (Carrie White)",
+    format: "Series Premiere",
+    episodes: 8,
     release: "2026-10-07 (US)",
     dateDisplay: "Oct 7, 2026",
     pubDateDisplay: "OCT 7, 2026 AT 12:00 AM",

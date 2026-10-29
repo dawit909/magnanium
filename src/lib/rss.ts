@@ -1,4 +1,5 @@
 import { FormattedRelease } from "@/types/tmdb";
+import { getInformativeNote } from "@/lib/tmdb/releases";
 
 const XML_ENTITIES: Record<string, string> = {
   "<": "&lt;",
@@ -67,9 +68,20 @@ function renderMetadataLines(item: FormattedRelease): string {
   if (item.role) {
     lines.push(`<strong>Role:</strong> ${escapeXml(item.role)}`);
   }
+  if (item.releaseTypeLabel) {
+    lines.push(`<strong>Format:</strong> ${escapeXml(item.releaseTypeLabel)}`);
+  }
+  const formatNote = getInformativeNote(item.note, item.releaseTypeLabel);
+  if (formatNote) {
+    lines.push(`<strong>Format Note:</strong> ${escapeXml(formatNote)}`);
+  }
   lines.push(`<strong>Release:</strong> ${item.releaseDate} (${escapeXml(item.country)})`);
-  if (item.note) {
-    lines.push(`<strong>Note:</strong> ${escapeXml(item.note)}`);
+  if (item.mediaType === "tv" && typeof item.episodeCount === "number" && item.episodeCount > 0) {
+    lines.push(
+      `<strong>Episodes:</strong> ${item.episodeCount} ${
+        item.episodeCount === 1 ? "episode" : "episodes"
+      }`
+    );
   }
   if (item.runtime) {
     lines.push(`<strong>Runtime:</strong> ${escapeXml(item.runtime)}`);
