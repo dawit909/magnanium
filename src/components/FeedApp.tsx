@@ -120,6 +120,11 @@ export default function FeedApp({
         <div className="space-y-6 animate-in fade-in duration-200">
           <ArtistHero person={selectedPerson} />
 
+          <FeedUrlCard
+            feedUrl={feedUrl}
+            feedProtocolUrl={feedProtocolUrl}
+          />
+
           <FeedFilters
             roles={roles}
             onToggleRole={toggleRole}
@@ -137,11 +142,6 @@ export default function FeedApp({
             onSetExcludeUncredited={setExcludeUncredited}
             isCustomized={isCustomized}
             onResetOptions={resetOptions}
-          />
-
-          <FeedUrlCard
-            feedUrl={feedUrl}
-            feedProtocolUrl={feedProtocolUrl}
           />
 
           <ReleaseList
