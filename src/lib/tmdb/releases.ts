@@ -12,9 +12,30 @@ export function mapReleaseType(
 ): { category: "cinema" | "home"; label: string } | null {
   const cleanNote = note ? note.trim() : "";
   switch (type) {
-    case 2:
-    case 3:
-      return { category: "cinema", label: "Theatrical" };
+    case 2: {
+      if (!cleanNote) {
+        return { category: "cinema", label: "Theatrical (Limited)" };
+      }
+      const noteLabel = /limited/i.test(cleanNote)
+        ? cleanNote
+        : `Limited - ${cleanNote}`;
+      return { category: "cinema", label: `Theatrical (${noteLabel})` };
+    }
+    case 3: {
+      if (!cleanNote) {
+        return { category: "cinema", label: "Theatrical (Wide Release)" };
+      }
+      const isRedundant =
+        cleanNote.toLowerCase() === "theatrical" ||
+        cleanNote.toLowerCase() === "theatrical release";
+      if (isRedundant) {
+        return { category: "cinema", label: "Theatrical (Wide Release)" };
+      }
+      const noteLabel = /wide/i.test(cleanNote)
+        ? cleanNote
+        : `Wide - ${cleanNote}`;
+      return { category: "cinema", label: `Theatrical (${noteLabel})` };
+    }
     case 4: {
       const isRedundant =
         !cleanNote ||
@@ -25,10 +46,26 @@ export function mapReleaseType(
         label: isRedundant ? "Digital" : `Digital (${cleanNote})`,
       };
     }
-    case 5:
-      return { category: "home", label: "Physical" };
-    case 1:
-      return { category: "home", label: "Premiere" };
+    case 5: {
+      const isRedundant =
+        !cleanNote ||
+        cleanNote.toLowerCase() === "physical" ||
+        cleanNote.toLowerCase() === "physical release";
+      return {
+        category: "home",
+        label: isRedundant ? "Physical" : `Physical (${cleanNote})`,
+      };
+    }
+    case 1: {
+      const isRedundant =
+        !cleanNote ||
+        cleanNote.toLowerCase() === "premiere" ||
+        cleanNote.toLowerCase() === "festival";
+      return {
+        category: "home",
+        label: isRedundant ? "Premiere" : `Premiere (${cleanNote})`,
+      };
+    }
     default:
       // Excludes cable/TV rebroadcast (type 6) and unrecognized types
       return null;
@@ -526,7 +563,7 @@ export async function extractMovieReleases(
         posterPath: movie.poster_path,
         releaseDate: dateStr,
         releaseType: "cinema",
-        releaseTypeLabel: "Theatrical",
+        releaseTypeLabel: "Theatrical (Wide Release)",
         country: ctx.country,
         role: roleStr,
         watchProviders,
