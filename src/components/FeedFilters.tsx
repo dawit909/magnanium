@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, memo } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Info, Settings2, ChevronRight, RotateCcw } from "lucide-react";
 import { getCountryOptions } from "@/lib/constants";
 
@@ -109,6 +109,23 @@ const ALERT_OPTIONS = [
   { id: "week_before", label: "Week Before Release" },
 ];
 
+export const STORAGE_KEY_OPTIONS_EXPANDED = "magnanium_feed_options_expanded";
+
+let hasHydrated = false;
+
+function getInitialExpanded(): boolean {
+  if (typeof window === "undefined" || !hasHydrated) {
+    return true; // Unhide by default on SSR and initial client hydration
+  }
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY_OPTIONS_EXPANDED);
+    if (saved !== null) {
+      return saved === "true";
+    }
+  } catch {}
+  return true;
+}
+
 const FeedFilters = memo(function FeedFilters({
   roles,
   onToggleRole,
@@ -127,7 +144,36 @@ const FeedFilters = memo(function FeedFilters({
   isCustomized = false,
   onResetOptions,
 }: FeedFiltersProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(getInitialExpanded);
+
+  // Sync state from sessionStorage after initial hydration and on browser tab navigation (back/forward)
+  useEffect(() => {
+    hasHydrated = true;
+    const syncFromStorage = () => {
+      try {
+        const saved = sessionStorage.getItem(STORAGE_KEY_OPTIONS_EXPANDED);
+        if (saved !== null) {
+          setIsExpanded(saved === "true");
+        }
+      } catch {}
+    };
+
+    syncFromStorage();
+    window.addEventListener("popstate", syncFromStorage);
+    return () => {
+      window.removeEventListener("popstate", syncFromStorage);
+    };
+  }, []);
+
+  const handleToggleExpanded = useCallback(() => {
+    setIsExpanded((prev) => {
+      const next = !prev;
+      try {
+        sessionStorage.setItem(STORAGE_KEY_OPTIONS_EXPANDED, String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   const countryOptions = useMemo(() => getCountryOptions(country), [country]);
 
@@ -137,7 +183,7 @@ const FeedFilters = memo(function FeedFilters({
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => setIsExpanded((prev) => !prev)}
+          onClick={handleToggleExpanded}
           className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors py-1 group focus:outline-none cursor-pointer select-none"
           aria-expanded={isExpanded}
         >
