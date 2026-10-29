@@ -38,6 +38,7 @@ interface CandidateEntry {
   roles: string[];
   mediaType: "movie" | "tv";
   dateStr: string;
+  isUncredited: boolean;
 }
 
 /**
@@ -295,16 +296,18 @@ export async function getPersonReleases(
   const addCandidate = (
     item: TMDBCreditItem,
     roleStr: string,
-    mediaType: "movie" | "tv"
+    mediaType: "movie" | "tv",
+    isUncredited: boolean
   ) => {
     const key = `${mediaType}-${item.id}`;
     const existing = candidateMap.get(key);
     if (existing) {
       if (!existing.roles.includes(roleStr)) existing.roles.push(roleStr);
+      if (!isUncredited) existing.isUncredited = false;
     } else {
       const dateStr =
         (mediaType === "tv" ? item.first_air_date : item.release_date) || "0000-00-00";
-      candidateMap.set(key, { item, roles: [roleStr], mediaType, dateStr });
+      candidateMap.set(key, { item, roles: [roleStr], mediaType, dateStr, isUncredited });
     }
   };
 
@@ -316,10 +319,11 @@ export async function getPersonReleases(
       if (mediaType === "tv" && !includeTv) continue;
       if (!item.id || (!item.title && !item.name)) continue;
 
-      if (excludeUncredited && isSpecialGuestOrUncreditedCredit(item)) continue;
+      const isUncredited = isSpecialGuestOrUncreditedCredit(item);
+      if (excludeUncredited && isUncredited) continue;
       if (!matchesSpecificCrewRole(item, roles)) continue;
 
-      addCandidate(item, resolveCrewRoleLabel(item), mediaType);
+      addCandidate(item, resolveCrewRoleLabel(item), mediaType, isUncredited);
     }
   }
 
@@ -331,9 +335,10 @@ export async function getPersonReleases(
       if (mediaType === "tv" && !includeTv) continue;
       if (!item.id || (!item.title && !item.name)) continue;
 
-      if (excludeUncredited && isSpecialGuestOrUncreditedCredit(item)) continue;
+      const isUncredited = isSpecialGuestOrUncreditedCredit(item);
+      if (excludeUncredited && isUncredited) continue;
 
-      addCandidate(item, resolveCastRoleLabel(item), mediaType);
+      addCandidate(item, resolveCastRoleLabel(item), mediaType, isUncredited);
     }
   }
 
@@ -365,13 +370,21 @@ export async function getPersonReleases(
   };
 
   // Execute extraction with pooled concurrency (10 parallel requests max)
-  const releasesNested = await mapConcurrent(sliceCandidates, 10, async ({ item, roles: candidateRoles, mediaType }) => {
-    const combinedRole = sortAndJoinRoles(candidateRoles);
-    if (mediaType === "movie") {
-      return extractMovieReleases(item, combinedRole, ctx);
+  const releasesNested = await mapConcurrent(
+    sliceCandidates,
+    10,
+    async ({ item, roles: candidateRoles, mediaType, isUncredited }) => {
+      const combinedRole = sortAndJoinRoles(candidateRoles);
+      const itemCtx: ReleaseExtractionContext = {
+        ...ctx,
+        isCandidateUncredited: isUncredited,
+      };
+      if (mediaType === "movie") {
+        return extractMovieReleases(item, combinedRole, itemCtx);
+      }
+      return extractTvReleases(item, combinedRole, itemCtx);
     }
-    return extractTvReleases(item, combinedRole, ctx);
-  });
+  );
 
   const formattedReleases = releasesNested.flat();
   formattedReleases.sort((a, b) => (b.releaseDate > a.releaseDate ? 1 : b.releaseDate < a.releaseDate ? -1 : 0));

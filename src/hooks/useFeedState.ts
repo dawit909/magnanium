@@ -11,8 +11,9 @@ import {
   FeedOptionsSettings,
 } from "@/lib/feed-options";
 import { detectBrowserCountry } from "@/lib/constants";
+import { filterReleases } from "@/lib/feed-filter";
 
-const previewCache = new BoundedMap<string, FormattedRelease[]>(120);
+const rawReleasesCache = new BoundedMap<string, FormattedRelease[]>(120);
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   // Read saved feed options synchronously on client initialization to eliminate first-click lag/overwrite
@@ -25,8 +26,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   const [excludeReReleases, setExcludeReReleasesState] = useState<boolean>(() => getSavedFeedOptions().excludeReReleases);
   const [excludeUncredited, setExcludeUncreditedState] = useState<boolean>(() => getSavedFeedOptions().excludeUncredited);
 
-  const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
-  const [totalUnfilteredCount, setTotalUnfilteredCount] = useState<number | null>(null);
+  const [rawReleases, setRawReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [origin, setOrigin] = useState(() =>
     typeof window !== "undefined" ? window.location.origin : ""
@@ -174,141 +174,91 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     };
   }, [selectedPerson, origin, media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
-  // Fetch preview items with debouncing for smooth interactive filtering
+  // Fetch artist's raw releases for the selected country (1 network request per artist/country)
   useEffect(() => {
     if (!selectedPerson) {
-      setPreviewReleases([]);
+      setRawReleases([]);
       setIsLoadingPreview(false);
       return;
     }
 
-    const sortedRoles = [...roles].sort().join(",");
-    const sortedTypes = [...types].sort().join(",");
+    const cacheKey = `raw:${selectedPerson.id}:${country}`;
+    const cached = rawReleasesCache.get(cacheKey);
 
-    const params = new URLSearchParams({
-      roles: sortedRoles,
-      types: sortedTypes,
-      country,
-      alert,
-      exclude_shorts: String(excludeShorts),
-      exclude_rereleases: String(excludeReReleases),
-      exclude_uncredited: String(excludeUncredited),
-      format: "json",
-    });
-
-    const queryString = params.toString();
-    const cacheKey = `v2:${selectedPerson.id}?${queryString}`;
-    const cached = previewCache.get(cacheKey);
-
-    // If cached in memory, apply immediately with 0ms delay
     if (cached) {
-      setPreviewReleases(cached);
+      setRawReleases(cached);
       setIsLoadingPreview(false);
       return;
     }
 
-    setIsLoadingPreview(true);
     const controller = new AbortController();
+    setIsLoadingPreview(true);
 
-    // 80ms debounce coalesces rapid button toggles into a single request
-    const timer = setTimeout(async () => {
+    const loadRawReleases = async () => {
       try {
-        const res = await fetch(`/api/feed/${selectedPerson.id}?${queryString}`, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/api/feed/${selectedPerson.id}?format=json&country=${country}&raw=true`,
+          {
+            signal: controller.signal,
+            cache: "no-store",
+          }
+        );
 
         if (!res.ok) {
-          console.warn(`Feed preview fetch returned HTTP ${res.status}`);
+          console.warn(`Feed raw releases fetch returned HTTP ${res.status}`);
           return;
         }
 
         const data = await res.json();
         if (data.releases) {
-          previewCache.set(cacheKey, data.releases);
-          setPreviewReleases(data.releases);
+          rawReleasesCache.set(cacheKey, data.releases);
+          setRawReleases(data.releases);
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== "AbortError") {
-          console.error("Feed preview fetch error:", err);
+          console.error("Feed raw releases fetch error:", err);
         }
       } finally {
         if (!controller.signal.aborted) {
           setIsLoadingPreview(false);
         }
       }
-    }, 80);
+    };
+
+    loadRawReleases();
 
     return () => {
-      clearTimeout(timer);
       controller.abort();
     };
+  }, [selectedPerson?.id, country]);
+
+  // Pure in-memory filtering: 0ms instant response on any option change
+  const previewReleases = useMemo(() => {
+    if (!selectedPerson || rawReleases.length === 0) return [];
+    return filterReleases(rawReleases, {
+      roles,
+      types,
+      alert,
+      excludeShorts,
+      excludeReReleases,
+      excludeUncredited,
+    });
   }, [
-    selectedPerson?.id,
+    selectedPerson,
+    rawReleases,
     roles,
     types,
-    country,
     alert,
     excludeShorts,
     excludeReReleases,
     excludeUncredited,
   ]);
 
-  // Fetch baseline unfiltered count (when all options filter out nothing)
-  useEffect(() => {
-    if (!selectedPerson) {
-      setTotalUnfilteredCount(null);
-      return;
-    }
-
-    const params = new URLSearchParams({
-      roles: "all",
-      types: "cinema,home,tv,premiere",
-      country,
-      alert: "announced",
-      exclude_shorts: "false",
-      exclude_rereleases: "false",
-      exclude_uncredited: "false",
-      format: "json",
-    });
-
-    const queryString = params.toString();
-    const cacheKey = `v2:${selectedPerson.id}?${queryString}`;
-    const cached = previewCache.get(cacheKey);
-
-    if (cached) {
-      setTotalUnfilteredCount(cached.length);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/feed/${selectedPerson.id}?${queryString}`, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-        if (data.releases) {
-          previewCache.set(cacheKey, data.releases);
-          setTotalUnfilteredCount(data.releases.length);
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name !== "AbortError") {
-          console.error("Unfiltered count fetch error:", err);
-        }
-      }
-    }, 120);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [selectedPerson?.id, country]);
+  // Baseline unfiltered total for that country
+  const totalUnfilteredCount = useMemo(() => {
+    if (!selectedPerson || rawReleases.length === 0) return null;
+    return rawReleases.length;
+  }, [selectedPerson, rawReleases]);
 
   return {
     media,

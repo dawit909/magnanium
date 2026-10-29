@@ -156,6 +156,7 @@ export interface ReleaseExtractionContext {
   thirtyDaysFromNowStr: string;
   clientKey?: string;
   personId?: number;
+  isCandidateUncredited?: boolean;
 }
 
 const RE_RELEASE_REGEX =
@@ -420,6 +421,9 @@ function createReleaseItem(params: {
   stars?: string[] | null;
   runtime?: string | null;
   language?: string | null;
+  isShort?: boolean;
+  isReRelease?: boolean;
+  isUncredited?: boolean;
 }): FormattedRelease {
   return {
     id: params.id,
@@ -441,6 +445,9 @@ function createReleaseItem(params: {
     stars: params.stars && params.stars.length > 0 ? params.stars : null,
     runtime: params.runtime || null,
     language: params.language || null,
+    isShort: params.isShort ?? false,
+    isReRelease: params.isReRelease ?? false,
+    isUncredited: params.isUncredited ?? false,
   };
 }
 
@@ -503,12 +510,22 @@ export async function extractMovieReleases(
       for (const rd of countryData.release_dates) {
         const dateStr = rd.release_date ? rd.release_date.split("T")[0] : "";
         const mapped = mapReleaseType(rd.type, rd.note);
+        const isReRelease = isReReleaseOrRemaster(
+          rd.note,
+          movieTitle,
+          dateStr,
+          movie.release_date,
+          rd.type
+        );
+        const isShort =
+          isShortFilmTitle(movieTitle) ||
+          Boolean(movieDetails?.runtime && movieDetails.runtime > 0 && movieDetails.runtime < 40);
 
         if (
           !mapped ||
           !dateStr ||
-          (ctx.excludeReReleases &&
-            isReReleaseOrRemaster(rd.note, movieTitle, dateStr, movie.release_date, rd.type))
+          (ctx.excludeReReleases && isReRelease) ||
+          (ctx.excludeShorts && isShort)
         ) {
           continue;
         }
@@ -538,6 +555,9 @@ export async function extractMovieReleases(
             stars,
             runtime,
             language,
+            isShort,
+            isReRelease,
+            isUncredited: Boolean(ctx.isCandidateUncredited),
           })
         );
       }
@@ -545,11 +565,19 @@ export async function extractMovieReleases(
   }
 
   // Fallback to general movie.release_date if no specific country entries matched
+  const isFallbackReRelease = isReReleaseOrRemaster(
+    undefined,
+    movieTitle,
+    movie.release_date,
+    movie.release_date
+  );
+  const isFallbackShort = isShortFilmTitle(movieTitle);
+
   if (
     allReleases.length === 0 &&
     movie.release_date &&
-    (!ctx.excludeReReleases ||
-      !isReReleaseOrRemaster(undefined, movieTitle, movie.release_date, movie.release_date))
+    (!ctx.excludeReReleases || !isFallbackReRelease) &&
+    (!ctx.excludeShorts || !isFallbackShort)
   ) {
     const dateStr = movie.release_date;
     allReleases.push(
@@ -571,6 +599,9 @@ export async function extractMovieReleases(
         stars,
         runtime,
         language,
+        isShort: isFallbackShort,
+        isReRelease: isFallbackReRelease,
+        isUncredited: Boolean(ctx.isCandidateUncredited),
       })
     );
   }
@@ -782,6 +813,11 @@ export async function extractTvReleases(
 
       const premiereLabel = season.season_number === 1 ? "Series Premiere" : "Season Premiere";
 
+      const isSeasonReRelease = isReReleaseOrRemaster(season.name, seasonTitle);
+      if (ctx.excludeReReleases && isSeasonReRelease) {
+        continue;
+      }
+
       candidates.push(
         createReleaseItem({
           id: `${tvShow.id}-s${season.season_number}-${dateStr}`,
@@ -800,16 +836,21 @@ export async function extractTvReleases(
           stars,
           runtime,
           language,
+          isShort: false,
+          isReRelease: isSeasonReRelease,
+          isUncredited: Boolean(ctx.isCandidateUncredited),
         })
       );
     }
   }
 
   // Fallback to tvShow.first_air_date ONLY if no seasons were available to evaluate
+  const isFallbackTvReRelease = isReReleaseOrRemaster(undefined, showTitle);
+
   if (candidates.length === 0 && tvShow.first_air_date && validSeasons.length === 0) {
     const dateStr = tvShow.first_air_date;
     if (
-      (!ctx.excludeReReleases || !isReReleaseOrRemaster(undefined, showTitle)) &&
+      (!ctx.excludeReReleases || !isFallbackTvReRelease) &&
       isDateInWindow(
         dateStr,
         ctx.alert,
@@ -838,6 +879,9 @@ export async function extractTvReleases(
           stars,
           runtime,
           language,
+          isShort: false,
+          isReRelease: isFallbackTvReRelease,
+          isUncredited: Boolean(ctx.isCandidateUncredited),
         })
       );
     }

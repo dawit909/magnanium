@@ -149,6 +149,9 @@ export interface FormattedRelease {
   stars?: string[] | null;
   runtime?: string | null;
   language?: string | null;
+  isShort?: boolean;
+  isReRelease?: boolean;
+  isUncredited?: boolean;
 }
 
 export interface FeedFilterOptions {

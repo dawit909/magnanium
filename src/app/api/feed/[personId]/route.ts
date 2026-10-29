@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPersonReleases } from "@/lib/tmdb";
 import { generateRssFeed } from "@/lib/rss";
-import { ReleaseTypeCategory } from "@/types/tmdb";
+import { ReleaseTypeCategory, FeedFilterOptions } from "@/types/tmdb";
 import {
   guardRateLimit,
   validatePersonId,
@@ -37,6 +37,7 @@ export async function GET(
     }
     const personId = validation.personId!;
 
+    const isRaw = searchParams.get("raw") === "true";
     const mediaParam = searchParams.get("media");
     const rolesParam = searchParams.get("roles") || "actor,director,writer,producer,crew";
     const typesParam = searchParams.get("types") || "cinema,home,tv,premiere";
@@ -61,19 +62,33 @@ export async function GET(
       parsedRoles.length > 0 ? parsedRoles : ["actor", "director", "writer", "producer", "crew"];
     const types = typesParam.split(",").map((t) => t.trim().toLowerCase()) as ReleaseTypeCategory[];
 
+    const filterOptions: FeedFilterOptions = isRaw
+      ? {
+          personId,
+          roles: ["actor", "director", "writer", "producer", "crew"],
+          types: ["cinema", "home", "tv", "premiere"],
+          country,
+          window: "all",
+          alert: "announced",
+          excludeShorts: false,
+          excludeReReleases: false,
+          excludeUncredited: false,
+        }
+      : {
+          personId,
+          media,
+          roles,
+          types,
+          country,
+          window,
+          alert,
+          excludeShorts,
+          excludeReReleases,
+          excludeUncredited,
+        };
+
     const { personName, releases, profilePath, notFound } = await getPersonReleases(
-      {
-        personId,
-        media,
-        roles,
-        types,
-        country,
-        window,
-        alert,
-        excludeShorts,
-        excludeReReleases,
-        excludeUncredited,
-      },
+      filterOptions,
       clientKey
     );
 
