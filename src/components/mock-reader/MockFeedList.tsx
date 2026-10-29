@@ -90,9 +90,9 @@ export function MockFeedList({
                     item.director && `Director: ${item.director}`,
                     item.writer && `Writer: ${item.writer}`,
                     item.stars && `Stars: ${item.stars}`,
-                    item.runtime && `Runtime: ${item.runtime}`,
                     item.release && `Release: ${item.release}`,
                     item.format && `Format: ${item.format}`,
+                    item.runtime && `Runtime: ${item.runtime}`,
                     item.language && `Language: ${item.language}`,
                   ]
                     .filter(Boolean)

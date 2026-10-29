@@ -77,9 +77,6 @@ function renderMetadataLines(item: FormattedRelease): string {
   if (item.stars && item.stars.length > 0) {
     lines.push(`<strong>Stars:</strong> ${item.stars.map(escapeXml).join(", ")}`);
   }
-  if (item.runtime) {
-    lines.push(`<strong>Runtime:</strong> ${escapeXml(item.runtime)}`);
-  }
   lines.push(`<strong>Release:</strong> ${item.releaseDate} (${escapeXml(item.country)})`);
   if (item.mediaType === "tv" && typeof item.episodeCount === "number" && item.episodeCount > 0) {
     lines.push(
@@ -94,6 +91,9 @@ function renderMetadataLines(item: FormattedRelease): string {
   const formatNote = getInformativeNote(item.note, item.releaseTypeLabel);
   if (formatNote) {
     lines.push(`<strong>Format Note:</strong> ${escapeXml(formatNote)}`);
+  }
+  if (item.runtime) {
+    lines.push(`<strong>Runtime:</strong> ${escapeXml(item.runtime)}`);
   }
   if (item.language) {
     lines.push(`<strong>Language:</strong> ${escapeXml(item.language)}`);

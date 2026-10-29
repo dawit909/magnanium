@@ -103,12 +103,6 @@ export function MockFeedDetail({ activeItem, onArtistClick }: MockFeedDetailProp
               {activeItem.stars}
             </p>
           )}
-          {activeItem.runtime && (
-            <p>
-              <strong className="font-semibold text-neutral-950 dark:text-white">Runtime:</strong>{" "}
-              {activeItem.runtime}
-            </p>
-          )}
           {activeItem.release && (
             <p>
               <strong className="font-semibold text-neutral-950 dark:text-white">Release:</strong>{" "}
@@ -131,6 +125,12 @@ export function MockFeedDetail({ activeItem, onArtistClick }: MockFeedDetailProp
             <p>
               <strong className="font-semibold text-neutral-950 dark:text-white">Format Note:</strong>{" "}
               {activeItem.formatNote}
+            </p>
+          )}
+          {activeItem.runtime && (
+            <p>
+              <strong className="font-semibold text-neutral-950 dark:text-white">Runtime:</strong>{" "}
+              {activeItem.runtime}
             </p>
           )}
           {activeItem.language && (
