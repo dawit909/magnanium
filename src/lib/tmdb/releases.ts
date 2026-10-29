@@ -27,6 +27,46 @@ export function mapReleaseType(
   }
 }
 
+export function normalizeDistributorNote(note: string): string {
+  const trimmed = note.trim();
+  if (!trimmed) return "";
+
+  // Normalize slash spacing: e.g. "4k/Blu-ray/DVD" -> "4k / Blu-ray / DVD"
+  let formatted = trimmed.replace(/\s*\/\s*/g, " / ");
+
+  const smallWords = new Set(["and", "or", "of", "in", "on", "at", "to", "for", "the", "a", "an", "vs"]);
+
+  formatted = formatted.replace(/\b([a-zA-Z0-9-]+)\b/g, (word, index) => {
+    const lower = word.toLowerCase();
+
+    // Exact acronyms and brand spellings
+    if (lower === "4k") return "4K";
+    if (lower === "dvd") return "DVD";
+    if (lower === "blu-ray" || lower === "bluray") return "Blu-ray";
+    if (lower === "uhd") return "UHD";
+    if (lower === "vod") return "VOD";
+    if (lower === "hbo") return "HBO";
+    if (lower === "imax") return "IMAX";
+    if (lower === "tv") return "TV";
+
+    // If word is all-caps acronym with length >= 2 (e.g. NYC, LA, SCAD, GEMS, BFI, USA, UK), preserve as-is
+    if (word === word.toUpperCase() && word.length >= 2) {
+      return word;
+    }
+
+    // Small words stay lowercase unless at the very beginning of the string
+    if (index > 0 && smallWords.has(lower)) {
+      return lower;
+    }
+
+    // Capitalize first letter of lowercase word
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+
+  // Ensure first character of entire note is capitalized
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
 export function isDateInWindow(
   dateStr: string,
   alert: "announced" | "month_before" | "week_before",
@@ -488,7 +528,7 @@ export async function extractMovieReleases(
             releaseDate: dateStr,
             releaseType: mapped.category,
             releaseTypeLabel: mapped.label,
-            note: rd.note?.trim() || null,
+            note: rd.note?.trim() ? normalizeDistributorNote(rd.note) : null,
             country: countryData.iso_3166_1,
             role: roleStr,
             watchProviders,
