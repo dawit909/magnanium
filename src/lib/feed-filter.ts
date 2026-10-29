@@ -119,8 +119,11 @@ export function filterReleases(
 
     // 1. Exclusions
     if (excludeShorts && item.isShort) continue;
-    if (excludeReReleases && item.isReRelease) continue;
+    if ((excludeReReleases || isEarliestOnly) && item.isReRelease) continue;
     if (excludeUncredited && item.isUncredited) continue;
+
+    // Earliest format only notifies on a project's true debut within the window (never pre-window catalogue titles)
+    if (isEarliestOnly && item.originalReleaseDate && item.originalReleaseDate < oneYearAgoStr) continue;
 
     // 2. Format
     if (!isEarliestOnly && !typeSet!.has(item.releaseType)) continue;

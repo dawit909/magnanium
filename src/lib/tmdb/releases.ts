@@ -425,6 +425,7 @@ function createReleaseItem(params: {
   stars?: string[] | null;
   runtime?: string | null;
   language?: string | null;
+  originalReleaseDate?: string | null;
   isShort?: boolean;
   isReRelease?: boolean;
   isUncredited?: boolean;
@@ -449,6 +450,7 @@ function createReleaseItem(params: {
     stars: params.stars && params.stars.length > 0 ? params.stars : null,
     runtime: params.runtime || null,
     language: params.language || null,
+    originalReleaseDate: params.originalReleaseDate || null,
     isShort: params.isShort ?? false,
     isReRelease: params.isReRelease ?? false,
     isUncredited: params.isUncredited ?? false,
@@ -559,6 +561,7 @@ export async function extractMovieReleases(
             stars,
             runtime,
             language,
+            originalReleaseDate: movie.release_date || null,
             isShort,
             isReRelease,
             isUncredited: Boolean(ctx.isCandidateUncredited),
@@ -603,6 +606,7 @@ export async function extractMovieReleases(
         stars,
         runtime,
         language,
+        originalReleaseDate: movie.release_date || null,
         isShort: isFallbackShort,
         isReRelease: isFallbackReRelease,
         isUncredited: Boolean(ctx.isCandidateUncredited),
@@ -840,6 +844,7 @@ export async function extractTvReleases(
           stars,
           runtime,
           language,
+          originalReleaseDate: tvShow.first_air_date || null,
           isShort: false,
           isReRelease: isSeasonReRelease,
           isUncredited: Boolean(ctx.isCandidateUncredited),
@@ -883,6 +888,7 @@ export async function extractTvReleases(
           stars,
           runtime,
           language,
+          originalReleaseDate: tvShow.first_air_date || null,
           isShort: false,
           isReRelease: isFallbackTvReRelease,
           isUncredited: Boolean(ctx.isCandidateUncredited),
