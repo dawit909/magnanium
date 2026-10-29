@@ -36,9 +36,9 @@ export function MockFeedDetail({ activeItem, onArtistClick }: MockFeedDetailProp
               <img
                 src={activeItem.artist.avatar}
                 alt={activeItem.artist.name}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
-                className="w-10 h-10 rounded-lg object-cover object-[center_20%] border border-neutral-200/80 dark:border-neutral-700/80 shadow-sm hover:ring-2 hover:ring-[#007aff]/40 transition-all cursor-pointer"
+                className="w-10 h-10 rounded-lg object-cover object-[center_20%] border border-neutral-200/80 dark:border-neutral-700/80 shadow-sm hover:ring-2 hover:ring-[#007aff]/40 transition-all cursor-pointer text-transparent select-none bg-neutral-200 dark:bg-neutral-800"
               />
             </a>
           </div>

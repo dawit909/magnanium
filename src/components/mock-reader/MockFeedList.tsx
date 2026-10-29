@@ -70,9 +70,9 @@ export function MockFeedList({
               <img
                 src={item.artist.avatar}
                 alt={item.artist.name}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
-                className="w-8 h-8 rounded-lg object-cover object-[center_20%] flex-shrink-0 border border-black/10 dark:border-white/10"
+                className="w-8 h-8 rounded-lg object-cover object-[center_20%] flex-shrink-0 border border-black/10 dark:border-white/10 text-transparent select-none bg-neutral-200 dark:bg-neutral-800"
               />
 
               {/* Item info */}

@@ -49,5 +49,16 @@ export default async function PersonPage(props: {
     popularity: person.popularity || 0,
   };
 
-  return <FeedApp initialPerson={initialPerson} />;
+  const heroImageUrl = person.profile_path
+    ? `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`
+    : null;
+
+  return (
+    <>
+      {heroImageUrl && (
+        <link rel="preload" as="image" href={heroImageUrl} fetchPriority="high" />
+      )}
+      <FeedApp initialPerson={initialPerson} />
+    </>
+  );
 }

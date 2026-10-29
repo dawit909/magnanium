@@ -28,7 +28,7 @@ const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: Formatte
               alt={item.movieTitle}
               loading="lazy"
               decoding="async"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform text-transparent select-none"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-neutral-400">

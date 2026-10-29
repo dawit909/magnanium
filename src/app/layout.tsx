@@ -14,6 +14,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Preconnect to TMDB image CDN to eliminate DNS lookup & TLS handshake latency */}
+        <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://image.tmdb.org" />
+      </head>
       <body className="min-h-screen flex flex-col antialiased font-sans">
         <main className="flex-1 max-w-3xl w-full mx-auto px-4 pb-12">{children}</main>
         <footer className="py-6 text-center text-[11px] text-neutral-400 dark:text-neutral-600">

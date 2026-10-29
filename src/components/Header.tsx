@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject } from "react";
+import { RefObject, useEffect } from "react";
 import { Search, Sun, Moon, User, Loader2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 
@@ -41,6 +41,20 @@ export default function Header({
   searchInputRef,
   onKeyDown,
 }: HeaderProps) {
+  // Speculatively preload hero and avatar images for top search results so they render in 0ms on click
+  useEffect(() => {
+    if (typeof window === "undefined" || searchResults.length === 0) return;
+    searchResults.slice(0, 5).forEach((person) => {
+      if (person.profile_path) {
+        // Preload dropdown thumbnail
+        const thumb = new Image();
+        thumb.src = `https://image.tmdb.org/t/p/w180_and_h180_face${person.profile_path}`;
+        // Preload artist page hero image
+        const hero = new Image();
+        hero.src = `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`;
+      }
+    });
+  }, [searchResults]);
   return (
     <header className="sticky top-0 z-30 bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0">
       <div className="flex items-center justify-between gap-3">
@@ -112,7 +126,13 @@ export default function Header({
                     role="option"
                     aria-selected={isActive}
                     onClick={() => onSelectPerson(person)}
-                    onMouseEnter={() => onSetActiveIndex(index)}
+                    onMouseEnter={() => {
+                      onSetActiveIndex(index);
+                      if (person.profile_path && typeof window !== "undefined") {
+                        const hero = new Image();
+                        hero.src = `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`;
+                      }
+                    }}
                     className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400 ${
                       isActive
                         ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium ring-1 ring-inset ring-neutral-300 dark:ring-neutral-700"
@@ -121,17 +141,21 @@ export default function Header({
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       {person.profile_path ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={`https://image.tmdb.org/t/p/w180_and_h180_face${person.profile_path}`}
-                          alt={person.name}
-                          loading="lazy"
-                          decoding="async"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = `https://image.tmdb.org/t/p/w92${person.profile_path}`;
-                          }}
-                          className="w-6 h-6 rounded-full object-cover object-[center_20%] border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm"
-                        />
+                        <div className="relative w-6 h-6 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm flex items-center justify-center text-neutral-400">
+                          <User className="w-3 h-3 pointer-events-none" />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`https://image.tmdb.org/t/p/w180_and_h180_face${person.profile_path}`}
+                            alt={person.name}
+                            loading="eager"
+                            decoding="async"
+                            fetchPriority="high"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = `https://image.tmdb.org/t/p/w92${person.profile_path}`;
+                            }}
+                            className="absolute inset-0 w-full h-full object-cover object-[center_20%] text-transparent select-none"
+                          />
+                        </div>
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
                           <User className="w-3 h-3" />
