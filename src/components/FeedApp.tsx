@@ -65,6 +65,8 @@ export default function FeedApp({
     setExcludeShorts,
     excludeReReleases,
     setExcludeReReleases,
+    excludeUncredited,
+    setExcludeUncredited,
     previewReleases,
     isLoadingPreview,
     feedUrl,
@@ -130,6 +132,8 @@ export default function FeedApp({
             onSetExcludeShorts={setExcludeShorts}
             excludeReReleases={excludeReReleases}
             onSetExcludeReReleases={setExcludeReReleases}
+            excludeUncredited={excludeUncredited}
+            onSetExcludeUncredited={setExcludeUncredited}
           />
 
           <FeedUrlCard

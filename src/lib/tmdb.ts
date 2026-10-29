@@ -14,6 +14,7 @@ import {
   matchesSpecificCrewRole,
   resolveCrewRoleLabel,
   isTalkShowOrGuestAppearance,
+  isSpecialGuestOrUncreditedCredit,
   resolveCastRoleLabel,
 } from "./tmdb/roles";
 import {
@@ -242,6 +243,7 @@ export async function getPersonReleases(
     alert = "announced",
     excludeShorts = false,
     excludeReReleases = true,
+    excludeUncredited = true,
   } = options;
 
   if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {
@@ -308,8 +310,7 @@ export async function getPersonReleases(
       if (mediaType === "tv" && !includeTv) continue;
       if (!item.id || (!item.title && !item.name)) continue;
 
-      if (isIgnoredCrewCredit(item)) continue;
-      if (isArchivalFootageCredit(item)) continue;
+      if (excludeUncredited && isSpecialGuestOrUncreditedCredit(item)) continue;
       if (!matchesSpecificCrewRole(item, roles)) continue;
 
       addCandidate(item, resolveCrewRoleLabel(item), mediaType);
@@ -324,8 +325,7 @@ export async function getPersonReleases(
       if (mediaType === "tv" && !includeTv) continue;
       if (!item.id || (!item.title && !item.name)) continue;
 
-      if (isArchivalFootageCredit(item)) continue;
-      if (mediaType === "tv" && isTalkShowOrGuestAppearance(item)) continue;
+      if (excludeUncredited && isSpecialGuestOrUncreditedCredit(item)) continue;
 
       addCandidate(item, resolveCastRoleLabel(item), mediaType);
     }

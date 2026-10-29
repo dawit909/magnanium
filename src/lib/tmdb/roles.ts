@@ -139,6 +139,24 @@ export function isTalkShowOrGuestAppearance(item: TMDBCreditItem): boolean {
   return charLower.startsWith("self - guest") || charLower === "self - interviewee";
 }
 
+export const SPECIAL_GUEST_UNCREDITED_REGEX =
+  /\b(uncredited|cameo|special appearance|special guest|guest star|guest appearance|in memory of|dedicated to)\b|\((?:uncredited|cameo|guest|special appearance)\)/i;
+
+/**
+ * Checks whether a cast or crew credit is a special, guest, cameo,
+ * uncredited, archival, or talk show appearance.
+ */
+export function isSpecialGuestOrUncreditedCredit(item: TMDBCreditItem): boolean {
+  if (isArchivalFootageCredit(item)) return true;
+  if (isTalkShowOrGuestAppearance(item)) return true;
+  if (isIgnoredCrewCredit(item)) return true;
+
+  const char = (item.character || "").trim();
+  const job = (item.job || "").trim();
+
+  return SPECIAL_GUEST_UNCREDITED_REGEX.test(char) || SPECIAL_GUEST_UNCREDITED_REGEX.test(job);
+}
+
 export function resolveCastRoleLabel(item: TMDBCreditItem): string {
   const char = (item.character || "").trim();
   return char ? `Actor (${char})` : "Actor";

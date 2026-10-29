@@ -8,6 +8,7 @@ export interface FeedOptionsSettings {
   alert: "announced" | "month_before" | "week_before";
   excludeShorts: boolean;
   excludeReReleases: boolean;
+  excludeUncredited: boolean;
 }
 
 export const STORAGE_KEY = "magnanium_feed_options";
@@ -20,6 +21,7 @@ export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
   alert: "announced",
   excludeShorts: false,
   excludeReReleases: true,
+  excludeUncredited: true,
 };
 
 // Global in-memory cache for instant client-side SPA navigation
@@ -73,6 +75,11 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       ? parsed.excludeReReleases
       : inMemoryOptions.excludeReReleases;
 
+  const validExcludeUncredited =
+    typeof parsed.excludeUncredited === "boolean"
+      ? parsed.excludeUncredited
+      : inMemoryOptions.excludeUncredited;
+
   return {
     media: validMedia,
     roles: validRoles,
@@ -81,6 +88,7 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
     alert: validAlert,
     excludeShorts: validExcludeShorts,
     excludeReReleases: validExcludeReReleases,
+    excludeUncredited: validExcludeUncredited,
   };
 }
 

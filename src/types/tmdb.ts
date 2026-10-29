@@ -160,4 +160,5 @@ export interface FeedFilterOptions {
   alert?: "announced" | "month_before" | "week_before";
   excludeShorts?: boolean;
   excludeReReleases?: boolean;
+  excludeUncredited?: boolean;
 }

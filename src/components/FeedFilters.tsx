@@ -19,6 +19,8 @@ interface FeedFiltersProps {
   onSetExcludeShorts: (exclude: boolean) => void;
   excludeReReleases: boolean;
   onSetExcludeReReleases: (exclude: boolean) => void;
+  excludeUncredited: boolean;
+  onSetExcludeUncredited: (exclude: boolean) => void;
 }
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -125,6 +127,8 @@ export default function FeedFilters({
   onSetExcludeShorts,
   excludeReReleases,
   onSetExcludeReReleases,
+  excludeUncredited,
+  onSetExcludeUncredited,
 }: FeedFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -303,6 +307,30 @@ export default function FeedFilters({
                 />
                 <span>Exclude re-releases, remasters &amp; director&apos;s cuts</span>
               </label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="w-14"></span>
+              <label className="flex items-center gap-2 cursor-pointer text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 text-xs select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeUncredited}
+                  onChange={(e) => onSetExcludeUncredited(e.target.checked)}
+                  className="rounded accent-neutral-900 dark:accent-neutral-200 h-3.5 w-3.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-neutral-400"
+                />
+                <span>Exclude special, guest &amp; uncredited appearances</span>
+              </label>
+              <InfoTooltip
+                ariaLabel="Special, guest & uncredited appearances info"
+                width="w-72"
+                content={
+                  <div className="space-y-1.5 text-left">
+                    <p>
+                      Excludes uncredited roles, cameo appearances, TV talk show guest spots, archival footage, and special thanks credits.
+                    </p>
+                  </div>
+                }
+              />
             </div>
           </div>
         </div>

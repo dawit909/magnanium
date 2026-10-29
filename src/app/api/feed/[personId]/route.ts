@@ -41,6 +41,9 @@ export async function GET(
     const alert = (searchParams.get("alert") as "announced" | "month_before" | "week_before") || "announced";
     const excludeShorts = searchParams.get("exclude_shorts") === "true";
     const excludeReReleases = searchParams.get("exclude_rereleases") !== "false";
+    const excludeUncredited =
+      searchParams.get("exclude_uncredited") !== "false" &&
+      searchParams.get("exclude_special") !== "false";
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
     const media = mediaParam.split(",").map((m) => m.trim().toLowerCase()) as ("movie" | "tv")[];
@@ -58,6 +61,7 @@ export async function GET(
         alert,
         excludeShorts,
         excludeReReleases,
+        excludeUncredited,
       },
       clientKey
     );

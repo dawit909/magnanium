@@ -20,6 +20,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   const [alert, setAlertState] = useState<FeedOptionsSettings["alert"]>(() => getSavedFeedOptions().alert);
   const [excludeShorts, setExcludeShortsState] = useState<boolean>(() => getSavedFeedOptions().excludeShorts);
   const [excludeReReleases, setExcludeReReleasesState] = useState<boolean>(() => getSavedFeedOptions().excludeReReleases);
+  const [excludeUncredited, setExcludeUncreditedState] = useState<boolean>(() => getSavedFeedOptions().excludeUncredited);
 
   const [previewReleases, setPreviewReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -51,8 +52,9 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       alert,
       excludeShorts,
       excludeReReleases,
+      excludeUncredited,
     });
-  }, [media, roles, types, country, alert, excludeShorts, excludeReReleases]);
+  }, [media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
   const toggleMedia = useCallback((m: string) => {
     setMedia((prev) => {
@@ -101,6 +103,10 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     setExcludeReReleasesState(exclude);
   }, []);
 
+  const setExcludeUncredited = useCallback((exclude: boolean) => {
+    setExcludeUncreditedState(exclude);
+  }, []);
+
   // Construct RSS Feed URL
   const { feedUrl, feedProtocolUrl } = useMemo(() => {
     if (!selectedPerson || !origin) {
@@ -114,6 +120,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       alert,
       exclude_shorts: String(excludeShorts),
       exclude_rereleases: String(excludeReReleases),
+      exclude_uncredited: String(excludeUncredited),
     });
     const queryString = params.toString();
     const feed = `${origin}/api/feed/${selectedPerson.id}?${queryString}`;
@@ -124,7 +131,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       feedUrl: feed,
       feedProtocolUrl: feedProtocol,
     };
-  }, [selectedPerson, origin, media, roles, types, country, alert, excludeShorts, excludeReReleases]);
+  }, [selectedPerson, origin, media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
   // Fetch preview items with AbortController to cancel stale in-flight requests
   useEffect(() => {
@@ -146,6 +153,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
           alert,
           exclude_shorts: String(excludeShorts),
           exclude_rereleases: String(excludeReReleases),
+          exclude_uncredited: String(excludeUncredited),
           format: "json",
         });
 
@@ -186,7 +194,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     return () => {
       controller.abort();
     };
-  }, [selectedPerson, media, roles, types, country, alert, excludeShorts, excludeReReleases]);
+  }, [selectedPerson, media, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
   return {
     media,
@@ -203,6 +211,8 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     setExcludeShorts,
     excludeReReleases,
     setExcludeReReleases,
+    excludeUncredited,
+    setExcludeUncredited,
     previewReleases,
     isLoadingPreview,
     feedUrl,
