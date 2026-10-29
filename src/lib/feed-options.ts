@@ -159,3 +159,23 @@ export function saveAllFeedOptions(options: FeedOptionsSettings): FeedOptionsSet
 
   return inMemoryOptions;
 }
+
+/**
+ * Reset all options to default settings.
+ */
+export function resetFeedOptions(): FeedOptionsSettings {
+  const detected = typeof window !== "undefined" ? detectBrowserCountry() : null;
+  const defaults: FeedOptionsSettings = {
+    ...DEFAULT_FEED_OPTIONS,
+    country: detected || DEFAULT_FEED_OPTIONS.country,
+  };
+  inMemoryOptions = defaults;
+
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+  }
+
+  return inMemoryOptions;
+}

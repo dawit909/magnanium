@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info, Settings2, ChevronRight } from "lucide-react";
+import { Info, Settings2, ChevronRight, RotateCcw } from "lucide-react";
 import { getCountryOptions } from "@/lib/constants";
 
 interface FeedFiltersProps {
@@ -19,6 +19,8 @@ interface FeedFiltersProps {
   onSetExcludeReReleases: (exclude: boolean) => void;
   excludeUncredited: boolean;
   onSetExcludeUncredited: (exclude: boolean) => void;
+  isCustomized?: boolean;
+  onResetOptions?: () => void;
 }
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -122,6 +124,8 @@ export default function FeedFilters({
   onSetExcludeReReleases,
   excludeUncredited,
   onSetExcludeUncredited,
+  isCustomized = false,
+  onResetOptions,
 }: FeedFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -129,12 +133,12 @@ export default function FeedFilters({
 
   return (
     <div className="space-y-3 text-xs">
-      {/* Collapsible Options Trigger */}
-      <div>
+      {/* Collapsible Options Trigger & Reset */}
+      <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
-          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors py-1 group focus:outline-none cursor-pointer"
+          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors py-1 group focus:outline-none cursor-pointer select-none"
           aria-expanded={isExpanded}
         >
           <Settings2 className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
@@ -147,6 +151,23 @@ export default function FeedFilters({
             }`}
           />
         </button>
+
+        {(isCustomized || isExpanded) && onResetOptions && (
+          <button
+            type="button"
+            onClick={onResetOptions}
+            disabled={!isCustomized}
+            className={`flex items-center gap-1.5 text-xs transition-colors py-1 select-none focus:outline-none ${
+              isCustomized
+                ? "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 cursor-pointer"
+                : "text-neutral-300 dark:text-neutral-600 cursor-default opacity-50"
+            }`}
+            title={isCustomized ? "Reset all options to default settings" : "Options are already at default"}
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Reset options</span>
+          </button>
+        )}
       </div>
 
       {/* All Options Panel */}

@@ -67,6 +67,8 @@ export default function FeedApp({
     setExcludeReReleases,
     excludeUncredited,
     setExcludeUncredited,
+    resetOptions,
+    isCustomized,
     previewReleases,
     totalUnfilteredCount,
     isLoadingPreview,
@@ -133,6 +135,8 @@ export default function FeedApp({
             onSetExcludeReReleases={setExcludeReReleases}
             excludeUncredited={excludeUncredited}
             onSetExcludeUncredited={setExcludeUncredited}
+            isCustomized={isCustomized}
+            onResetOptions={resetOptions}
           />
 
           <FeedUrlCard

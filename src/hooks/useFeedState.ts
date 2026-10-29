@@ -6,8 +6,11 @@ import { BoundedMap } from "@/lib/cache";
 import {
   getSavedFeedOptions,
   saveAllFeedOptions,
+  resetFeedOptions,
+  DEFAULT_FEED_OPTIONS,
   FeedOptionsSettings,
 } from "@/lib/feed-options";
+import { detectBrowserCountry } from "@/lib/constants";
 
 const previewCache = new BoundedMap<string, FormattedRelease[]>(40);
 
@@ -107,6 +110,46 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   const setExcludeUncredited = useCallback((exclude: boolean) => {
     setExcludeUncreditedState(exclude);
   }, []);
+
+  const resetOptions = useCallback(() => {
+    const defaults = resetFeedOptions();
+    setRoles([...defaults.roles]);
+    setTypes([...defaults.types]);
+    setCountryState(defaults.country);
+    setAlertState(defaults.alert);
+    setExcludeShortsState(defaults.excludeShorts);
+    setExcludeReReleasesState(defaults.excludeReReleases);
+    setExcludeUncreditedState(defaults.excludeUncredited);
+  }, []);
+
+  const isCustomized = useMemo(() => {
+    const defaultCountry =
+      typeof window !== "undefined"
+        ? detectBrowserCountry() || DEFAULT_FEED_OPTIONS.country
+        : DEFAULT_FEED_OPTIONS.country;
+
+    const rolesMatch =
+      roles.length === DEFAULT_FEED_OPTIONS.roles.length &&
+      roles.every((r) => DEFAULT_FEED_OPTIONS.roles.includes(r));
+    const typesMatch =
+      types.length === DEFAULT_FEED_OPTIONS.types.length &&
+      types.every((t) => DEFAULT_FEED_OPTIONS.types.includes(t));
+    const countryMatch = country === defaultCountry;
+    const alertMatch = alert === DEFAULT_FEED_OPTIONS.alert;
+    const shortsMatch = excludeShorts === DEFAULT_FEED_OPTIONS.excludeShorts;
+    const reReleasesMatch = excludeReReleases === DEFAULT_FEED_OPTIONS.excludeReReleases;
+    const uncreditedMatch = excludeUncredited === DEFAULT_FEED_OPTIONS.excludeUncredited;
+
+    return !(
+      rolesMatch &&
+      typesMatch &&
+      countryMatch &&
+      alertMatch &&
+      shortsMatch &&
+      reReleasesMatch &&
+      uncreditedMatch
+    );
+  }, [roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
   // Construct RSS Feed URL
   const { feedUrl, feedProtocolUrl } = useMemo(() => {
@@ -270,6 +313,8 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     setExcludeReReleases,
     excludeUncredited,
     setExcludeUncredited,
+    resetOptions,
+    isCustomized,
     previewReleases,
     totalUnfilteredCount,
     isLoadingPreview,
