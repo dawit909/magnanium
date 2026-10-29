@@ -7,10 +7,8 @@ import { createPersonSlug } from "@/lib/slug";
 import { useTheme } from "@/hooks/useTheme";
 import { useSearch } from "@/hooks/useSearch";
 import { useFeedState } from "@/hooks/useFeedState";
-import { useRecentArtists } from "@/hooks/useRecentArtists";
 import Header from "./Header";
 import ArtistHero from "./ArtistHero";
-import RecentArtists from "./RecentArtists";
 import FeedFilters from "./FeedFilters";
 import FeedUrlCard from "./FeedUrlCard";
 import ReleaseList from "./ReleaseList";
@@ -24,7 +22,6 @@ export default function FeedApp({
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [selectedPerson, setSelectedPerson] = useState<TMDBPersonSearchResult | null>(initialPerson);
-  const { recentArtists } = useRecentArtists(selectedPerson);
 
   const handleSelectPerson = useCallback(
     (person: TMDBPersonSearchResult) => {
@@ -109,11 +106,7 @@ export default function FeedApp({
       />
 
       {!selectedPerson ? (
-        <div className="pt-2 space-y-6">
-          <RecentArtists
-            artists={recentArtists}
-            onSelect={(slug) => router.push(`/${slug}`)}
-          />
+        <div className="pt-2">
           <SampleFeedPreview onSelectSampleArtist={handleSelectPerson} />
         </div>
       ) : (
