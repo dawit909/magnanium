@@ -3,6 +3,7 @@
 import { RefObject, useEffect } from "react";
 import { Search, Sun, Moon, User, Loader2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
+import Logo from "./Logo";
 
 interface HeaderProps {
   onHomeClick: () => void;
@@ -61,9 +62,10 @@ export default function Header({
         {/* Logo */}
         <button
           onClick={onHomeClick}
-          className="font-semibold text-base text-neutral-900 dark:text-neutral-100 tracking-tight hover:opacity-75 transition-opacity flex-shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+          aria-label="Magnanium Home"
+          className="hover:opacity-85 transition-opacity flex-shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer"
         >
-          Magnanium
+          <Logo />
         </button>
 
         {/* Search Bar in Header */}
