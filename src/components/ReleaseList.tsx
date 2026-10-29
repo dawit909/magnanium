@@ -110,7 +110,7 @@ const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: Formatte
       {/* Date & Format Tag */}
       <div className="text-right flex-shrink-0 space-y-1">
         <span
-          className="inline-block max-w-[200px] sm:max-w-[280px] truncate align-middle px-2 py-0.5 rounded-full text-[10px] font-medium border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 shadow-sm"
+          className="inline-block max-w-[260px] sm:max-w-[340px] truncate align-middle px-2 py-0.5 rounded-full text-[10px] font-medium border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 shadow-sm"
           title={item.releaseTypeLabel}
         >
           {item.releaseTypeLabel}
