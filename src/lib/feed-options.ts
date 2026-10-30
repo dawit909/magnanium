@@ -31,17 +31,17 @@ let inMemoryOptions: FeedOptionsSettings = { ...DEFAULT_FEED_OPTIONS };
  */
 export function validateFeedOptions(parsed: any): FeedOptionsSettings {
   if (!parsed || typeof parsed !== "object") {
-    return { ...inMemoryOptions };
+    return { ...DEFAULT_FEED_OPTIONS };
   }
 
-  let validRoles = inMemoryOptions.roles;
+  let validRoles = DEFAULT_FEED_OPTIONS.roles;
   if (Array.isArray(parsed.roles)) {
     validRoles = parsed.roles.filter((r: string) =>
       ["actor", "director", "writer", "producer", "crew", "all"].includes(r)
     );
   }
 
-  let validTypes = inMemoryOptions.types;
+  let validTypes = DEFAULT_FEED_OPTIONS.types;
   if (Array.isArray(parsed.types)) {
     validTypes = parsed.types.filter((t: string) =>
       ["cinema", "home", "tv", "premiere", "earliest"].includes(t.toLowerCase())
@@ -51,27 +51,27 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
   const validCountry =
     typeof parsed.country === "string" && /^[a-zA-Z]{2}$/.test(parsed.country)
       ? parsed.country.toUpperCase()
-      : inMemoryOptions.country;
+      : DEFAULT_FEED_OPTIONS.country;
 
   const validAlert =
     ["announced", "month_before", "week_before"].includes(parsed.alert)
       ? (parsed.alert as FeedOptionsSettings["alert"])
-      : inMemoryOptions.alert;
+      : DEFAULT_FEED_OPTIONS.alert;
 
   const validExcludeShorts =
     typeof parsed.excludeShorts === "boolean"
       ? parsed.excludeShorts
-      : inMemoryOptions.excludeShorts;
+      : DEFAULT_FEED_OPTIONS.excludeShorts;
 
   const validExcludeReReleases =
     typeof parsed.excludeReReleases === "boolean"
       ? parsed.excludeReReleases
-      : inMemoryOptions.excludeReReleases;
+      : DEFAULT_FEED_OPTIONS.excludeReReleases;
 
   const validExcludeUncredited =
     typeof parsed.excludeUncredited === "boolean"
       ? parsed.excludeUncredited
-      : inMemoryOptions.excludeUncredited;
+      : DEFAULT_FEED_OPTIONS.excludeUncredited;
 
   return {
     roles: validRoles,
@@ -100,15 +100,16 @@ export function getSavedFeedOptions(): FeedOptionsSettings {
       // First-time visitor: zero-click browser country auto-detection
       const detected = detectBrowserCountry();
       if (detected) {
-        inMemoryOptions = {
-          ...inMemoryOptions,
+        const withDetected: FeedOptionsSettings = {
+          ...DEFAULT_FEED_OPTIONS,
           country: detected,
         };
-        return inMemoryOptions;
+        inMemoryOptions = withDetected;
+        return withDetected;
       }
     } catch {}
   }
-  return inMemoryOptions;
+  return { ...inMemoryOptions };
 }
 
 /**

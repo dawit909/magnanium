@@ -14,16 +14,38 @@ import { detectBrowserCountry } from "@/lib/constants";
 import { filterReleases } from "@/lib/feed-filter";
 
 const rawReleasesCache = new BoundedMap<string, FormattedRelease[]>(120);
+const RAW_STORAGE_PREFIX = "magnanium_raw_";
+
+function getStoredRawReleases(personId: number, country: string): FormattedRelease[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(`${RAW_STORAGE_PREFIX}${personId}_${country}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function setStoredRawReleases(personId: number, country: string, releases: FormattedRelease[]): void {
+  if (typeof window === "undefined" || !releases || releases.length === 0) return;
+  try {
+    sessionStorage.setItem(`${RAW_STORAGE_PREFIX}${personId}_${country}`, JSON.stringify(releases));
+  } catch {}
+}
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
-  // Read saved feed options synchronously on client initialization to eliminate first-click lag/overwrite
-  const [roles, setRoles] = useState<string[]>(() => getSavedFeedOptions().roles);
-  const [types, setTypes] = useState<string[]>(() => getSavedFeedOptions().types);
-  const [country, setCountryState] = useState<string>(() => getSavedFeedOptions().country);
-  const [alert, setAlertState] = useState<FeedOptionsSettings["alert"]>(() => getSavedFeedOptions().alert);
-  const [excludeShorts, setExcludeShortsState] = useState<boolean>(() => getSavedFeedOptions().excludeShorts);
-  const [excludeReReleases, setExcludeReReleasesState] = useState<boolean>(() => getSavedFeedOptions().excludeReReleases);
-  const [excludeUncredited, setExcludeUncreditedState] = useState<boolean>(() => getSavedFeedOptions().excludeUncredited);
+  // Deterministic baseline state matching SSR to prevent hydration mismatch
+  const [roles, setRoles] = useState<string[]>(DEFAULT_FEED_OPTIONS.roles);
+  const [types, setTypes] = useState<string[]>(DEFAULT_FEED_OPTIONS.types);
+  const [country, setCountryState] = useState<string>(DEFAULT_FEED_OPTIONS.country);
+  const [alert, setAlertState] = useState<FeedOptionsSettings["alert"]>(DEFAULT_FEED_OPTIONS.alert);
+  const [excludeShorts, setExcludeShortsState] = useState<boolean>(DEFAULT_FEED_OPTIONS.excludeShorts);
+  const [excludeReReleases, setExcludeReReleasesState] = useState<boolean>(DEFAULT_FEED_OPTIONS.excludeReReleases);
+  const [excludeUncredited, setExcludeUncreditedState] = useState<boolean>(DEFAULT_FEED_OPTIONS.excludeUncredited);
 
   const [rawReleases, setRawReleases] = useState<FormattedRelease[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -31,7 +53,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     typeof window !== "undefined" ? window.location.origin : ""
   );
 
-  const isMountedRef = useRef(false);
+  const hasHydratedOptionsRef = useRef(false);
 
   // Sync origin on client mount
   useEffect(() => {
@@ -40,10 +62,22 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     }
   }, [origin]);
 
-  // Persist options changes to storage (skipping initial mount so first-click is never clobbered)
+  // Client-side hydration of saved options from localStorage
   useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
+    const saved = getSavedFeedOptions();
+    setRoles(saved.roles);
+    setTypes(saved.types);
+    setCountryState(saved.country);
+    setAlertState(saved.alert);
+    setExcludeShortsState(saved.excludeShorts);
+    setExcludeReReleasesState(saved.excludeReReleases);
+    setExcludeUncreditedState(saved.excludeUncredited);
+    hasHydratedOptionsRef.current = true;
+  }, []);
+
+  // Persist options changes to storage ONLY after client has hydrated from storage
+  useEffect(() => {
+    if (!hasHydratedOptionsRef.current) {
       return;
     }
 
@@ -164,7 +198,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     };
   }, [selectedPerson?.id, origin, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
-  // Fetch artist's raw releases for the selected country (1 network request per artist/country)
+  // Fetch artist's raw releases for the selected country (with instant storage restore & background SWR)
   useEffect(() => {
     if (!selectedPerson) {
       setRawReleases([]);
@@ -173,16 +207,20 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     }
 
     const cacheKey = `raw:${selectedPerson.id}:${country}`;
-    const cached = rawReleasesCache.get(cacheKey);
+    const memCached = rawReleasesCache.get(cacheKey);
+    const storedCached = memCached || getStoredRawReleases(selectedPerson.id, country);
 
-    if (cached) {
-      setRawReleases(cached);
+    if (storedCached && storedCached.length > 0) {
+      // Instantly restore cached releases from storage — zero delay, no loading spinner on refresh!
+      rawReleasesCache.set(cacheKey, storedCached);
+      setRawReleases(storedCached);
       setIsLoadingPreview(false);
-      return;
+    } else {
+      // Only show loading indicator if we don't have any cached data yet for this artist/country
+      setIsLoadingPreview(true);
     }
 
     const controller = new AbortController();
-    setIsLoadingPreview(true);
 
     const loadRawReleases = async () => {
       try {
@@ -202,6 +240,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
         const data = await res.json();
         if (data.releases) {
           rawReleasesCache.set(cacheKey, data.releases);
+          setStoredRawReleases(selectedPerson.id, country, data.releases);
           setRawReleases(data.releases);
         }
       } catch (err: unknown) {

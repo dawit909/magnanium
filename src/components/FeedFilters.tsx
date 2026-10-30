@@ -45,7 +45,6 @@ function FilterPill({
     <button
       type="button"
       onClick={onClick}
-      suppressHydrationWarning
       className={`px-3 py-1 rounded-full border text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer select-none ${
         active
           ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
