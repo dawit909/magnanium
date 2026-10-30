@@ -13,17 +13,28 @@ import {
 import { detectBrowserCountry } from "@/lib/constants";
 import { filterReleases } from "@/lib/feed-filter";
 
-const rawReleasesCache = new BoundedMap<string, FormattedRelease[]>(120);
-const RAW_STORAGE_PREFIX = "magnanium_raw_";
+interface StoredRawReleasesEntry {
+  releases: FormattedRelease[];
+  timestamp: number;
+}
 
-function getStoredRawReleases(personId: number, country: string): FormattedRelease[] | null {
+const rawReleasesCache = new BoundedMap<string, StoredRawReleasesEntry>(120);
+const RAW_STORAGE_PREFIX = "magnanium_raw_";
+const SWR_FRESHNESS_MS = 15 * 60 * 1000; // 15-minute client freshness window
+
+function getStoredRawReleases(personId: number, country: string): StoredRawReleasesEntry | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = sessionStorage.getItem(`${RAW_STORAGE_PREFIX}${personId}_${country}`);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // Modern format with timestamp
+      if (parsed && Array.isArray(parsed.releases) && typeof parsed.timestamp === "number") {
+        return parsed as StoredRawReleasesEntry;
+      }
+      // Backward compatibility with raw arrays (treat as stale to trigger background refresh)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return { releases: parsed, timestamp: 0 };
       }
     }
   } catch {}
@@ -33,7 +44,11 @@ function getStoredRawReleases(personId: number, country: string): FormattedRelea
 function setStoredRawReleases(personId: number, country: string, releases: FormattedRelease[]): void {
   if (typeof window === "undefined" || !releases || releases.length === 0) return;
   try {
-    sessionStorage.setItem(`${RAW_STORAGE_PREFIX}${personId}_${country}`, JSON.stringify(releases));
+    const entry: StoredRawReleasesEntry = {
+      releases,
+      timestamp: Date.now(),
+    };
+    sessionStorage.setItem(`${RAW_STORAGE_PREFIX}${personId}_${country}`, JSON.stringify(entry));
   } catch {}
 }
 
@@ -207,14 +222,22 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     }
 
     const cacheKey = `raw:${selectedPerson.id}:${country}`;
-    const memCached = rawReleasesCache.get(cacheKey);
-    const storedCached = memCached || getStoredRawReleases(selectedPerson.id, country);
+    const memEntry = rawReleasesCache.get(cacheKey);
+    const storedEntry = memEntry || getStoredRawReleases(selectedPerson.id, country);
 
-    if (storedCached && storedCached.length > 0) {
+    let isFresh = false;
+    if (storedEntry && storedEntry.releases.length > 0) {
       // Instantly restore cached releases from storage — zero delay, no loading spinner on refresh!
-      rawReleasesCache.set(cacheKey, storedCached);
-      setRawReleases(storedCached);
+      rawReleasesCache.set(cacheKey, storedEntry);
+      setRawReleases(storedEntry.releases);
       setIsLoadingPreview(false);
+
+      // Check if data is within the 15-minute freshness window
+      isFresh = Date.now() - storedEntry.timestamp < SWR_FRESHNESS_MS;
+      if (isFresh) {
+        // Data is completely fresh — skip background network request!
+        return;
+      }
     } else {
       // Only show loading indicator if we don't have any cached data yet for this artist/country
       setIsLoadingPreview(true);
@@ -238,7 +261,11 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
 
         const data = await res.json();
         if (data.releases) {
-          rawReleasesCache.set(cacheKey, data.releases);
+          const freshEntry: StoredRawReleasesEntry = {
+            releases: data.releases,
+            timestamp: Date.now(),
+          };
+          rawReleasesCache.set(cacheKey, freshEntry);
           setStoredRawReleases(selectedPerson.id, country, data.releases);
           setRawReleases(data.releases);
         }
