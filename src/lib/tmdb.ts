@@ -14,6 +14,7 @@ import {
   resolveCrewRoleLabel,
   isSpecialGuestOrUncreditedCredit,
   resolveCastRoleLabel,
+  ROLE_REGEX,
 } from "./tmdb/roles";
 import {
   extractMovieReleases,
@@ -326,10 +327,24 @@ async function fetchRawPersonReleasesFromTMDB(
     if (existing) {
       if (!existing.roles.includes(roleStr)) existing.roles.push(roleStr);
       if (!isUncredited) existing.isUncredited = false;
+      if (typeof item.episode_count === "number") {
+        existing.item.episode_count = Math.max(
+          existing.item.episode_count || 0,
+          item.episode_count
+        );
+      }
+      if (item.first_credit_air_date) {
+        if (
+          !existing.item.first_credit_air_date ||
+          item.first_credit_air_date > existing.item.first_credit_air_date
+        ) {
+          existing.item.first_credit_air_date = item.first_credit_air_date;
+        }
+      }
     } else {
       const dateStr =
         (mediaType === "tv" ? item.first_air_date : item.release_date) || "0000-00-00";
-      candidateMap.set(key, { item, roles: [roleStr], mediaType, dateStr, isUncredited });
+      candidateMap.set(key, { item: { ...item }, roles: [roleStr], mediaType, dateStr, isUncredited });
     }
   };
 
@@ -353,22 +368,77 @@ async function fetchRawPersonReleasesFromTMDB(
     }
   }
 
-  // Sort candidates:
-  // 1. In-development / announced projects without confirmed release dates (dateStr === "0000-00-00") first
-  // 2. Then by dateStr descending (most recent & upcoming first)
-  const candidateList = Array.from(candidateMap.values());
-  candidateList.sort((a, b) => {
+  // Multi-tier deterministic candidate selection:
+  // 1. All upcoming or undated projects (announced, in development, or future release dates).
+  // 2. All recent projects that debuted within the active 1-year window.
+  // 3. Core long-running TV series (artist is recurring regular >3 eps or creator/writer/director/producer),
+  //    sorted by show popularity to capture returning series (e.g. It's Always Sunny, Welcome to Wrexham, Doctor Who).
+  // 4. Prominent catalog movies (sorted by popularity) to discover theatrical re-releases and remasters (e.g. Interstellar, Coraline, Pulp Fiction).
+  const { nowStr, oneYearAgoStr, sevenDaysFromNowStr, thirtyDaysFromNowStr } =
+    getDateWindowBoundaries();
+
+  const allCandidates = Array.from(candidateMap.values());
+
+  const upcomingCandidates = allCandidates.filter(
+    (c) => c.dateStr === "0000-00-00" || c.dateStr >= nowStr
+  );
+
+  const recentCandidates = allCandidates.filter(
+    (c) => c.dateStr < nowStr && c.dateStr >= oneYearAgoStr
+  );
+
+  const coreTvCandidates = allCandidates
+    .filter((c) => {
+      if (c.mediaType !== "tv" || c.dateStr >= oneYearAgoStr) return false;
+      const episodeCount = c.item.episode_count ?? 0;
+      const isRegularOrCreative =
+        episodeCount > 3 ||
+        c.roles.some(
+          (r) =>
+            ROLE_REGEX.director.test(r) ||
+            ROLE_REGEX.writer.test(r) ||
+            ROLE_REGEX.producer.test(r)
+        );
+      return isRegularOrCreative;
+    })
+    .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
+    .slice(0, 10);
+
+  const catalogMovieCandidates = allCandidates
+    .filter(
+      (c) =>
+        c.mediaType === "movie" &&
+        c.dateStr < oneYearAgoStr &&
+        c.dateStr !== "0000-00-00"
+    )
+    .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
+    .slice(0, 18);
+
+  const selectedCandidatesMap = new Map<string, CandidateEntry>();
+  for (const list of [
+    upcomingCandidates,
+    recentCandidates,
+    coreTvCandidates,
+    catalogMovieCandidates,
+  ]) {
+    for (const c of list) {
+      const key = `${c.mediaType}-${c.item.id}`;
+      if (!selectedCandidatesMap.has(key)) {
+        selectedCandidatesMap.set(key, c);
+      }
+    }
+  }
+
+  const activeCandidates = Array.from(selectedCandidatesMap.values());
+
+  // Sort candidates with upcoming/undated first, then chronological descending
+  activeCandidates.sort((a, b) => {
     const aIsUndated = a.dateStr === "0000-00-00";
     const bIsUndated = b.dateStr === "0000-00-00";
     if (aIsUndated && !bIsUndated) return -1;
     if (!aIsUndated && bIsUndated) return 1;
     return b.dateStr > a.dateStr ? 1 : b.dateStr < a.dateStr ? -1 : 0;
   });
-
-  // Evaluate top candidates (up to 30 projects covers all upcoming, recent 2-3 years, and recent catalog anniversary titles)
-  const sliceCandidates = candidateList.slice(0, 30);
-  const { nowStr, oneYearAgoStr, sevenDaysFromNowStr, thirtyDaysFromNowStr } =
-    getDateWindowBoundaries();
 
   const ctx: ReleaseExtractionContext = {
     country,
@@ -388,7 +458,7 @@ async function fetchRawPersonReleasesFromTMDB(
 
   // Execute extraction with pooled concurrency (10 parallel requests max)
   const releasesNested = await mapConcurrent(
-    sliceCandidates,
+    activeCandidates,
     10,
     async ({ item, roles: candidateRoles, mediaType, isUncredited }) => {
       const combinedRole = sortAndJoinRoles(candidateRoles);
