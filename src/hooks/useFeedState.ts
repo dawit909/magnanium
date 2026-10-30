@@ -155,9 +155,9 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       exclude_uncredited: String(excludeUncredited),
     });
     const queryString = params.toString();
-    const feed = `${origin}/api/feed/${selectedPerson.id}?${queryString}`;
+    const feed = `${origin}/feed/${selectedPerson.id}?${queryString}`;
     const hostWithPort = origin.replace(/^https?:\/\//, "");
-    const feedProtocol = `feed://${hostWithPort}/api/feed/${selectedPerson.id}?${queryString}`;
+    const feedProtocol = `feed://${hostWithPort}/feed/${selectedPerson.id}?${queryString}`;
 
     return {
       feedUrl: feed,
@@ -188,7 +188,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     const loadRawReleases = async () => {
       try {
         const res = await fetch(
-          `/api/feed/${selectedPerson.id}?format=json&country=${country}&raw=true`,
+          `/feed/${selectedPerson.id}?format=json&country=${country}&raw=true`,
           {
             signal: controller.signal,
             cache: "no-store",
