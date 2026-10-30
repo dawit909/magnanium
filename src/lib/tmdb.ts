@@ -121,7 +121,7 @@ export async function searchPerson(
       const { dist, score } = scoreCandidate(normQuery, top.name, top.popularity || 0, true);
 
       // High-confidence typo match for a prominent artist: return immediately and skip TMDB token calls!
-      if ((dist <= 2.0 || score <= 1.2) && (top.popularity || 0) >= 1.0) {
+      if (normQuery.length >= 3 && (dist <= 2.0 || score <= 1.2) && (top.popularity || 0) >= 1.0) {
         return { results: indexMatches.slice(0, 6) };
       }
     }
@@ -445,9 +445,19 @@ export async function getPersonReleases(
   }
 
   // Fast in-memory filtering from the cached raw releases
-  const isRaw =
-    roles.length === DEFAULT_FEED_OPTIONS.roles.length &&
+  const isDefaultRoles =
+    roles.includes("all") ||
+    (roles.length === DEFAULT_FEED_OPTIONS.roles.length &&
+      DEFAULT_FEED_OPTIONS.roles.every((r) => roles.includes(r)));
+
+  const isDefaultTypes =
+    !types.includes("earliest") &&
     types.length === DEFAULT_FEED_OPTIONS.types.length &&
+    DEFAULT_FEED_OPTIONS.types.every((t) => types.includes(t));
+
+  const isRaw =
+    isDefaultRoles &&
+    isDefaultTypes &&
     !excludeShorts &&
     !excludeReReleases &&
     !excludeUncredited &&

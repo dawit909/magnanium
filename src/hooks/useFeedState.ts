@@ -42,7 +42,7 @@ function getStoredRawReleases(personId: number, country: string): StoredRawRelea
 }
 
 function setStoredRawReleases(personId: number, country: string, releases: FormattedRelease[]): void {
-  if (typeof window === "undefined" || !releases || releases.length === 0) return;
+  if (typeof window === "undefined" || !releases) return;
   try {
     const entry: StoredRawReleasesEntry = {
       releases,
@@ -79,6 +79,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
 
   // Client-side hydration of saved options from localStorage
   useEffect(() => {
+    defaultCountryRef.current = detectBrowserCountry() || DEFAULT_FEED_OPTIONS.country;
     const saved = getSavedFeedOptions();
     setRoles(saved.roles);
     setTypes(saved.types);
@@ -226,7 +227,7 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     const storedEntry = memEntry || getStoredRawReleases(selectedPerson.id, country);
 
     let isFresh = false;
-    if (storedEntry && storedEntry.releases.length > 0) {
+    if (storedEntry && Array.isArray(storedEntry.releases)) {
       // Instantly restore cached releases from storage — zero delay, no loading spinner on refresh!
       rawReleasesCache.set(cacheKey, storedEntry);
       setRawReleases(storedEntry.releases);
