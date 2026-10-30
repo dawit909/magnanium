@@ -181,9 +181,13 @@ export function filterReleases(
     const projectMap = new Map<string, FormattedRelease>();
     for (let i = 0; i < result.length; i++) {
       const item = result[i];
-      const key = `${item.mediaType}-${item.movieId}`;
+      const seasonMatch = item.id.match(/-s(\d+)-/);
+      const key =
+        item.mediaType === "tv"
+          ? `tv-${item.movieId}-${seasonMatch ? `s${seasonMatch[1]}` : item.movieTitle}`
+          : `movie-${item.movieId}`;
       const existing = projectMap.get(key);
-      if (!existing || item.releaseDate < existing.releaseDate) {
+      if (!existing || compareReleasesAscending(item, existing) < 0) {
         projectMap.set(key, item);
       }
     }

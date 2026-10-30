@@ -138,16 +138,22 @@ export function filterReleasesByType(
   if (candidates.length === 0) return [];
 
   if (isEarliestOnly) {
-    const sorted = [...candidates].sort((a, b) =>
-      a.releaseDate.localeCompare(b.releaseDate)
-    );
-    const earliest = sorted[0];
-    return [
-      {
-        ...earliest,
-        releaseTypeLabel: `${earliest.releaseTypeLabel} (Earliest)`,
-      },
-    ];
+    const seasonMap = new Map<string, FormattedRelease>();
+    for (const item of candidates) {
+      const seasonMatch = item.id.match(/-s(\d+)-/);
+      const key = seasonMatch ? `s${seasonMatch[1]}` : item.movieTitle;
+      const existing = seasonMap.get(key);
+      if (!existing || compareReleasesAscending(item, existing) < 0) {
+        seasonMap.set(key, item);
+      }
+    }
+
+    return Array.from(seasonMap.values()).map((item) => ({
+      ...item,
+      releaseTypeLabel: item.releaseTypeLabel.includes("(Earliest)")
+        ? item.releaseTypeLabel
+        : `${item.releaseTypeLabel} (Earliest)`,
+    }));
   }
 
   return candidates.filter((rel) => normalizedTypes.includes(rel.releaseType));
@@ -882,7 +888,7 @@ export async function extractTvReleases(
             typeof season.episode_count === "number" && season.episode_count > 0
               ? season.episode_count
               : null,
-          originalReleaseDate: tvShow.first_air_date || null,
+          originalReleaseDate: season.air_date || dateStr || tvShow.first_air_date || null,
           isShort: false,
           isReRelease: isSeasonReRelease,
           isUncredited: Boolean(ctx.isCandidateUncredited),
