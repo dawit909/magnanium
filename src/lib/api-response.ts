@@ -82,6 +82,7 @@ export interface CachedResponseOptions {
   sMaxAge?: number;
   staleWhileRevalidate?: number;
   etagPayload?: string | Buffer;
+  etag?: string;
   ifNoneMatch?: string | null;
   rateLimitHeaders?: Record<string, string>;
 }
@@ -96,12 +97,13 @@ export function buildCachedResponse({
   sMaxAge = 43200,
   staleWhileRevalidate = 86400,
   etagPayload,
+  etag: directEtag,
   ifNoneMatch,
   rateLimitHeaders = {},
 }: CachedResponseOptions): NextResponse {
   const cacheControl = `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
   const cdnCacheControl = `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
-  const etag = etagPayload ? generateEtag(etagPayload) : undefined;
+  const etag = directEtag || (etagPayload ? generateEtag(etagPayload) : undefined);
 
   const baseHeaders: Record<string, string> = {
     "Cache-Control": cacheControl,

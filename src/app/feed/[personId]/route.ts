@@ -8,8 +8,33 @@ import {
   validatePersonId,
   buildCachedResponse,
 } from "@/lib/api-response";
+import { kv } from "@/lib/kv";
+import { isEtagMatch, generateEtag } from "@/lib/etag";
 
 export const runtime = "nodejs";
+
+function getFeedEtagKey(
+  personId: number,
+  isJson: boolean,
+  isRaw: boolean,
+  country: string,
+  roles: string[],
+  types: string[],
+  window: string,
+  alert: string,
+  excludeShorts: boolean,
+  excludeReReleases: boolean,
+  excludeUncredited: boolean,
+  clientKey?: string
+): string {
+  const normRoles = [...roles].sort().join(",");
+  const normTypes = [...types].sort().join(",");
+  const countryUpper = country.toUpperCase();
+  const filterPart = isRaw
+    ? "raw"
+    : `${normRoles}_${normTypes}_${window}_${alert}_${excludeShorts}_${excludeReReleases}_${excludeUncredited}`;
+  return `feed_etag:${personId}:${countryUpper}:${isJson ? "json" : "rss"}:${filterPart}${clientKey ? `:${clientKey}` : ""}`;
+}
 
 export async function GET(
   request: NextRequest,
@@ -56,6 +81,44 @@ export async function GET(
     const types = searchParams.has("types")
       ? (typesParam ? (typesParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean) as ReleaseTypeCategory[]) : [])
       : (DEFAULT_FEED_OPTIONS.types as ReleaseTypeCategory[]);
+
+    // 3. Early-Exit ETag Check: If client sends If-None-Match matching cached ETag, return 304 immediately!
+    const ifNoneMatch = request.headers.get("if-none-match");
+    const etagKey = getFeedEtagKey(
+      personId,
+      isJson,
+      isRaw,
+      country,
+      roles,
+      types,
+      window,
+      alert,
+      excludeShorts,
+      excludeReReleases,
+      excludeUncredited,
+      clientKey
+    );
+
+    if (ifNoneMatch && !refresh) {
+      const cachedEtag = await kv.get<string>(etagKey);
+      if (cachedEtag && isEtagMatch(ifNoneMatch, cachedEtag)) {
+        const maxAge = isJson ? 300 : 3600;
+        const sMaxAge = isJson ? 3600 : 43200;
+        const staleWhileRevalidate = 86400;
+
+        return new NextResponse(null, {
+          status: 304,
+          headers: {
+            "Cache-Control": `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+            "CDN-Cache-Control": `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+            "Cloudflare-CDN-Cache-Control": `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+            ETag: cachedEtag,
+            Vary: "Accept, Accept-Encoding",
+            ...rateGuard.headers,
+          },
+        });
+      }
+    }
 
     const filterOptions: FeedFilterOptions = isRaw
       ? {
@@ -118,15 +181,18 @@ export async function GET(
       contentType = "application/rss+xml; charset=utf-8";
     }
 
-    // 3. Cached response with ETag & 304 negotiation
+    // 4. Generate ETag, update KV cache with 12h TTL, and negotiate cached response
+    const etag = generateEtag(payload);
+    kv.set(etagKey, etag, 43200).catch(() => {});
+
     return buildCachedResponse({
       content: payload,
       contentType,
       maxAge: isJson ? 300 : 3600,
       sMaxAge: isJson ? 3600 : 43200,
       staleWhileRevalidate: 86400,
-      etagPayload: payload,
-      ifNoneMatch: request.headers.get("if-none-match"),
+      etag,
+      ifNoneMatch,
       rateLimitHeaders: rateGuard.headers,
     });
   } catch (error) {
