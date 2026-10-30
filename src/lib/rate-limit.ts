@@ -69,16 +69,17 @@ export function checkRateLimit(
  * Extract client IP from request headers (Cloudflare, proxies, x-forwarded-for).
  */
 export function getClientIp(request: NextRequest): string {
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp.trim();
+
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
     const commaIdx = forwardedFor.indexOf(",");
     return (commaIdx === -1 ? forwardedFor : forwardedFor.slice(0, commaIdx)).trim();
   }
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-
-  const cfIp = request.headers.get("cf-connecting-ip");
-  if (cfIp) return cfIp.trim();
 
   return "127.0.0.1";
 }
