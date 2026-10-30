@@ -66,12 +66,9 @@ export function checkRateLimit(
 }
 
 /**
- * Extract client IP from request headers (Cloudflare, proxies, x-forwarded-for).
+ * Extract client IP from standard proxy request headers (x-real-ip, x-forwarded-for).
  */
 export function getClientIp(request: NextRequest): string {
-  const cfIp = request.headers.get("cf-connecting-ip");
-  if (cfIp) return cfIp.trim();
-
   const realIp = request.headers.get("x-real-ip");
   if (realIp) return realIp.trim();
 

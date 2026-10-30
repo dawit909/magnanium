@@ -111,7 +111,6 @@ export async function GET(
           headers: {
             "Cache-Control": `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
             "CDN-Cache-Control": `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
-            "Cloudflare-CDN-Cache-Control": `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
             ETag: cachedEtag,
             Vary: "Accept, Accept-Encoding",
             ...rateGuard.headers,

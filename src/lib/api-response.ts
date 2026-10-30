@@ -108,7 +108,6 @@ export function buildCachedResponse({
   const baseHeaders: Record<string, string> = {
     "Cache-Control": cacheControl,
     "CDN-Cache-Control": cdnCacheControl,
-    "Cloudflare-CDN-Cache-Control": cdnCacheControl,
     Vary: "Accept, Accept-Encoding",
     ...rateLimitHeaders,
   };
