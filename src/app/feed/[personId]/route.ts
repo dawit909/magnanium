@@ -39,6 +39,7 @@ export async function GET(
     const personId = validation.personId!;
 
     const isRaw = searchParams.get("raw") === "true";
+    const refresh = searchParams.get("refresh") === "true";
     const rolesParam = searchParams.get("roles") || DEFAULT_FEED_OPTIONS.roles.join(",");
     const typesParam = searchParams.get("types") || DEFAULT_FEED_OPTIONS.types.join(",");
     const country = searchParams.get("country") || DEFAULT_FEED_OPTIONS.country;
@@ -67,6 +68,7 @@ export async function GET(
           excludeShorts: false,
           excludeReReleases: false,
           excludeUncredited: false,
+          bypassCache: refresh,
         }
       : {
           personId,
@@ -78,6 +80,7 @@ export async function GET(
           excludeShorts,
           excludeReReleases,
           excludeUncredited,
+          bypassCache: refresh,
         };
 
     const { personName, releases, profilePath, notFound } = await getPersonReleases(
@@ -119,9 +122,9 @@ export async function GET(
     return buildCachedResponse({
       content: payload,
       contentType,
-      maxAge: isJson ? 0 : 3600,
-      sMaxAge: isJson ? 0 : 43200,
-      staleWhileRevalidate: isJson ? 0 : 86400,
+      maxAge: isJson ? 300 : 3600,
+      sMaxAge: isJson ? 3600 : 43200,
+      staleWhileRevalidate: 86400,
       etagPayload: payload,
       ifNoneMatch: request.headers.get("if-none-match"),
       rateLimitHeaders: rateGuard.headers,

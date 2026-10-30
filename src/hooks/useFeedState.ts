@@ -228,7 +228,6 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
           `/feed/${selectedPerson.id}?format=json&country=${country}&raw=true`,
           {
             signal: controller.signal,
-            cache: "no-store",
           }
         );
 

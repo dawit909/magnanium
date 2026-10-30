@@ -8,6 +8,8 @@ export interface ClientFilterOptions {
   excludeShorts: boolean;
   excludeReReleases: boolean;
   excludeUncredited: boolean;
+  window?: "upcoming" | "all";
+  country?: string;
 }
 
 export interface DateWindowBoundaries {
@@ -154,6 +156,7 @@ export function filterReleases(
     // 3. Alert timing window
     const d = item.releaseDate;
     if (!d || d < oneYearAgoStr) continue;
+    if (options.window === "upcoming" && d < boundaries.nowStr) continue;
     if (alert === "week_before" && d > sevenDaysFromNowStr) continue;
     if (alert === "month_before" && d > thirtyDaysFromNowStr) continue;
 

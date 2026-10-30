@@ -31,7 +31,8 @@ import {
   getPopularArtistsIndex,
 } from "./fuzzy";
 import { DEFAULT_FEED_OPTIONS } from "./feed-options";
-import { getDateWindowBoundaries, compareReleasesDescending } from "./feed-filter";
+import { getDateWindowBoundaries, compareReleasesDescending, filterReleases } from "./feed-filter";
+import { kv } from "./kv";
 
 interface CandidateEntry {
   item: TMDBCreditItem;
@@ -222,34 +223,69 @@ export async function getPersonCredits(
   return data || { id: personId, cast: [], crew: [] };
 }
 
-/**
- * Compile formatted movie and TV releases for an artist
- */
-export async function getPersonReleases(
-  options: FeedFilterOptions,
-  customApiKey?: string
-): Promise<{
+export interface RawPersonReleasesResult {
   personName: string;
   releases: FormattedRelease[];
-  profilePath?: string | null;
+  profilePath: string | null;
   notFound?: boolean;
-}> {
-  const {
-    personId,
-    roles = DEFAULT_FEED_OPTIONS.roles,
-    types = DEFAULT_FEED_OPTIONS.types,
-    country = DEFAULT_FEED_OPTIONS.country,
-    window = "all",
-    alert = DEFAULT_FEED_OPTIONS.alert,
-    excludeShorts = DEFAULT_FEED_OPTIONS.excludeShorts,
-    excludeReReleases = DEFAULT_FEED_OPTIONS.excludeReReleases,
-    excludeUncredited = DEFAULT_FEED_OPTIONS.excludeUncredited,
-  } = options;
+}
 
+// In-flight promise map to deduplicate concurrent requests for the same artist
+const inFlightRawFetches = new Map<string, Promise<RawPersonReleasesResult>>();
+
+/**
+ * Retrieve raw compiled releases for an artist from L1/L2 KV cache,
+ * or fetch from TMDB once and populate KV with a 12-hour TTL.
+ */
+export async function getRawPersonReleases(
+  personId: number,
+  country: string = DEFAULT_FEED_OPTIONS.country,
+  customApiKey?: string,
+  bypassCache: boolean = false
+): Promise<RawPersonReleasesResult> {
   if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {
     return { personName: "", releases: [], profilePath: null, notFound: true };
   }
 
+  const countryUpper = (country || DEFAULT_FEED_OPTIONS.country).toUpperCase();
+  const cacheKey = `raw_releases:${personId}:${countryUpper}${customApiKey ? `:${customApiKey}` : ""}`;
+
+  // 1. Check L1/L2 KV cache unless explicitly bypassing
+  if (!bypassCache) {
+    const cached = await kv.get<RawPersonReleasesResult>(cacheKey);
+    if (cached && cached.releases) {
+      return cached;
+    }
+  }
+
+  // 2. Deduplicate concurrent in-flight fetches for the same artist & country
+  const existingFetch = inFlightRawFetches.get(cacheKey);
+  if (existingFetch) {
+    return existingFetch;
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const result = await fetchRawPersonReleasesFromTMDB(personId, countryUpper, customApiKey);
+      if (!result.notFound && result.releases) {
+        // Cache compiled raw releases in L1/L2 KV for 12 hours (43,200 seconds)
+        await kv.set(cacheKey, result, 43200);
+      }
+      return result;
+    } finally {
+      inFlightRawFetches.delete(cacheKey);
+    }
+  })();
+
+  inFlightRawFetches.set(cacheKey, fetchPromise);
+  return fetchPromise;
+}
+
+async function fetchRawPersonReleasesFromTMDB(
+  personId: number,
+  country: string,
+  customApiKey?: string
+): Promise<RawPersonReleasesResult> {
   // Fetch person profile and combined credits concurrently
   const [person, credits] = await Promise.all([
     getPersonDetails(personId, customApiKey),
@@ -261,27 +297,7 @@ export async function getPersonReleases(
     return { personName: "", releases: [], profilePath: null, notFound: true };
   }
 
-  // Normalize release types
-  const normalizedTypes = types.map((t) => t.toLowerCase() as ReleaseTypeCategory);
-  const isEarliestOnly = normalizedTypes.includes("earliest");
-
-  // Determine media inclusion
-  const includeMovies =
-    normalizedTypes.some((t) => ["cinema", "home", "premiere"].includes(t)) ||
-    isEarliestOnly ||
-    normalizedTypes.length === 0;
-
-  const includeTv = normalizedTypes.includes("tv") || isEarliestOnly;
-
   const personName = person.name || "Artist";
-
-  const isActorSelected = roles.includes("all") || roles.includes("actor");
-  const includeCrew =
-    roles.includes("all") ||
-    roles.includes("director") ||
-    roles.includes("writer") ||
-    roles.includes("producer") ||
-    roles.includes("crew");
 
   // Deduplicate and aggregate multiple roles per project in O(N)
   const candidateMap = new Map<string, CandidateEntry>();
@@ -304,53 +320,51 @@ export async function getPersonReleases(
     }
   };
 
-  // Process crew credits
-  if (includeCrew && credits.crew) {
+  // Process all crew credits
+  if (credits.crew) {
     for (const item of credits.crew) {
-      const mediaType = (item.media_type as "movie" | "tv") || "movie";
-      if (mediaType === "movie" && !includeMovies) continue;
-      if (mediaType === "tv" && !includeTv) continue;
       if (!item.id || (!item.title && !item.name)) continue;
-
+      const mediaType = (item.media_type as "movie" | "tv") || "movie";
       const isUncredited = isSpecialGuestOrUncreditedCredit(item);
-      if (excludeUncredited && isUncredited) continue;
-      if (!matchesSpecificCrewRole(item, roles)) continue;
-
       addCandidate(item, resolveCrewRoleLabel(item), mediaType, isUncredited);
     }
   }
 
-  // Process cast credits
-  if (isActorSelected && credits.cast) {
+  // Process all cast credits
+  if (credits.cast) {
     for (const item of credits.cast) {
-      const mediaType = (item.media_type as "movie" | "tv") || "movie";
-      if (mediaType === "movie" && !includeMovies) continue;
-      if (mediaType === "tv" && !includeTv) continue;
       if (!item.id || (!item.title && !item.name)) continue;
-
+      const mediaType = (item.media_type as "movie" | "tv") || "movie";
       const isUncredited = isSpecialGuestOrUncreditedCredit(item);
-      if (excludeUncredited && isUncredited) continue;
-
       addCandidate(item, resolveCastRoleLabel(item), mediaType, isUncredited);
     }
   }
 
-  // Sort candidates by pre-extracted date descending (fast string comparison)
+  // Sort candidates:
+  // 1. In-development / announced projects without confirmed release dates (dateStr === "0000-00-00") first
+  // 2. Then by dateStr descending (most recent & upcoming first)
   const candidateList = Array.from(candidateMap.values());
-  candidateList.sort((a, b) => (b.dateStr > a.dateStr ? 1 : b.dateStr < a.dateStr ? -1 : 0));
+  candidateList.sort((a, b) => {
+    const aIsUndated = a.dateStr === "0000-00-00";
+    const bIsUndated = b.dateStr === "0000-00-00";
+    if (aIsUndated && !bIsUndated) return -1;
+    if (!aIsUndated && bIsUndated) return 1;
+    return b.dateStr > a.dateStr ? 1 : b.dateStr < a.dateStr ? -1 : 0;
+  });
 
-  const sliceCandidates = candidateList.slice(0, 40);
+  // Evaluate top candidates (up to 30 projects covers all upcoming, recent 2-3 years, and recent catalog anniversary titles)
+  const sliceCandidates = candidateList.slice(0, 30);
   const { nowStr, oneYearAgoStr, sevenDaysFromNowStr, thirtyDaysFromNowStr } =
     getDateWindowBoundaries();
 
   const ctx: ReleaseExtractionContext = {
     country,
-    window,
-    alert,
-    excludeShorts,
-    excludeReReleases,
-    normalizedTypes,
-    isEarliestOnly,
+    window: "all",
+    alert: "announced",
+    excludeShorts: false,
+    excludeReReleases: false,
+    normalizedTypes: ["cinema", "home", "premiere", "tv"],
+    isEarliestOnly: false,
     nowStr,
     oneYearAgoStr,
     sevenDaysFromNowStr,
@@ -383,5 +397,66 @@ export async function getPersonReleases(
     personName,
     releases: formattedReleases,
     profilePath: person.profile_path || null,
+  };
+}
+
+/**
+ * Compile formatted movie and TV releases for an artist.
+ * Leverages L1/L2 KV cached raw releases and fast in-memory filtering.
+ */
+export async function getPersonReleases(
+  options: FeedFilterOptions,
+  customApiKey?: string
+): Promise<{
+  personName: string;
+  releases: FormattedRelease[];
+  profilePath?: string | null;
+  notFound?: boolean;
+}> {
+  const {
+    personId,
+    roles = DEFAULT_FEED_OPTIONS.roles,
+    types = DEFAULT_FEED_OPTIONS.types,
+    country = DEFAULT_FEED_OPTIONS.country,
+    window = "all",
+    alert = DEFAULT_FEED_OPTIONS.alert,
+    excludeShorts = DEFAULT_FEED_OPTIONS.excludeShorts,
+    excludeReReleases = DEFAULT_FEED_OPTIONS.excludeReReleases,
+    excludeUncredited = DEFAULT_FEED_OPTIONS.excludeUncredited,
+    bypassCache = false,
+  } = options;
+
+  const rawData = await getRawPersonReleases(personId, country, customApiKey, bypassCache);
+  if (rawData.notFound) {
+    return rawData;
+  }
+
+  // Fast in-memory filtering from the cached raw releases
+  const isRaw =
+    roles.length === DEFAULT_FEED_OPTIONS.roles.length &&
+    types.length === DEFAULT_FEED_OPTIONS.types.length &&
+    !excludeShorts &&
+    !excludeReReleases &&
+    !excludeUncredited &&
+    window === "all" &&
+    alert === "announced";
+
+  const releases = isRaw
+    ? rawData.releases
+    : filterReleases(rawData.releases, {
+        roles,
+        types,
+        country,
+        window,
+        alert,
+        excludeShorts,
+        excludeReReleases,
+        excludeUncredited,
+      });
+
+  return {
+    personName: rawData.personName,
+    releases,
+    profilePath: rawData.profilePath,
   };
 }

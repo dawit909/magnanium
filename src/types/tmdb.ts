@@ -170,4 +170,5 @@ export interface FeedFilterOptions {
   excludeShorts?: boolean;
   excludeReReleases?: boolean;
   excludeUncredited?: boolean;
+  bypassCache?: boolean;
 }
