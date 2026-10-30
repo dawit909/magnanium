@@ -112,6 +112,21 @@ export async function searchPerson(
   const normQuery = normalizeSearchText(query);
   const tokens = normQuery.split(/\s+/).filter((t) => t.length >= 2);
 
+  // 1. Check local pre-indexed popular artists FIRST (0 network calls, < 1ms)
+  const fuzzyIndex = await getPopularArtistsIndex();
+  if (fuzzyIndex) {
+    const indexMatches = fuzzyIndex.search(query, 6);
+    if (indexMatches.length > 0) {
+      const top = indexMatches[0];
+      const { dist, score } = scoreCandidate(normQuery, top.name, top.popularity || 0, true);
+
+      // High-confidence typo match for a prominent artist: return immediately and skip TMDB token calls!
+      if ((dist <= 2.0 || score <= 1.2) && (top.popularity || 0) >= 1.0) {
+        return { results: indexMatches.slice(0, 6) };
+      }
+    }
+  }
+
   const candidatePool: TMDBPersonSearchResult[] = [];
   const seenIds = new Set<number>();
 
@@ -125,15 +140,20 @@ export async function searchPerson(
     }
   };
 
-  // Include direct results in case one ranks reasonably
+  // Include direct results and any preliminary index matches
   addCandidates(directResults);
+  if (fuzzyIndex) {
+    const indexMatches = fuzzyIndex.search(query, 10);
+    addCandidates(indexMatches);
+  }
 
+  // 2. Fall back to surname and first name queries on TMDB ONLY if local index didn't have a high-confidence match
   if (tokens.length >= 2) {
-    // 1. Token Decomposition: Extract surname (last token) and first name
+    // Token Decomposition: Extract surname (last token) and first name
     const surname = tokens[tokens.length - 1];
     const firstName = tokens[0];
 
-    // 2. Broad TMDB Candidate Fetch: Fetch TMDB candidates for surname and first name
+    // Broad TMDB Candidate Fetch: Fetch TMDB candidates for surname and first name
     const [surRes, firstRes] = await Promise.all([
       tmdbFetch<{ results: TMDBPersonSearchResult[] }>(
         "/search/person",
@@ -151,13 +171,6 @@ export async function searchPerson(
 
     addCandidates(surRes.data?.results);
     addCandidates(firstRes.data?.results);
-  }
-
-  // Query top artists fuzzy index to inject known prominent artists
-  const fuzzyIndex = await getPopularArtistsIndex();
-  if (fuzzyIndex) {
-    const indexMatches = fuzzyIndex.search(query, 10);
-    addCandidates(indexMatches);
   }
 
   // 3. Damerau-Levenshtein Scoring + Popularity Boost:
