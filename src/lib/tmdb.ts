@@ -5,6 +5,7 @@ import {
   FormattedRelease,
   FeedFilterOptions,
   TMDBCreditItem,
+  ReleaseTypeCategory,
 } from "@/types/tmdb";
 import { tmdbFetch, hasTmdbAuth } from "./tmdb/client";
 import {
@@ -235,7 +236,6 @@ export async function getPersonReleases(
 }> {
   const {
     personId,
-    media,
     roles = DEFAULT_FEED_OPTIONS.roles,
     types = DEFAULT_FEED_OPTIONS.types,
     country = DEFAULT_FEED_OPTIONS.country,
@@ -262,22 +262,16 @@ export async function getPersonReleases(
   }
 
   // Normalize release types
-  const normalizedTypes = types.map((t) => {
-    const lower = t.toLowerCase();
-    if (lower === "theatrical") return "cinema";
-    if (lower === "digital" || lower === "physical") return "home";
-    return lower;
-  });
+  const normalizedTypes = types.map((t) => t.toLowerCase() as ReleaseTypeCategory);
   const isEarliestOnly = normalizedTypes.includes("earliest");
 
-  // Determine media inclusion (if media is passed explicitly, respect it; otherwise derive from types)
-  const includeMovies = media
-    ? media.includes("movie")
-    : normalizedTypes.some((t) => ["cinema", "home", "premiere"].includes(t)) || isEarliestOnly || normalizedTypes.length === 0;
+  // Determine media inclusion
+  const includeMovies =
+    normalizedTypes.some((t) => ["cinema", "home", "premiere"].includes(t)) ||
+    isEarliestOnly ||
+    normalizedTypes.length === 0;
 
-  const includeTv = media
-    ? media.includes("tv")
-    : normalizedTypes.includes("tv") || isEarliestOnly;
+  const includeTv = normalizedTypes.includes("tv") || isEarliestOnly;
 
   const personName = person.name || "Artist";
 

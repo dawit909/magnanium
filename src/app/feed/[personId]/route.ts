@@ -39,7 +39,6 @@ export async function GET(
     const personId = validation.personId!;
 
     const isRaw = searchParams.get("raw") === "true";
-    const mediaParam = searchParams.get("media");
     const rolesParam = searchParams.get("roles") || DEFAULT_FEED_OPTIONS.roles.join(",");
     const typesParam = searchParams.get("types") || DEFAULT_FEED_OPTIONS.types.join(",");
     const country = searchParams.get("country") || DEFAULT_FEED_OPTIONS.country;
@@ -47,14 +46,9 @@ export async function GET(
     const alert = (searchParams.get("alert") as AlertTimingWindow) || DEFAULT_FEED_OPTIONS.alert;
     const excludeShorts = searchParams.get("exclude_shorts") === "true";
     const excludeReReleases = searchParams.get("exclude_rereleases") !== "false";
-    const excludeUncredited =
-      searchParams.get("exclude_uncredited") !== "false" &&
-      searchParams.get("exclude_special") !== "false";
+    const excludeUncredited = searchParams.get("exclude_uncredited") !== "false";
     const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
 
-    const media = mediaParam
-      ? (mediaParam.split(",").map((m) => m.trim().toLowerCase()) as ("movie" | "tv")[])
-      : undefined;
     const roles = searchParams.has("roles")
       ? (rolesParam ? rolesParam.split(",").map((r) => r.trim().toLowerCase()).filter(Boolean) : [])
       : DEFAULT_FEED_OPTIONS.roles;
@@ -76,7 +70,6 @@ export async function GET(
         }
       : {
           personId,
-          media,
           roles,
           types,
           country,

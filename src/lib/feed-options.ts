@@ -2,7 +2,6 @@ import { COUNTRIES, detectBrowserCountry } from "./constants";
 import { AlertTimingWindow } from "@/types/tmdb";
 
 export interface FeedOptionsSettings {
-  media: string[];
   roles: string[];
   types: string[];
   country: string;
@@ -15,7 +14,6 @@ export interface FeedOptionsSettings {
 export const STORAGE_KEY = "magnanium_feed_options";
 
 export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
-  media: ["movie", "tv"],
   roles: ["actor", "director", "writer", "producer", "crew"],
   types: ["cinema", "home", "tv", "premiere"],
   country: "US",
@@ -35,11 +33,6 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
   if (!parsed || typeof parsed !== "object") {
     return { ...inMemoryOptions };
   }
-
-  const validMedia =
-    Array.isArray(parsed.media) && parsed.media.length > 0
-      ? parsed.media
-      : inMemoryOptions.media;
 
   let validRoles = inMemoryOptions.roles;
   if (Array.isArray(parsed.roles)) {
@@ -81,7 +74,6 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       : inMemoryOptions.excludeUncredited;
 
   return {
-    media: validMedia,
     roles: validRoles,
     types: validTypes,
     country: validCountry,

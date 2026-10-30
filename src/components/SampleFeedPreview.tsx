@@ -27,13 +27,6 @@ interface MockRssSettings {
   offset?: { x: number; y: number };
 }
 
-// Clean up legacy global localStorage once on client side
-if (typeof window !== "undefined") {
-  try {
-    localStorage.removeItem(MOCK_SETTINGS_KEY);
-  } catch {}
-}
-
 const getInitialTabSettings = (): MockRssSettings | null => {
   if (typeof window === "undefined") return null;
   try {

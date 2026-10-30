@@ -162,9 +162,8 @@ export interface FormattedRelease {
 
 export interface FeedFilterOptions {
   personId: number;
-  media?: ("movie" | "tv")[];
   roles?: string[]; // "actor", "director", "writer", "producer", "crew"
-  types?: string[]; // "cinema", "home", "earliest"
+  types?: string[]; // "cinema", "home", "tv", "premiere", "earliest"
   country?: string;
   window?: "upcoming" | "all";
   alert?: AlertTimingWindow;

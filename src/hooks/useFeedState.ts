@@ -48,7 +48,6 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     }
 
     saveAllFeedOptions({
-      media: DEFAULT_FEED_OPTIONS.media,
       roles,
       types,
       country,
