@@ -18,6 +18,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url), 307);
   }
 
+  // Strictly block legacy feed and avatar API routes (no backwards-compatibility redirects)
+  if (pathname.startsWith("/api/feed") || pathname.startsWith("/api/avatar")) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   // Cross-origin protection for internal API endpoints
   const secFetchSite = request.headers.get("sec-fetch-site");
   if (pathname.startsWith("/api/search") && secFetchSite === "cross-site") {
