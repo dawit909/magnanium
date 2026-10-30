@@ -48,7 +48,7 @@ export default function FeedUrlNotice() {
           </div>
 
           <p className="text-neutral-600 dark:text-neutral-300 text-xs leading-relaxed">
-            All RSS feed URLs have migrated from <code className="px-1 py-0.5 rounded bg-neutral-200/60 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 font-mono text-[11px]">/api/feed/...</code> to clean <code className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-200 font-mono font-medium text-[11px]">/feed/...</code> endpoints. Legacy API URLs are no longer supported. Please update your existing subscriptions in your RSS reader.
+            All RSS feed URLs have migrated from <code className="px-1 py-0.5 rounded bg-neutral-200/60 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 font-mono text-[11px]">/api/feed/...</code> to clean <code className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-200 font-mono font-medium text-[11px]">/feed/...</code> endpoints. Legacy API URLs are no longer supported. Please update your existing subscriptions in your RSS reader. Thank you for your understanding.
           </p>
         </div>
 
