@@ -879,12 +879,14 @@ export async function extractTvReleases(
         }
       }
 
-      const epsInSeason = episodesBySeason.get(season.season_number) || [];
+      const epsInSeason = (episodesBySeason.get(season.season_number) || [])
+        .filter((e) => Boolean(e.airDate))
+        .sort((a, b) => (a.airDate || "").localeCompare(b.airDate || ""));
       const latestEp =
         epsInSeason.length > 0 ? epsInSeason[epsInSeason.length - 1] : null;
       const dateStr =
-        season.air_date ||
         latestEp?.airDate ||
+        season.air_date ||
         (tvDetails?.next_episode_to_air?.season_number === season.season_number
           ? tvDetails.next_episode_to_air.air_date
           : null);

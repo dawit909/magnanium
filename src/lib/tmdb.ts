@@ -264,7 +264,7 @@ export async function getRawPersonReleases(
   }
 
   const countryUpper = (country || DEFAULT_FEED_OPTIONS.country).toUpperCase();
-  const cacheKey = `raw_releases:v3:${personId}:${countryUpper}${customApiKey ? `:${customApiKey}` : ""}`;
+  const cacheKey = `raw_releases:v4:${personId}:${countryUpper}${customApiKey ? `:${customApiKey}` : ""}`;
 
   // 1. Check L1/L2 KV cache unless explicitly bypassing
   if (!bypassCache) {
