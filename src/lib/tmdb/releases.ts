@@ -759,6 +759,13 @@ export async function extractTvReleases(
   const candidates: FormattedRelease[] = [];
   const showCountry = tvDetails?.origin_country?.[0] || ctx.country;
 
+  const isCoreCastOrCrew =
+    Boolean(ctx.personId) &&
+    (tvDetails?.created_by?.some((c) => c.id === ctx.personId) ||
+      tvDetails?.credits?.cast?.some((c) => c.id === ctx.personId) ||
+      tvDetails?.credits?.crew?.some((c) => c.id === ctx.personId) ||
+      (typeof tvShow.episode_count === "number" && tvShow.episode_count >= 4));
+
   const validSeasons =
     tvDetails?.seasons && tvDetails.seasons.length > 0
       ? tvDetails.seasons.filter((s) => s.season_number > 0)
@@ -788,6 +795,19 @@ export async function extractTvReleases(
         (ctx.excludeReReleases && isReReleaseOrRemaster(season.name, seasonTitle))
       ) {
         continue;
+      }
+
+      // Filter out past one-off guest roles from years earlier when a continuing series releases subsequent seasons.
+      // Never filter Season 1, never filter roles within 2 years of the artist's credit, and never filter series regulars (>=4 episodes or core cast/crew).
+      if (ctx.personId && !isCoreCastOrCrew && season.season_number > 1) {
+        const seasonYear = dateStr ? parseInt(dateStr.slice(0, 4), 10) : 0;
+        const firstCreditYear = tvShow.first_credit_air_date
+          ? parseInt(tvShow.first_credit_air_date.slice(0, 4), 10)
+          : 0;
+
+        if (firstCreditYear > 0 && seasonYear - firstCreditYear >= 2) {
+          continue;
+        }
       }
 
       const premiereLabel = season.season_number === 1 ? "Series Premiere" : "Season Premiere";
