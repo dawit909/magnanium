@@ -707,38 +707,6 @@ export async function extractMovieReleases(
   );
 }
 
-interface SeasonCreditsResponse {
-  cast?: Array<{ id: number; name: string }>;
-  crew?: Array<{ id: number; name: string }>;
-}
-
-export async function isArtistInSeasonCredits(
-  tvId: number,
-  seasonNumber: number,
-  personId: number,
-  clientKey?: string
-): Promise<boolean | null> {
-  try {
-    const { data } = await tmdbFetch<SeasonCreditsResponse>(
-      `/tv/${tvId}/season/${seasonNumber}/credits`,
-      {},
-      43200,
-      clientKey
-    );
-
-    const cast = data?.cast || [];
-    const crew = data?.crew || [];
-
-    if (cast.length === 0 && crew.length === 0) {
-      return null;
-    }
-
-    return cast.some((c) => c.id === personId) || crew.some((c) => c.id === personId);
-  } catch {
-    return null;
-  }
-}
-
 export async function extractTvReleases(
   tvShow: TMDBCreditItem,
   roleStr: string,
@@ -791,12 +759,6 @@ export async function extractTvReleases(
   const candidates: FormattedRelease[] = [];
   const showCountry = tvDetails?.origin_country?.[0] || ctx.country;
 
-  const isCoreCastOrCrew =
-    Boolean(ctx.personId) &&
-    (tvDetails?.created_by?.some((c) => c.id === ctx.personId) ||
-      tvDetails?.credits?.cast?.some((c) => c.id === ctx.personId) ||
-      tvDetails?.credits?.crew?.some((c) => c.id === ctx.personId));
-
   const validSeasons =
     tvDetails?.seasons && tvDetails.seasons.length > 0
       ? tvDetails.seasons.filter((s) => s.season_number > 0)
@@ -826,19 +788,6 @@ export async function extractTvReleases(
         (ctx.excludeReReleases && isReReleaseOrRemaster(season.name, seasonTitle))
       ) {
         continue;
-      }
-
-      // Only filter out past guest roles from years earlier when a continuing series releases subsequent seasons.
-      // Never filter Season 1 or roles within 2 years of the artist's credit, and never filter by minimum episode count.
-      if (ctx.personId && !isCoreCastOrCrew && season.season_number > 1) {
-        const seasonYear = dateStr ? parseInt(dateStr.slice(0, 4), 10) : 0;
-        const firstCreditYear = tvShow.first_credit_air_date
-          ? parseInt(tvShow.first_credit_air_date.slice(0, 4), 10)
-          : 0;
-
-        if (firstCreditYear > 0 && seasonYear - firstCreditYear >= 2) {
-          continue;
-        }
       }
 
       const premiereLabel = season.season_number === 1 ? "Series Premiere" : "Season Premiere";
