@@ -8,6 +8,7 @@ import {
 } from "@/types/tmdb";
 import { tmdbFetch } from "./client";
 import { compareReleasesAscending } from "../feed-filter";
+import { isNonNarrativeShow, isHostOrCoreRegular } from "./roles";
 
 export function mapReleaseType(
   type: number,
@@ -718,6 +719,12 @@ export async function extractTvReleases(
     return [];
   }
 
+  // Non-narrative TV series (talk shows, game shows, reality shows, award shows)
+  // where the artist is merely a guest/Self should never generate season releases.
+  if (isNonNarrativeShow(tvShow) && !isHostOrCoreRegular(tvShow)) {
+    return [];
+  }
+
   const { data: tvDetails } = await tmdbFetch<
     TvDetails & {
       "watch/providers"?: RawWatchProvidersResponse;
@@ -794,6 +801,11 @@ export async function extractTvReleases(
         ) ||
         (ctx.excludeReReleases && isReReleaseOrRemaster(season.name, seasonTitle))
       ) {
+        continue;
+      }
+
+      // Uncredited or cameo/guest credits should never produce releases for subsequent seasons.
+      if (ctx.isCandidateUncredited && season.season_number > 1) {
         continue;
       }
 

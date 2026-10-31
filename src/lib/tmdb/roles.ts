@@ -134,12 +134,51 @@ export function resolveCrewRoleLabel(item: TMDBCreditItem): string {
   return job || dept || "Crew";
 }
 
-export function isTalkShowOrGuestAppearance(item: TMDBCreditItem): boolean {
-  if (item.genre_ids?.includes(10767) || item.genre_ids?.includes(10763)) {
+export const TALK_REALITY_GENRE_IDS = new Set([10767, 10763, 10764]);
+
+export const NON_NARRATIVE_TITLE_REGEX =
+  /\b(tonight show|late show|late night|late late show|daily show|jimmy kimmel|graham norton|kelly clarkson|jennifer hudson|el hormiguero|quotidien|watch what happens live|hot ones|actors on actors|today show|good morning america|jeopardy!?|wheel of fortune|family feud|price is right|who wants to be a millionaire|oscars?|academy awards?|emmy awards?|emmys?|golden globes?|grammy awards?|grammys?|tony awards?|bafta|mtv movie|screen actors guild awards?|sag awards?|critics choice|peoples choice|choice awards|music awards|dancing with the stars|project runway|america's next top model|k-foodie meets j-foodie)\b/i;
+
+export const GUEST_OR_NON_NARRATIVE_ROLE_REGEX =
+  /^\s*(self|herself|himself|themselves|guest|special guest|guest star|guest host|guest judge|judge|contestant|clue presenter|presenter|interviewee|panelist|nominee|winner)\b/i;
+
+export function isNonNarrativeShow(item: TMDBCreditItem): boolean {
+  if (item.genre_ids?.some((g) => TALK_REALITY_GENRE_IDS.has(g))) {
     return true;
   }
-  const charLower = (item.character || "").toLowerCase();
-  return charLower.startsWith("self - guest") || charLower === "self - interviewee";
+  const title = (item.name || item.title || "").trim();
+  return Boolean(title && NON_NARRATIVE_TITLE_REGEX.test(title));
+}
+
+export function isHostOrCoreRegular(item: TMDBCreditItem): boolean {
+  const job = (item.job || "").toLowerCase();
+  const dept = (item.department || "").toLowerCase();
+  if (/creator|showrunner|host|executive producer|head writer/i.test(job)) return true;
+  if (/creator/i.test(dept)) return true;
+  const char = (item.character || "").toLowerCase();
+  if (/\bhost\b/i.test(char) && !/\bguest host\b/i.test(char) && !/\bpresenter\b/i.test(char)) {
+    if (typeof item.episode_count === "number" && item.episode_count >= 10) return true;
+  }
+  if (typeof item.episode_count === "number" && item.episode_count >= 50) return true;
+  return false;
+}
+
+export function isTalkShowOrGuestAppearance(item: TMDBCreditItem): boolean {
+  if (isHostOrCoreRegular(item)) return false;
+
+  const char = (item.character || "").trim();
+  const isNonNarrative = isNonNarrativeShow(item);
+
+  if (GUEST_OR_NON_NARRATIVE_ROLE_REGEX.test(char)) {
+    if (isNonNarrative) return true;
+    if (/^\s*(self|herself|himself|themselves|guest)\b/i.test(char)) return true;
+  }
+
+  if (isNonNarrative && (!char || /^actor$/i.test(char))) {
+    return true;
+  }
+
+  return false;
 }
 
 export const SPECIAL_GUEST_UNCREDITED_REGEX =
@@ -150,9 +189,10 @@ export const SPECIAL_GUEST_UNCREDITED_REGEX =
  * uncredited, archival, or talk show appearance.
  */
 export function isSpecialGuestOrUncreditedCredit(item: TMDBCreditItem): boolean {
+  if (isIgnoredCrewCredit(item)) return true;
+  if (isHostOrCoreRegular(item)) return false;
   if (isArchivalFootageCredit(item)) return true;
   if (isTalkShowOrGuestAppearance(item)) return true;
-  if (isIgnoredCrewCredit(item)) return true;
 
   const char = (item.character || "").trim();
   const job = (item.job || "").trim();

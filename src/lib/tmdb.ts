@@ -252,11 +252,12 @@ const inFlightRawFetches = new Map<string, Promise<RawPersonReleasesResult>>();
  * or fetch from TMDB once and populate KV with a 12-hour TTL.
  */
 export async function getRawPersonReleases(
-  personId: number,
+  rawPersonId: number | string,
   country: string = DEFAULT_FEED_OPTIONS.country,
   customApiKey?: string,
   bypassCache: boolean = false
 ): Promise<RawPersonReleasesResult> {
+  const personId = Number(rawPersonId);
   if (!isValidPersonId(personId) || isPersonMarkedNotFound(personId)) {
     return { personName: "", releases: [], profilePath: null, notFound: true };
   }
@@ -388,9 +389,11 @@ async function fetchRawPersonReleasesFromTMDB(
   );
 
   // 3. Returning TV series that debuted before the 1-year window, prioritized by popularity
-  // to capture returning shows without requiring any arbitrary minimum episode count threshold
+  // to capture returning shows without requiring any arbitrary minimum episode count threshold.
+  // Exclude non-narrative guest/talk show appearances from taking up the 12 candidate slots,
+  // ensuring real returning narrative series (e.g. Euphoria, Always Sunny) are properly evaluated.
   const coreTvCandidates = allCandidates
-    .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr)
+    .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr && !c.isUncredited)
     .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
     .slice(0, 12);
 
