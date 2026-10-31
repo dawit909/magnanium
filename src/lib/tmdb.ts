@@ -387,22 +387,12 @@ async function fetchRawPersonReleasesFromTMDB(
     (c) => c.dateStr < nowStr && c.dateStr >= oneYearAgoStr
   );
 
+  // 3. Returning TV series that debuted before the 1-year window, prioritized by popularity
+  // to capture returning shows without requiring any arbitrary minimum episode count threshold
   const coreTvCandidates = allCandidates
-    .filter((c) => {
-      if (c.mediaType !== "tv" || c.dateStr >= oneYearAgoStr) return false;
-      const episodeCount = c.item.episode_count ?? 0;
-      const isRegularOrCreative =
-        episodeCount > 3 ||
-        c.roles.some(
-          (r) =>
-            ROLE_REGEX.director.test(r) ||
-            ROLE_REGEX.writer.test(r) ||
-            ROLE_REGEX.producer.test(r)
-        );
-      return isRegularOrCreative;
-    })
+    .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr)
     .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
-    .slice(0, 10);
+    .slice(0, 12);
 
   const catalogMovieCandidates = allCandidates
     .filter(

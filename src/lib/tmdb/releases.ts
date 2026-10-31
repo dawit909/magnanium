@@ -828,34 +828,16 @@ export async function extractTvReleases(
         continue;
       }
 
-      // Filter out past guest / stale roles when a series releases subsequent seasons
-      if (ctx.personId && !isCoreCastOrCrew) {
-        const inSeason = await isArtistInSeasonCredits(
-          tvShow.id,
-          season.season_number,
-          ctx.personId,
-          ctx.clientKey
-        );
+      // Only filter out past guest roles from years earlier when a continuing series releases subsequent seasons.
+      // Never filter Season 1 or roles within 2 years of the artist's credit, and never filter by minimum episode count.
+      if (ctx.personId && !isCoreCastOrCrew && season.season_number > 1) {
+        const seasonYear = dateStr ? parseInt(dateStr.slice(0, 4), 10) : 0;
+        const firstCreditYear = tvShow.first_credit_air_date
+          ? parseInt(tvShow.first_credit_air_date.slice(0, 4), 10)
+          : 0;
 
-        if (inSeason === false) {
-          // Season credits are populated and artist is not part of this season
+        if (firstCreditYear > 0 && seasonYear - firstCreditYear >= 2) {
           continue;
-        }
-
-        if (inSeason === null) {
-          // No credits entered yet for this season: check if artist only had an older or brief guest role
-          const seasonYear = dateStr ? parseInt(dateStr.slice(0, 4), 10) : 0;
-          const firstCreditYear = tvShow.first_credit_air_date
-            ? parseInt(tvShow.first_credit_air_date.slice(0, 4), 10)
-            : 0;
-          const epCount = tvShow.episode_count ?? 1;
-
-          if (
-            (firstCreditYear > 0 && seasonYear - firstCreditYear >= 2) ||
-            epCount <= 3
-          ) {
-            continue;
-          }
         }
       }
 
