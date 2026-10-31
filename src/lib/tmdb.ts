@@ -41,6 +41,7 @@ interface CandidateEntry {
   mediaType: "movie" | "tv";
   dateStr: string;
   isUncredited: boolean;
+  creditIds?: string[];
 }
 
 /**
@@ -328,6 +329,12 @@ async function fetchRawPersonReleasesFromTMDB(
     if (existing) {
       if (!existing.roles.includes(roleStr)) existing.roles.push(roleStr);
       if (!isUncredited) existing.isUncredited = false;
+      if (item.credit_id) {
+        if (!existing.creditIds) existing.creditIds = [];
+        if (!existing.creditIds.includes(item.credit_id)) {
+          existing.creditIds.push(item.credit_id);
+        }
+      }
       if (typeof item.episode_count === "number") {
         existing.item.episode_count = Math.max(
           existing.item.episode_count || 0,
@@ -345,7 +352,14 @@ async function fetchRawPersonReleasesFromTMDB(
     } else {
       const dateStr =
         (mediaType === "tv" ? item.first_air_date : item.release_date) || "0000-00-00";
-      candidateMap.set(key, { item: { ...item }, roles: [roleStr], mediaType, dateStr, isUncredited });
+      candidateMap.set(key, {
+        item: { ...item },
+        roles: [roleStr],
+        mediaType,
+        dateStr,
+        isUncredited,
+        creditIds: item.credit_id ? [item.credit_id] : [],
+      });
     }
   };
 
@@ -388,14 +402,20 @@ async function fetchRawPersonReleasesFromTMDB(
     (c) => c.dateStr < nowStr && c.dateStr >= oneYearAgoStr
   );
 
-  // 3. Returning TV series that debuted before the 1-year window, prioritized by popularity
-  // to capture returning shows without requiring any arbitrary minimum episode count threshold.
-  // Exclude non-narrative guest/talk show appearances from taking up the 12 candidate slots,
-  // ensuring real returning narrative series (e.g. Euphoria, Always Sunny) are properly evaluated.
+  // 3. Returning TV series that debuted before the 1-year window:
+  // We evaluate core recurring/starring/crew TV roles (up to 20 by popularity)
+  // and guest/special appearances (up to 10 by popularity) in separate quotas.
+  // This guarantees that talk show guest appearances can never displace core starring series,
+  // while still capturing major guest appearances (e.g. Conan on Fallon).
   const coreTvCandidates = allCandidates
     .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr && !c.isUncredited)
     .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
-    .slice(0, 12);
+    .slice(0, 20);
+
+  const guestTvCandidates = allCandidates
+    .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr && c.isUncredited)
+    .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
+    .slice(0, 10);
 
   const catalogMovieCandidates = allCandidates
     .filter(
@@ -412,6 +432,7 @@ async function fetchRawPersonReleasesFromTMDB(
     upcomingCandidates,
     recentCandidates,
     coreTvCandidates,
+    guestTvCandidates,
     catalogMovieCandidates,
   ]) {
     for (const c of list) {
@@ -453,11 +474,12 @@ async function fetchRawPersonReleasesFromTMDB(
   const releasesNested = await mapConcurrent(
     activeCandidates,
     10,
-    async ({ item, roles: candidateRoles, mediaType, isUncredited }) => {
+    async ({ item, roles: candidateRoles, mediaType, isUncredited, creditIds }) => {
       const combinedRole = sortAndJoinRoles(candidateRoles);
       const itemCtx: ReleaseExtractionContext = {
         ...ctx,
         isCandidateUncredited: isUncredited,
+        creditIds: creditIds || (item.credit_id ? [item.credit_id] : []),
       };
       if (mediaType === "movie") {
         return extractMovieReleases(item, combinedRole, itemCtx);

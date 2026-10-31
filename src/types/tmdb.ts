@@ -32,6 +32,7 @@ export interface TMDBPersonDetails {
 
 export interface TMDBCreditItem {
   id: number;
+  credit_id?: string;
   media_type?: "movie" | "tv";
   title?: string;
   name?: string;
@@ -53,6 +54,23 @@ export interface TMDBCreditItem {
   genre_ids?: number[];
   episode_count?: number;
   first_credit_air_date?: string;
+}
+
+export interface TMDBCreditDetails {
+  credit_type?: string;
+  department?: string;
+  job?: string;
+  media?: {
+    id?: number;
+    name?: string;
+    seasons?: Array<{ season_number: number; air_date?: string }>;
+    episodes?: Array<{
+      season_number: number;
+      episode_number: number;
+      air_date?: string;
+      name?: string;
+    }>;
+  };
 }
 
 export interface TMDBPersonCreditsResponse {

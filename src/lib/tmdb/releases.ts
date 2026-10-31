@@ -5,10 +5,10 @@ import {
   TMDBCreditItem,
   TMDBReleaseDatesResponse,
   TvDetails,
+  TMDBCreditDetails,
 } from "@/types/tmdb";
 import { tmdbFetch } from "./client";
 import { compareReleasesAscending } from "../feed-filter";
-import { isNonNarrativeShow, isHostOrCoreRegular } from "./roles";
 
 export function mapReleaseType(
   type: number,
@@ -209,6 +209,72 @@ export interface ReleaseExtractionContext {
   clientKey?: string;
   personId?: number;
   isCandidateUncredited?: boolean;
+  creditIds?: string[];
+}
+
+export async function getPersonCreditedSeasons(
+  creditIds: string[],
+  clientKey?: string
+): Promise<{
+  seasons: Set<number>;
+  episodesBySeason: Map<
+    number,
+    Array<{ episodeNumber: number; airDate?: string; name?: string }>
+  >;
+}> {
+  const seasons = new Set<number>();
+  const episodesBySeason = new Map<
+    number,
+    Array<{ episodeNumber: number; airDate?: string; name?: string }>
+  >();
+
+  if (!creditIds || creditIds.length === 0) {
+    return { seasons, episodesBySeason };
+  }
+
+  await Promise.all(
+    creditIds.map(async (creditId) => {
+      if (!creditId) return;
+      try {
+        const { data } = await tmdbFetch<TMDBCreditDetails>(
+          `/credit/${creditId}`,
+          {},
+          86400,
+          clientKey
+        );
+        if (data?.media) {
+          if (Array.isArray(data.media.seasons)) {
+            for (const s of data.media.seasons) {
+              if (typeof s.season_number === "number") {
+                seasons.add(s.season_number);
+              }
+            }
+          }
+          if (Array.isArray(data.media.episodes)) {
+            for (const ep of data.media.episodes) {
+              if (typeof ep.season_number === "number") {
+                seasons.add(ep.season_number);
+                let list = episodesBySeason.get(ep.season_number);
+                if (!list) {
+                  list = [];
+                  episodesBySeason.set(ep.season_number, list);
+                }
+                list.push({
+                  episodeNumber: ep.episode_number,
+                  airDate: ep.air_date,
+                  name: ep.name,
+                });
+              }
+            }
+          }
+        }
+      } catch {
+        // Silently continue if single credit fetch fails
+      }
+    })
+  );
+
+  return { seasons, episodesBySeason };
 }
 
 const RE_RELEASE_REGEX =
@@ -719,12 +785,6 @@ export async function extractTvReleases(
     return [];
   }
 
-  // Non-narrative TV series (talk shows, game shows, reality shows, award shows)
-  // where the artist is merely a guest/Self should never generate season releases.
-  if (isNonNarrativeShow(tvShow) && !isHostOrCoreRegular(tvShow)) {
-    return [];
-  }
-
   const { data: tvDetails } = await tmdbFetch<
     TvDetails & {
       "watch/providers"?: RawWatchProvidersResponse;
@@ -766,12 +826,39 @@ export async function extractTvReleases(
   const candidates: FormattedRelease[] = [];
   const showCountry = tvDetails?.origin_country?.[0] || ctx.country;
 
-  const isCoreCastOrCrew =
+  // Determine whether person is show creator or current main regular cast/crew
+  const isCreator =
     Boolean(ctx.personId) &&
-    (tvDetails?.created_by?.some((c) => c.id === ctx.personId) ||
-      tvDetails?.credits?.cast?.some((c) => c.id === ctx.personId) ||
-      tvDetails?.credits?.crew?.some((c) => c.id === ctx.personId) ||
-      (typeof tvShow.episode_count === "number" && tvShow.episode_count >= 4));
+    tvDetails?.created_by?.some((c) => c.id === ctx.personId);
+  const isMainCast =
+    Boolean(ctx.personId) &&
+    tvDetails?.credits?.cast?.some((c) => c.id === ctx.personId);
+  const isMainCrew =
+    Boolean(ctx.personId) &&
+    tvDetails?.credits?.crew?.some(
+      (c) =>
+        c.id === ctx.personId &&
+        /creator|showrunner|executive producer|director|writer/i.test(c.job || "")
+    );
+
+  let creditedSeasons = new Set<number>();
+  let episodesBySeason = new Map<
+    number,
+    Array<{ episodeNumber: number; airDate?: string; name?: string }>
+  >();
+
+  // If not show creator or current main cast/crew, retrieve ground-truth credited seasons/episodes
+  if (
+    !isCreator &&
+    !isMainCast &&
+    !isMainCrew &&
+    ctx.creditIds &&
+    ctx.creditIds.length > 0
+  ) {
+    const credInfo = await getPersonCreditedSeasons(ctx.creditIds, ctx.clientKey);
+    creditedSeasons = credInfo.seasons;
+    episodesBySeason = credInfo.episodesBySeason;
+  }
 
   const validSeasons =
     tvDetails?.seasons && tvDetails.seasons.length > 0
@@ -780,13 +867,42 @@ export async function extractTvReleases(
 
   if (validSeasons.length > 0) {
     for (const season of validSeasons) {
-      const dateStr =
+      // Deterministic check against TMDB credit data:
+      if (!isCreator && !isMainCast && !isMainCrew) {
+        // 1. If we have credited season data and this season is NOT in it, skip.
+        if (creditedSeasons.size > 0 && !creditedSeasons.has(season.season_number)) {
+          continue;
+        }
+        // 2. If no credited seasons at all and not Season 1, skip.
+        if (creditedSeasons.size === 0 && season.season_number > 1) {
+          continue;
+        }
+      }
+
+      const epsInSeason = episodesBySeason.get(season.season_number) || [];
+      let dateStr =
         season.air_date ||
         (tvDetails?.next_episode_to_air?.season_number === season.season_number
           ? tvDetails.next_episode_to_air.air_date
           : null);
+      let episodeDetail: string | null = null;
 
-      const seasonTitle = `${tvDetails?.name || showTitle}: ${season.name}`;
+      if (epsInSeason.length > 0) {
+        const latestEp = epsInSeason[epsInSeason.length - 1];
+        if (latestEp.airDate) {
+          dateStr = latestEp.airDate;
+        }
+        if (latestEp.episodeNumber) {
+          episodeDetail = `Ep. ${latestEp.episodeNumber}${
+            latestEp.name ? ` - ${latestEp.name}` : ""
+          }`;
+        }
+      }
+
+      const baseSeasonTitle = `${tvDetails?.name || showTitle}: ${season.name}`;
+      const seasonTitle = episodeDetail
+        ? `${baseSeasonTitle} (${episodeDetail})`
+        : baseSeasonTitle;
 
       if (
         !dateStr ||
@@ -804,25 +920,8 @@ export async function extractTvReleases(
         continue;
       }
 
-      // Uncredited or cameo/guest credits should never produce releases for subsequent seasons.
-      if (ctx.isCandidateUncredited && season.season_number > 1) {
-        continue;
-      }
-
-      // Filter out past one-off guest roles from years earlier when a continuing series releases subsequent seasons.
-      // Never filter Season 1, never filter roles within 2 years of the artist's credit, and never filter series regulars (>=4 episodes or core cast/crew).
-      if (ctx.personId && !isCoreCastOrCrew && season.season_number > 1) {
-        const seasonYear = dateStr ? parseInt(dateStr.slice(0, 4), 10) : 0;
-        const firstCreditYear = tvShow.first_credit_air_date
-          ? parseInt(tvShow.first_credit_air_date.slice(0, 4), 10)
-          : 0;
-
-        if (firstCreditYear > 0 && seasonYear - firstCreditYear >= 2) {
-          continue;
-        }
-      }
-
-      const premiereLabel = season.season_number === 1 ? "Series Premiere" : "Season Premiere";
+      const premiereLabel =
+        season.season_number === 1 ? "Series Premiere" : "Season Premiere";
 
       const isSeasonReRelease = isReReleaseOrRemaster(season.name, seasonTitle);
       if (ctx.excludeReReleases && isSeasonReRelease) {
