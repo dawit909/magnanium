@@ -880,29 +880,16 @@ export async function extractTvReleases(
       }
 
       const epsInSeason = episodesBySeason.get(season.season_number) || [];
-      let dateStr =
+      const latestEp =
+        epsInSeason.length > 0 ? epsInSeason[epsInSeason.length - 1] : null;
+      const dateStr =
         season.air_date ||
+        latestEp?.airDate ||
         (tvDetails?.next_episode_to_air?.season_number === season.season_number
           ? tvDetails.next_episode_to_air.air_date
           : null);
-      let episodeDetail: string | null = null;
 
-      if (epsInSeason.length > 0) {
-        const latestEp = epsInSeason[epsInSeason.length - 1];
-        if (latestEp.airDate) {
-          dateStr = latestEp.airDate;
-        }
-        if (latestEp.episodeNumber) {
-          episodeDetail = `Ep. ${latestEp.episodeNumber}${
-            latestEp.name ? ` - ${latestEp.name}` : ""
-          }`;
-        }
-      }
-
-      const baseSeasonTitle = `${tvDetails?.name || showTitle}: ${season.name}`;
-      const seasonTitle = episodeDetail
-        ? `${baseSeasonTitle} (${episodeDetail})`
-        : baseSeasonTitle;
+      const seasonTitle = `${tvDetails?.name || showTitle}: ${season.name}`;
 
       if (
         !dateStr ||
