@@ -151,6 +151,11 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         isElevated ? "z-50" : "z-20"
       }`}
     >
+      {/* Tagline */}
+      <div className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+        No ads, tracking, algorithm. Just RSS
+      </div>
+
       {/* Fixed layout slot for the mock window - reserves 520px in document flow so website height and other elements never shift */}
       <div ref={containerRef} className="relative w-full h-[520px]">
         {/* Mock macOS RSS Reader Window */}
@@ -203,11 +208,6 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
           {/* 8-Way Window Resize Handles */}
           <MockResizeHandles onResizePointerDown={handleResizePointerDown} />
         </div>
-      </div>
-
-      {/* Highlights */}
-      <div className="text-center text-xs text-neutral-500 dark:text-neutral-400 pt-1">
-        No ads, tracking, algorithm. Just RSS
       </div>
     </div>
   );
