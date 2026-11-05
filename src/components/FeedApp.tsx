@@ -84,7 +84,7 @@ export default function FeedApp({
   }, [router, resetSearch]);
 
   return (
-    <div className="space-y-8 text-sm">
+    <div className="text-sm">
       <Header
         onHomeClick={goHome}
         theme={theme}
@@ -105,12 +105,12 @@ export default function FeedApp({
       />
 
       {!selectedPerson ? (
-        <div className="space-y-4 pt-2">
+        <div className="mt-6 space-y-6">
           <FeedUrlNotice />
           <SampleFeedPreview onSelectSampleArtist={handleSelectPerson} />
         </div>
       ) : (
-        <div className="space-y-6 animate-in fade-in duration-200">
+        <div className="mt-8 space-y-6 animate-in fade-in duration-200">
           <ArtistHero person={selectedPerson} />
 
           <FeedUrlCard

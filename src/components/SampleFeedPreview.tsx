@@ -147,7 +147,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
 
   return (
     <div
-      className={`w-full max-w-3xl mx-auto py-4 sm:py-8 space-y-4 relative ${
+      className={`w-full max-w-3xl mx-auto pb-8 sm:pb-12 space-y-6 relative ${
         isElevated ? "z-50" : "z-20"
       }`}
     >
