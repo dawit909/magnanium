@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { createPersonSlug } from "@/lib/slug";
 import { SAMPLE_ITEMS, SampleArtistSummary } from "@/data/mockFeed";
@@ -206,22 +205,9 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         </div>
       </div>
 
-      {/* Highlights: No ads. No tracking. Pure RSS. */}
-      <div className="flex items-center justify-center gap-4 sm:gap-6 text-xs text-neutral-500 dark:text-neutral-400 pt-1">
-        <span className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          <span>No ads</span>
-        </span>
-        <span className="text-neutral-300 dark:text-neutral-700">·</span>
-        <span className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          <span>No tracking</span>
-        </span>
-        <span className="text-neutral-300 dark:text-neutral-700">·</span>
-        <span className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Pure RSS</span>
-        </span>
+      {/* Highlights */}
+      <div className="text-center text-xs text-neutral-500 dark:text-neutral-400 pt-1">
+        No ads, tracking, algorithm. Just RSS
       </div>
     </div>
   );
