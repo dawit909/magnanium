@@ -155,7 +155,9 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
       {/* Fixed layout slot for the mock window - reserves 520px in document flow so website height and other elements never shift */}
       <div
         ref={containerRef}
-        className={`relative w-full h-[520px] ${isElevated ? "z-20" : "z-10"}`}
+        className={`relative w-full h-[520px] ${
+          isDragging || isResizing ? "z-[60]" : isElevated ? "z-50" : "z-40"
+        }`}
       >
         {/* Mock macOS RSS Reader Window */}
         <div
@@ -169,10 +171,10 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
           }}
           className={`absolute top-0 left-0 rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] flex flex-col ${
             isDragging || isResizing
-              ? "z-30 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] transition-none"
+              ? "z-[60] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] transition-none"
               : isElevated
-              ? "z-20 shadow-2xl transition-transform duration-200 ease-out"
-              : "z-10 shadow-2xl transition-transform duration-200 ease-out"
+              ? "z-50 shadow-2xl transition-transform duration-200 ease-out"
+              : "z-40 shadow-2xl transition-transform duration-200 ease-out"
           }`}
         >
           {/* Inner window container with rounded corners and overflow clipping */}
