@@ -22,6 +22,25 @@ interface StoredWindowSettings {
 const STORAGE_KEY = "magnanium_mock_rss_settings";
 
 /**
+ * Returns the true, static bottom height of the website in normal document flow.
+ * Does not read dynamic scrollHeight, which expands when transformed/absolute elements overflow.
+ */
+function getFixedSiteHeight(): number {
+  if (typeof window === "undefined") return 800;
+  const footer = document.querySelector("footer");
+  if (footer) {
+    const rect = footer.getBoundingClientRect();
+    const footerBottom = rect.bottom + window.scrollY;
+    return Math.max(window.innerHeight, footerBottom);
+  }
+  return Math.max(
+    window.innerHeight,
+    document.body.clientHeight || 0,
+    document.documentElement.clientHeight || 0
+  );
+}
+
+/**
  * Custom hook providing smooth, rAF-throttled dragging and 8-way resizing
  * for floating/isolated mock windows with bounds clamping and tab-session persistence.
  */
@@ -120,18 +139,15 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
         clampedX = Math.max(minX, Math.min(maxX, proposedX));
       }
 
-      // Website vertical bounds
-      const docHeight = Math.max(
-        document.documentElement.scrollHeight,
-        document.body.scrollHeight,
-        window.innerHeight
-      );
+      // Website vertical bounds: strictly bound to fixed document height without dynamic expansion
+      const totalSiteHeight = getFixedSiteHeight();
+      const containerDocTop = baselineTop + window.scrollY;
 
       // Top border cannot leave the top of the webpage or the top of the visible screen
-      const minY = Math.max(-baselineTop, -(baselineTop + window.scrollY));
+      const minY = Math.max(-baselineTop, -containerDocTop);
 
       // Bottom border cannot leave the bottom of the website
-      const maxY = docHeight - (baselineTop + window.scrollY + winHeight);
+      const maxY = Math.max(minY, Math.floor(totalSiteHeight - (containerDocTop + winHeight)));
 
       let clampedY: number;
       if (maxY < minY) {
@@ -144,6 +160,15 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
     },
     [size]
   );
+
+  // Re-clamp initial offset on mount to enforce fixed bounds
+  useEffect(() => {
+    setOffset((curr) => {
+      const clamped = clampOffset(curr.x, curr.y);
+      if (clamped.x === curr.x && clamped.y === curr.y) return curr;
+      return clamped;
+    });
+  }, [clampOffset]);
 
   // Monitor window resize and zoom level changes to re-clamp window inside website border
   useEffect(() => {
@@ -285,11 +310,7 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
         startOffsetY: offset.y,
         baselineLeft: containerRect.left,
         baselineTop: containerRect.top,
-        baselineDocHeight: Math.max(
-          document.documentElement.scrollHeight,
-          document.body.scrollHeight,
-          window.innerHeight
-        ),
+        baselineDocHeight: getFixedSiteHeight(),
       };
 
       setIsResizing(true);
@@ -329,7 +350,7 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
 
         // Vertical resizing
         if (currentDir.includes("s")) {
-          const maxAllowedHeight = docHeight - (baselineTop + window.scrollY + startOffsetY);
+          const maxAllowedHeight = Math.floor(docHeight - (baselineTop + window.scrollY + startOffsetY));
           newHeight = Math.max(320, Math.min(maxAllowedHeight, startHeight + deltaY));
         } else if (currentDir.includes("n")) {
           const minY = Math.max(-baselineTop, -(baselineTop + window.scrollY));
