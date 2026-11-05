@@ -146,18 +146,17 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
   const canReset = offset.x !== 0 || offset.y !== 0 || size !== null;
 
   return (
-    <div
-      className={`w-full max-w-3xl mx-auto pb-8 sm:pb-12 space-y-6 relative ${
-        isElevated ? "z-50" : "z-20"
-      }`}
-    >
+    <div className="w-full max-w-3xl mx-auto pb-8 sm:pb-12 space-y-6">
       {/* Tagline */}
       <div className="text-center text-sm text-neutral-500 dark:text-neutral-400">
         No ads, tracking, algorithm. Just RSS
       </div>
 
       {/* Fixed layout slot for the mock window - reserves 520px in document flow so website height and other elements never shift */}
-      <div ref={containerRef} className="relative w-full h-[520px]">
+      <div
+        ref={containerRef}
+        className={`relative w-full h-[520px] ${isElevated ? "z-20" : "z-10"}`}
+      >
         {/* Mock macOS RSS Reader Window */}
         <div
           ref={windowRef}
@@ -170,10 +169,10 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
           }}
           className={`absolute top-0 left-0 rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-[#fbfbfb] dark:bg-[#18181b] flex flex-col ${
             isDragging || isResizing
-              ? "z-[60] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] transition-none"
+              ? "z-30 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.85)] transition-none"
               : isElevated
-              ? "z-50 shadow-2xl transition-transform duration-200 ease-out"
-              : "z-30 shadow-2xl transition-transform duration-200 ease-out"
+              ? "z-20 shadow-2xl transition-transform duration-200 ease-out"
+              : "z-10 shadow-2xl transition-transform duration-200 ease-out"
           }`}
         >
           {/* Inner window container with rounded corners and overflow clipping */}
