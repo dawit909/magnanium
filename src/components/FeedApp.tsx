@@ -13,7 +13,6 @@ import FeedFilters from "./FeedFilters";
 import FeedUrlCard from "./FeedUrlCard";
 import ReleaseList from "./ReleaseList";
 import SampleFeedPreview from "./SampleFeedPreview";
-import FeedUrlNotice from "./FeedUrlNotice";
 
 export default function FeedApp({
   initialPerson = null,
@@ -114,7 +113,6 @@ export default function FeedApp({
 
       {!selectedPerson ? (
         <div className="mt-6 space-y-6">
-          <FeedUrlNotice />
           <SampleFeedPreview onSelectSampleArtist={handleSelectPerson} />
         </div>
       ) : (

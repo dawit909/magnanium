@@ -129,7 +129,6 @@ export const STORAGE_KEYS = {
   OPTIONS_EXPANDED: "magnanium_feed_options_expanded",
   MOCK_SETTINGS: "magnanium_mock_rss_settings",
   THEME: "magnanium_theme",
-  NOTICE_DISMISSED: "magnanium_feed_url_notice_dismissed",
   RAW_PREFIX: "magnanium_raw_",
 } as const;
 
