@@ -239,7 +239,7 @@ export async function getPersonCreditedSeasons(
         const { data } = await tmdbFetch<TMDBCreditDetails>(
           `/credit/${creditId}`,
           {},
-          86400,
+          604800, // 7 days
           clientKey
         );
         if (data?.media) {
@@ -589,7 +589,7 @@ export async function extractMovieReleases(
   const { data: movieDetails } = await tmdbFetch<MovieDetailsWithReleases>(
     `/movie/${movie.id}`,
     { append_to_response: "release_dates,watch/providers,credits" },
-    86400,
+    604800, // 7 days
     ctx.clientKey
   );
 
@@ -796,7 +796,7 @@ export async function extractTvReleases(
   >(
     `/tv/${tvShow.id}`,
     { append_to_response: "watch/providers,credits" },
-    86400,
+    604800, // 7 days
     ctx.clientKey
   );
 
