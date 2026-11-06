@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchPerson } from "@/lib/tmdb";
 import { guardRateLimit } from "@/lib/api-response";
+import { HTTP_CACHE, RATE_LIMITS } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   // 1. IP Rate Limiting (30 requests per minute)
-  const rateGuard = guardRateLimit(request, "search", 30, 60 * 1000, true);
+  const rateGuard = guardRateLimit(
+    request,
+    RATE_LIMITS.SEARCH.prefix,
+    RATE_LIMITS.SEARCH.max,
+    RATE_LIMITS.SEARCH.windowMs,
+    true
+  );
   if (!rateGuard.allowed) {
     return rateGuard.response!;
   }
@@ -32,8 +39,8 @@ export async function GET(request: NextRequest) {
       { results, noApiKey: Boolean(noApiKey) },
       {
         headers: {
-          "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
-          "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          "Cache-Control": `public, max-age=${HTTP_CACHE.SEARCH.maxAge}, s-maxage=${HTTP_CACHE.SEARCH.sMaxAge}, stale-while-revalidate=${HTTP_CACHE.SEARCH.staleWhileRevalidate}`,
+          "CDN-Cache-Control": `public, s-maxage=${HTTP_CACHE.SEARCH.sMaxAge}, stale-while-revalidate=${HTTP_CACHE.SEARCH.staleWhileRevalidate}`,
           ...rateGuard.headers,
         },
       }

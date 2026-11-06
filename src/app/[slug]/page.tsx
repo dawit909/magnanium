@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getPersonDetails } from "@/lib/tmdb";
 import { parsePersonIdFromSlug } from "@/lib/slug";
+import { getTmdbImageUrl } from "@/lib/media";
 import FeedApp from "@/components/FeedApp";
 import type { Metadata } from "next";
 
@@ -49,9 +50,7 @@ export default async function PersonPage(props: {
     popularity: person.popularity || 0,
   };
 
-  const heroImageUrl = person.profile_path
-    ? `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`
-    : null;
+  const heroImageUrl = getTmdbImageUrl(person.profile_path, "w300_and_h300_face");
 
   return (
     <>

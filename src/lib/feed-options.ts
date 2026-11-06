@@ -1,5 +1,6 @@
-import { COUNTRIES, detectBrowserCountry } from "./constants";
+import { COUNTRIES, detectBrowserCountry, STORAGE_KEYS } from "./constants";
 import { AlertTimingWindow } from "@/types/tmdb";
+import { safeLocalStorage } from "./storage";
 
 export interface FeedOptionsSettings {
   roles: string[];
@@ -11,7 +12,7 @@ export interface FeedOptionsSettings {
   excludeUncredited: boolean;
 }
 
-export const STORAGE_KEY = "magnanium_feed_options";
+export const STORAGE_KEY = STORAGE_KEYS.FEED_OPTIONS;
 
 export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
   roles: ["actor", "director", "writer", "producer", "crew"],
@@ -88,27 +89,24 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
  * Get current options (from memory, localStorage, or auto-detected browser region).
  */
 export function getSavedFeedOptions(): FeedOptionsSettings {
-  if (typeof window !== "undefined") {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const validated = validateFeedOptions(JSON.parse(stored));
-        inMemoryOptions = validated;
-        return validated;
-      }
-
-      // First-time visitor: zero-click browser country auto-detection
-      const detected = detectBrowserCountry();
-      if (detected) {
-        const withDetected: FeedOptionsSettings = {
-          ...DEFAULT_FEED_OPTIONS,
-          country: detected,
-        };
-        inMemoryOptions = withDetected;
-        return withDetected;
-      }
-    } catch {}
+  const stored = safeLocalStorage.get<any>(STORAGE_KEY);
+  if (stored) {
+    const validated = validateFeedOptions(stored);
+    inMemoryOptions = validated;
+    return validated;
   }
+
+  // First-time visitor: zero-click browser country auto-detection
+  const detected = detectBrowserCountry();
+  if (detected) {
+    const withDetected: FeedOptionsSettings = {
+      ...DEFAULT_FEED_OPTIONS,
+      country: detected,
+    };
+    inMemoryOptions = withDetected;
+    return withDetected;
+  }
+
   return { ...inMemoryOptions };
 }
 
@@ -117,13 +115,7 @@ export function getSavedFeedOptions(): FeedOptionsSettings {
  */
 export function saveAllFeedOptions(options: FeedOptionsSettings): FeedOptionsSettings {
   inMemoryOptions = { ...options };
-
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryOptions));
-    } catch {}
-  }
-
+  safeLocalStorage.set(STORAGE_KEY, inMemoryOptions);
   return inMemoryOptions;
 }
 
@@ -137,12 +129,6 @@ export function resetFeedOptions(): FeedOptionsSettings {
     country: detected || DEFAULT_FEED_OPTIONS.country,
   };
   inMemoryOptions = defaults;
-
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-  }
-
+  safeLocalStorage.removeItem(STORAGE_KEY);
   return inMemoryOptions;
 }

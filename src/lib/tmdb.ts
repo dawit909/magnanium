@@ -4,18 +4,9 @@ import {
   TMDBPersonDetails,
   FormattedRelease,
   FeedFilterOptions,
-  TMDBCreditItem,
-  ReleaseTypeCategory,
 } from "@/types/tmdb";
 import { tmdbFetch, hasTmdbAuth } from "./tmdb/client";
-import {
-  sortAndJoinRoles,
-  matchesSpecificCrewRole,
-  resolveCrewRoleLabel,
-  isSpecialGuestOrUncreditedCredit,
-  resolveCastRoleLabel,
-  ROLE_REGEX,
-} from "./tmdb/roles";
+import { sortAndJoinRoles } from "./tmdb/roles";
 import {
   extractMovieReleases,
   extractTvReleases,
@@ -34,42 +25,13 @@ import {
 import { DEFAULT_FEED_OPTIONS } from "./feed-options";
 import { getDateWindowBoundaries, compareReleasesDescending, filterReleases } from "./feed-filter";
 import { kv } from "./kv";
-
-interface CandidateEntry {
-  item: TMDBCreditItem;
-  roles: string[];
-  mediaType: "movie" | "tv";
-  dateStr: string;
-  isUncredited: boolean;
-  creditIds?: string[];
-}
-
-/**
- * Execute async operations over an array with bounded concurrency.
- * Prevents socket exhaustion, spikes, and rate-limiting while maintaining throughput.
- */
-async function mapConcurrent<T, R>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  if (items.length === 0) return [];
-  const results: R[] = new Array(items.length);
-  let currentIndex = 0;
-
-  const workers = Array.from(
-    { length: Math.min(concurrency, items.length) },
-    async () => {
-      while (currentIndex < items.length) {
-        const idx = currentIndex++;
-        results[idx] = await fn(items[idx]);
-      }
-    }
-  );
-
-  await Promise.all(workers);
-  return results;
-}
+import { mapConcurrent } from "./async";
+import {
+  CandidateEntry,
+  aggregateCandidatesFromCredits,
+  selectAndSortCandidates,
+} from "./tmdb/candidates";
+import { CACHE_TTL } from "./constants";
 
 /**
  * Search TMDB for an artist (director, actor, crew, creator)
@@ -87,7 +49,7 @@ export async function searchPerson(
   const { data, status } = await tmdbFetch<{ results: TMDBPersonSearchResult[] }>(
     "/search/person",
     { query },
-    3600,
+    CACHE_TTL.SEARCH,
     customApiKey
   );
 
@@ -160,13 +122,13 @@ export async function searchPerson(
       tmdbFetch<{ results: TMDBPersonSearchResult[] }>(
         "/search/person",
         { query: surname },
-        3600,
+        CACHE_TTL.SEARCH,
         customApiKey
       ),
       tmdbFetch<{ results: TMDBPersonSearchResult[] }>(
         "/search/person",
         { query: firstName },
-        3600,
+        CACHE_TTL.SEARCH,
         customApiKey
       ),
     ]);
@@ -210,7 +172,7 @@ export async function getPersonDetails(
   const { data, status } = await tmdbFetch<TMDBPersonDetails>(
     `/person/${personId}`,
     {},
-    604800, // 7 days
+    CACHE_TTL.PERSON_DETAILS,
     customApiKey
   );
 
@@ -232,7 +194,7 @@ export async function getPersonCredits(
   const { data } = await tmdbFetch<TMDBPersonCreditsResponse>(
     `/person/${personId}/combined_credits`,
     {},
-    86400,
+    CACHE_TTL.PERSON_CREDITS,
     customApiKey
   );
   return data || { id: personId, cast: [], crew: [] };
@@ -250,7 +212,7 @@ const inFlightRawFetches = new Map<string, Promise<RawPersonReleasesResult>>();
 
 /**
  * Retrieve raw compiled releases for an artist from L1/L2 KV cache,
- * or fetch from TMDB once and populate KV with a 12-hour TTL.
+ * or fetch from TMDB once and populate KV with a 24-hour TTL.
  */
 export async function getRawPersonReleases(
   rawPersonId: number | string,
@@ -285,7 +247,7 @@ export async function getRawPersonReleases(
       const result = await fetchRawPersonReleasesFromTMDB(personId, countryUpper, customApiKey);
       if (!result.notFound && result.releases) {
         // Cache compiled raw releases in L1/L2 KV for 24 hours (86,400 seconds)
-        await kv.set(cacheKey, result, 86400);
+        await kv.set(cacheKey, result, CACHE_TTL.RAW_RELEASES);
       }
       return result;
     } finally {
@@ -315,149 +277,13 @@ async function fetchRawPersonReleasesFromTMDB(
 
   const personName = person.name || "Artist";
 
-  // Deduplicate and aggregate multiple roles per project in O(N)
-  const candidateMap = new Map<string, CandidateEntry>();
+  // Aggregate candidate credits across cast & crew
+  const allCandidates = aggregateCandidatesFromCredits(credits);
 
-  const addCandidate = (
-    item: TMDBCreditItem,
-    roleStr: string,
-    mediaType: "movie" | "tv",
-    isUncredited: boolean
-  ) => {
-    const key = `${mediaType}-${item.id}`;
-    const existing = candidateMap.get(key);
-    if (existing) {
-      if (!existing.roles.includes(roleStr)) existing.roles.push(roleStr);
-      if (!isUncredited) existing.isUncredited = false;
-      if (item.credit_id) {
-        if (!existing.creditIds) existing.creditIds = [];
-        if (!existing.creditIds.includes(item.credit_id)) {
-          existing.creditIds.push(item.credit_id);
-        }
-      }
-      if (typeof item.episode_count === "number") {
-        existing.item.episode_count = Math.max(
-          existing.item.episode_count || 0,
-          item.episode_count
-        );
-      }
-      if (item.first_credit_air_date) {
-        if (
-          !existing.item.first_credit_air_date ||
-          item.first_credit_air_date > existing.item.first_credit_air_date
-        ) {
-          existing.item.first_credit_air_date = item.first_credit_air_date;
-        }
-      }
-    } else {
-      const dateStr =
-        (mediaType === "tv" ? item.first_air_date : item.release_date) || "0000-00-00";
-      candidateMap.set(key, {
-        item: { ...item },
-        roles: [roleStr],
-        mediaType,
-        dateStr,
-        isUncredited,
-        creditIds: item.credit_id ? [item.credit_id] : [],
-      });
-    }
-  };
-
-  // Process all crew credits
-  if (credits.crew) {
-    for (const item of credits.crew) {
-      if (!item.id || (!item.title && !item.name)) continue;
-      const mediaType = (item.media_type as "movie" | "tv") || "movie";
-      const isUncredited = isSpecialGuestOrUncreditedCredit(item);
-      addCandidate(item, resolveCrewRoleLabel(item), mediaType, isUncredited);
-    }
-  }
-
-  // Process all cast credits
-  if (credits.cast) {
-    for (const item of credits.cast) {
-      if (!item.id || (!item.title && !item.name)) continue;
-      const mediaType = (item.media_type as "movie" | "tv") || "movie";
-      const isUncredited = isSpecialGuestOrUncreditedCredit(item);
-      addCandidate(item, resolveCastRoleLabel(item), mediaType, isUncredited);
-    }
-  }
-
-  // Multi-tier deterministic candidate selection:
-  // 1. All upcoming or undated projects (announced, in development, or future release dates).
-  // 2. All recent projects that debuted within the active 1-year window.
-  // 3. Core long-running TV series (artist is recurring regular >3 eps or creator/writer/director/producer),
-  //    sorted by show popularity to capture returning series (e.g. It's Always Sunny, Welcome to Wrexham, Doctor Who).
-  // 4. Prominent catalog movies (sorted by popularity) to discover theatrical re-releases and remasters (e.g. Interstellar, Coraline, Pulp Fiction).
+  // Multi-tier deterministic candidate selection & sorting
   const { nowStr, oneYearAgoStr, sevenDaysFromNowStr, thirtyDaysFromNowStr } =
     getDateWindowBoundaries();
-
-  const allCandidates = Array.from(candidateMap.values());
-
-  const upcomingCandidates = allCandidates.filter(
-    (c) => c.dateStr === "0000-00-00" || c.dateStr >= nowStr
-  );
-
-  const recentCandidates = allCandidates.filter(
-    (c) => c.dateStr < nowStr && c.dateStr >= oneYearAgoStr
-  );
-
-  // 3. Returning TV series that debuted before the 1-year window:
-  // We evaluate core recurring/starring/crew TV roles (up to 12 by popularity)
-  // and guest/special appearances (up to 4 by popularity, only if aired within the window) in separate quotas.
-  // This guarantees that talk show guest appearances can never displace core starring series.
-  const coreTvCandidates = allCandidates
-    .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr && !c.isUncredited)
-    .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
-    .slice(0, 12);
-
-  const guestTvCandidates = allCandidates
-    .filter(
-      (c) =>
-        c.mediaType === "tv" &&
-        c.dateStr < oneYearAgoStr &&
-        c.isUncredited &&
-        (!c.item.first_credit_air_date || c.item.first_credit_air_date >= oneYearAgoStr)
-    )
-    .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
-    .slice(0, 4);
-
-  const catalogMovieCandidates = allCandidates
-    .filter(
-      (c) =>
-        c.mediaType === "movie" &&
-        c.dateStr < oneYearAgoStr &&
-        c.dateStr !== "0000-00-00"
-    )
-    .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
-    .slice(0, 10);
-
-  const selectedCandidatesMap = new Map<string, CandidateEntry>();
-  for (const list of [
-    upcomingCandidates,
-    recentCandidates,
-    coreTvCandidates,
-    guestTvCandidates,
-    catalogMovieCandidates,
-  ]) {
-    for (const c of list) {
-      const key = `${c.mediaType}-${c.item.id}`;
-      if (!selectedCandidatesMap.has(key)) {
-        selectedCandidatesMap.set(key, c);
-      }
-    }
-  }
-
-  const activeCandidates = Array.from(selectedCandidatesMap.values());
-
-  // Sort candidates with upcoming/undated first, then chronological descending
-  activeCandidates.sort((a, b) => {
-    const aIsUndated = a.dateStr === "0000-00-00";
-    const bIsUndated = b.dateStr === "0000-00-00";
-    if (aIsUndated && !bIsUndated) return -1;
-    if (!aIsUndated && bIsUndated) return 1;
-    return b.dateStr > a.dateStr ? 1 : b.dateStr < a.dateStr ? -1 : 0;
-  });
+  const activeCandidates = selectAndSortCandidates(allCandidates, { nowStr, oneYearAgoStr });
 
   const ctx: ReleaseExtractionContext = {
     country,
@@ -479,7 +305,7 @@ async function fetchRawPersonReleasesFromTMDB(
   const releasesNested = await mapConcurrent(
     activeCandidates,
     10,
-    async ({ item, roles: candidateRoles, mediaType, isUncredited, creditIds }) => {
+    async ({ item, roles: candidateRoles, mediaType, isUncredited, creditIds }: CandidateEntry) => {
       try {
         const combinedRole = sortAndJoinRoles(candidateRoles);
         const itemCtx: ReleaseExtractionContext = {

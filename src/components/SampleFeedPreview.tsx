@@ -6,6 +6,9 @@ import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { createPersonSlug } from "@/lib/slug";
 import { SAMPLE_ITEMS, SampleArtistSummary } from "@/data/mockFeed";
 import { useDraggableWindow } from "@/hooks/useDraggableWindow";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { safeSessionStorage } from "@/lib/storage";
+import { TMDB_IMAGE_BASE_URL } from "@/lib/media";
 import { MockWindowTitleBar } from "./mock-reader/MockWindowTitleBar";
 import { MockFeedList } from "./mock-reader/MockFeedList";
 import { MockFeedDetail } from "./mock-reader/MockFeedDetail";
@@ -16,7 +19,7 @@ interface SampleFeedPreviewProps {
   onSelectSampleArtist?: (person: TMDBPersonSearchResult) => void;
 }
 
-const MOCK_SETTINGS_KEY = "magnanium_mock_rss_settings";
+export const MOCK_SETTINGS_KEY = STORAGE_KEYS.MOCK_SETTINGS;
 
 interface MockRssSettings {
   selectedId?: string;
@@ -27,14 +30,7 @@ interface MockRssSettings {
 }
 
 const getInitialTabSettings = (): MockRssSettings | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    const saved = sessionStorage.getItem(MOCK_SETTINGS_KEY);
-    if (saved) {
-      return JSON.parse(saved) as MockRssSettings;
-    }
-  } catch {}
-  return null;
+  return safeSessionStorage.get<MockRssSettings>(MOCK_SETTINGS_KEY);
 };
 
 export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPreviewProps) {
@@ -89,16 +85,14 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
   // Persist tab settings to sessionStorage on changes (scoped only to the current tab, skipped during active dragging/resizing)
   useEffect(() => {
     if (isDragging || isResizing) return;
-    try {
-      const settings: MockRssSettings = {
-        selectedId,
-        readIds: Array.from(readIds),
-        isMinimized,
-        size,
-        offset,
-      };
-      sessionStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(settings));
-    } catch {}
+    const settings: MockRssSettings = {
+      selectedId,
+      readIds: Array.from(readIds),
+      isMinimized,
+      size,
+      offset,
+    };
+    safeSessionStorage.set(MOCK_SETTINGS_KEY, settings);
   }, [selectedId, readIds, isMinimized, size, offset, isDragging, isResizing]);
 
   const activeItem =
@@ -119,7 +113,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         original_name: artist.name,
         known_for_department: artist.department,
         profile_path: artist.avatar.replace(
-          "https://image.tmdb.org/t/p/w180_and_h180_face",
+          `${TMDB_IMAGE_BASE_URL}/w180_and_h180_face`,
           ""
         ),
         popularity: artist.popularity,

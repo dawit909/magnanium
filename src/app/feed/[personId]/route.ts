@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPersonReleases } from "@/lib/tmdb";
 import { generateRssFeed } from "@/lib/rss";
-import { ReleaseTypeCategory, FeedFilterOptions, AlertTimingWindow } from "@/types/tmdb";
-import { DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
 import {
   guardRateLimit,
   validatePersonId,
@@ -10,31 +8,10 @@ import {
 } from "@/lib/api-response";
 import { kv } from "@/lib/kv";
 import { isEtagMatch, generateEtag } from "@/lib/etag";
+import { parseFeedRequestParams, getFeedEtagKey } from "@/lib/feed-params";
+import { CACHE_TTL, HTTP_CACHE, RATE_LIMITS } from "@/lib/constants";
 
 export const runtime = "nodejs";
-
-function getFeedEtagKey(
-  personId: number,
-  isJson: boolean,
-  isRaw: boolean,
-  country: string,
-  roles: string[],
-  types: string[],
-  window: string,
-  alert: string,
-  excludeShorts: boolean,
-  excludeReReleases: boolean,
-  excludeUncredited: boolean,
-  clientKey?: string
-): string {
-  const normRoles = [...roles].sort().join(",");
-  const normTypes = [...types].sort().join(",");
-  const countryUpper = country.toUpperCase();
-  const filterPart = isRaw
-    ? "raw"
-    : `${normRoles}_${normTypes}_${window}_${alert}_${excludeShorts}_${excludeReReleases}_${excludeUncredited}`;
-  return `feed_etag:${personId}:${countryUpper}:${isJson ? "json" : "rss"}:${filterPart}${clientKey ? `:${clientKey}` : ""}`;
-}
 
 export async function GET(
   request: NextRequest,
@@ -42,18 +19,20 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    const format = searchParams.get("format");
-    const accept = request.headers.get("accept") || "";
-    const isJson =
-      format === "json" ||
-      (accept.includes("application/json") && !accept.includes("xml"));
+    const { feedParams, filterOptions } = parseFeedRequestParams(searchParams, request.headers);
+    const { isJson, isRaw, refresh, clientKey } = feedParams;
 
     // 1. IP Rate Limiting:
     // - Interactive JSON preview in UI: 120 req/min with dedicated prefix so rapid filtering never starves.
     // - External XML/RSS feed polling: 30 req/min for feed reader background refresh.
-    const rateLimit = isJson ? 120 : 30;
-    const ratePrefix = isJson ? "feed-preview" : "feed-rss";
-    const rateGuard = guardRateLimit(request, ratePrefix, rateLimit, 60 * 1000, isJson);
+    const rateLimitConfig = isJson ? RATE_LIMITS.FEED_PREVIEW : RATE_LIMITS.FEED_RSS;
+    const rateGuard = guardRateLimit(
+      request,
+      rateLimitConfig.prefix,
+      rateLimitConfig.max,
+      rateLimitConfig.windowMs,
+      isJson
+    );
     if (!rateGuard.allowed) {
       return rateGuard.response!;
     }
@@ -65,55 +44,22 @@ export async function GET(
       return validation.response!;
     }
     const personId = validation.personId!;
-
-    const isRaw = searchParams.get("raw") === "true";
-    const refresh = searchParams.get("refresh") === "true";
-    const rolesParam = searchParams.get("roles") || DEFAULT_FEED_OPTIONS.roles.join(",");
-    const typesParam = searchParams.get("types") || DEFAULT_FEED_OPTIONS.types.join(",");
-    const country = searchParams.get("country") || DEFAULT_FEED_OPTIONS.country;
-    const window = (searchParams.get("window") as "upcoming" | "all") || "all";
-    const alert = (searchParams.get("alert") as AlertTimingWindow) || DEFAULT_FEED_OPTIONS.alert;
-    const excludeShorts = searchParams.get("exclude_shorts") === "true";
-    const excludeReReleases = searchParams.get("exclude_rereleases") !== "false";
-    const excludeUncredited = searchParams.get("exclude_uncredited") !== "false";
-    const clientKey = request.headers.get("x-tmdb-key") || searchParams.get("api_key") || undefined;
-
-    const roles = searchParams.has("roles")
-      ? (rolesParam ? rolesParam.split(",").map((r) => r.trim().toLowerCase()).filter(Boolean) : [])
-      : DEFAULT_FEED_OPTIONS.roles;
-    const types = searchParams.has("types")
-      ? (typesParam ? (typesParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean) as ReleaseTypeCategory[]) : [])
-      : (DEFAULT_FEED_OPTIONS.types as ReleaseTypeCategory[]);
+    filterOptions.personId = personId;
 
     // 3. Early-Exit ETag Check: If client sends If-None-Match matching cached ETag, return 304 immediately!
     const ifNoneMatch = request.headers.get("if-none-match");
-    const etagKey = getFeedEtagKey(
-      personId,
-      isJson,
-      isRaw,
-      country,
-      roles,
-      types,
-      window,
-      alert,
-      excludeShorts,
-      excludeReReleases,
-      excludeUncredited,
-      clientKey
-    );
+    const etagKey = getFeedEtagKey(personId, feedParams);
 
     if (ifNoneMatch && !refresh) {
       const cachedEtag = await kv.get<string>(etagKey);
       if (cachedEtag && isEtagMatch(ifNoneMatch, cachedEtag)) {
-        const maxAge = isJson ? 300 : 3600;
-        const sMaxAge = isJson ? 3600 : 86400;
-        const staleWhileRevalidate = 172800;
+        const cacheConfig = isJson ? HTTP_CACHE.FEED_JSON : HTTP_CACHE.FEED_RSS;
 
         return new NextResponse(null, {
           status: 304,
           headers: {
-            "Cache-Control": `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
-            "CDN-Cache-Control": `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+            "Cache-Control": `public, max-age=${cacheConfig.maxAge}, s-maxage=${cacheConfig.sMaxAge}, stale-while-revalidate=${cacheConfig.staleWhileRevalidate}`,
+            "CDN-Cache-Control": `public, s-maxage=${cacheConfig.sMaxAge}, stale-while-revalidate=${cacheConfig.staleWhileRevalidate}`,
             ETag: cachedEtag,
             Vary: "Accept, Accept-Encoding",
             ...rateGuard.headers,
@@ -121,32 +67,6 @@ export async function GET(
         });
       }
     }
-
-    const filterOptions: FeedFilterOptions = isRaw
-      ? {
-          personId,
-          roles: DEFAULT_FEED_OPTIONS.roles,
-          types: DEFAULT_FEED_OPTIONS.types as ReleaseTypeCategory[],
-          country,
-          window: "all",
-          alert: "announced",
-          excludeShorts: false,
-          excludeReReleases: false,
-          excludeUncredited: false,
-          bypassCache: refresh,
-        }
-      : {
-          personId,
-          roles,
-          types,
-          country,
-          window,
-          alert,
-          excludeShorts,
-          excludeReReleases,
-          excludeUncredited,
-          bypassCache: refresh,
-        };
 
     const { personName, releases, profilePath, notFound } = await getPersonReleases(
       filterOptions,
@@ -191,14 +111,16 @@ export async function GET(
 
     // 4. Generate ETag, update KV cache with 24h TTL, and negotiate cached response
     const etag = generateEtag(payload);
-    kv.set(etagKey, etag, 86400).catch(() => {});
+    kv.set(etagKey, etag, CACHE_TTL.FEED_ETAG).catch(() => {});
+
+    const cacheConfig = isJson ? HTTP_CACHE.FEED_JSON : HTTP_CACHE.FEED_RSS;
 
     return buildCachedResponse({
       content: payload,
       contentType,
-      maxAge: isJson ? 300 : 3600,
-      sMaxAge: isJson ? 3600 : 86400,
-      staleWhileRevalidate: 172800,
+      maxAge: cacheConfig.maxAge,
+      sMaxAge: cacheConfig.sMaxAge,
+      staleWhileRevalidate: cacheConfig.staleWhileRevalidate,
       etag,
       ifNoneMatch,
       rateLimitHeaders: rateGuard.headers,

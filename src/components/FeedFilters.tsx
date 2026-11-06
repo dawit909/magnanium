@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Info, Settings2, ChevronRight, RotateCcw } from "lucide-react";
-import { getCountryOptions } from "@/lib/constants";
+import { getCountryOptions, STORAGE_KEYS } from "@/lib/constants";
+import { safeSessionStorage } from "@/lib/storage";
 
 interface FeedFiltersProps {
   roles: string[];
@@ -108,7 +109,7 @@ const ALERT_OPTIONS = [
   { id: "week_before", label: "Week Before Release" },
 ];
 
-export const STORAGE_KEY_OPTIONS_EXPANDED = "magnanium_feed_options_expanded";
+export const STORAGE_KEY_OPTIONS_EXPANDED = STORAGE_KEYS.OPTIONS_EXPANDED;
 
 let hasHydrated = false;
 
@@ -116,12 +117,10 @@ function getInitialExpanded(): boolean {
   if (typeof window === "undefined" || !hasHydrated) {
     return true; // Unhide by default on SSR and initial client hydration
   }
-  try {
-    const saved = sessionStorage.getItem(STORAGE_KEY_OPTIONS_EXPANDED);
-    if (saved !== null) {
-      return saved === "true";
-    }
-  } catch {}
+  const saved = safeSessionStorage.getItem(STORAGE_KEY_OPTIONS_EXPANDED);
+  if (saved !== null) {
+    return saved === "true";
+  }
   return true;
 }
 
@@ -149,12 +148,10 @@ const FeedFilters = memo(function FeedFilters({
   useEffect(() => {
     hasHydrated = true;
     const syncFromStorage = () => {
-      try {
-        const saved = sessionStorage.getItem(STORAGE_KEY_OPTIONS_EXPANDED);
-        if (saved !== null) {
-          setIsExpanded(saved === "true");
-        }
-      } catch {}
+      const saved = safeSessionStorage.getItem(STORAGE_KEY_OPTIONS_EXPANDED);
+      if (saved !== null) {
+        setIsExpanded(saved === "true");
+      }
     };
 
     syncFromStorage();
@@ -167,9 +164,7 @@ const FeedFilters = memo(function FeedFilters({
   const handleToggleExpanded = useCallback(() => {
     setIsExpanded((prev) => {
       const next = !prev;
-      try {
-        sessionStorage.setItem(STORAGE_KEY_OPTIONS_EXPANDED, String(next));
-      } catch {}
+      safeSessionStorage.setItem(STORAGE_KEY_OPTIONS_EXPANDED, String(next));
       return next;
     });
   }, []);

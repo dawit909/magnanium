@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, getClientIp } from "./rate-limit";
 import { isValidPersonId, isPersonMarkedNotFound } from "./negative-cache";
 import { generateEtag, isEtagMatch } from "./etag";
+import { HTTP_CACHE, TIME_MS } from "./constants";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -16,7 +17,7 @@ export function guardRateLimit(
   request: NextRequest,
   prefix: string,
   limit: number,
-  windowMs: number = 60 * 1000,
+  windowMs: number = TIME_MS.MINUTE,
   isJson: boolean = false
 ): RateLimitResult {
   const clientIp = getClientIp(request);
@@ -93,9 +94,9 @@ export interface CachedResponseOptions {
 export function buildCachedResponse({
   content,
   contentType,
-  maxAge = 3600,
-  sMaxAge = 86400,
-  staleWhileRevalidate = 172800,
+  maxAge = HTTP_CACHE.FEED_RSS.maxAge,
+  sMaxAge = HTTP_CACHE.FEED_RSS.sMaxAge,
+  staleWhileRevalidate = HTTP_CACHE.FEED_RSS.staleWhileRevalidate,
   etagPayload,
   etag: directEtag,
   ifNoneMatch,

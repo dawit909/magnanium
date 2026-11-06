@@ -3,6 +3,7 @@
 import { RefObject } from "react";
 import { Search, Sun, Moon, User, Loader2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
+import { getTmdbImageUrl } from "@/lib/media";
 import Logo from "./Logo";
 
 interface HeaderProps {
@@ -125,7 +126,8 @@ export default function Header({
                       onSetActiveIndex(index);
                       if (person.profile_path && typeof window !== "undefined") {
                         const hero = new Image();
-                        hero.src = `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`;
+                        const heroUrl = getTmdbImageUrl(person.profile_path, "w300_and_h300_face");
+                        if (heroUrl) hero.src = heroUrl;
                       }
                     }}
                     className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400 ${
@@ -140,13 +142,16 @@ export default function Header({
                           <User className="w-3 h-3 pointer-events-none" />
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={`https://image.tmdb.org/t/p/w180_and_h180_face${person.profile_path}`}
+                            src={getTmdbImageUrl(person.profile_path, "w180_and_h180_face") || ""}
                             alt={person.name}
                             loading="eager"
                             decoding="async"
                             fetchPriority="high"
                             onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = `https://image.tmdb.org/t/p/w92${person.profile_path}`;
+                              const fallback = getTmdbImageUrl(person.profile_path, "w92");
+                              if (fallback) {
+                                (e.currentTarget as HTMLImageElement).src = fallback;
+                              }
                             }}
                             className="absolute inset-0 w-full h-full object-cover object-[center_20%] text-transparent select-none"
                           />

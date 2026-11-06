@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { safeLocalStorage } from "@/lib/storage";
 
 export type Theme = "light" | "dark";
-const THEME_KEY = "magnanium_theme";
+export const THEME_KEY = STORAGE_KEYS.THEME;
 
 function applyThemeToDocument(theme: Theme): void {
   if (typeof document === "undefined") return;
@@ -19,17 +21,15 @@ export function useTheme() {
 
   useEffect(() => {
     let initial: Theme = "light";
-    try {
-      const saved = localStorage.getItem(THEME_KEY);
-      if (saved === "dark" || saved === "light") {
-        initial = saved;
-      } else if (
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-      ) {
-        initial = "dark";
-      }
-    } catch {}
+    const saved = safeLocalStorage.getItem(THEME_KEY);
+    if (saved === "dark" || saved === "light") {
+      initial = saved;
+    } else if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
+      initial = "dark";
+    }
     setTheme(initial);
     applyThemeToDocument(initial);
   }, []);
@@ -37,9 +37,7 @@ export function useTheme() {
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {
       const next: Theme = prev === "light" ? "dark" : "light";
-      try {
-        localStorage.setItem(THEME_KEY, next);
-      } catch {}
+      safeLocalStorage.setItem(THEME_KEY, next);
       applyThemeToDocument(next);
       return next;
     });

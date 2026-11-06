@@ -2,28 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { AlertCircle, X } from "lucide-react";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { safeLocalStorage } from "@/lib/storage";
 
-export const NOTICE_DISMISSED_KEY = "magnanium_feed_url_notice_dismissed";
+export const NOTICE_DISMISSED_KEY = STORAGE_KEYS.NOTICE_DISMISSED;
 
 export default function FeedUrlNotice() {
   const [isDismissed, setIsDismissed] = useState(true);
 
   useEffect(() => {
-    try {
-      const dismissed = localStorage.getItem(NOTICE_DISMISSED_KEY);
-      if (dismissed !== "true") {
-        setIsDismissed(false);
-      }
-    } catch {
+    const dismissed = safeLocalStorage.getItem(NOTICE_DISMISSED_KEY);
+    if (dismissed !== "true") {
       setIsDismissed(false);
     }
   }, []);
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    try {
-      localStorage.setItem(NOTICE_DISMISSED_KEY, "true");
-    } catch {}
+    safeLocalStorage.setItem(NOTICE_DISMISSED_KEY, "true");
   };
 
   if (isDismissed) {
@@ -48,15 +44,16 @@ export default function FeedUrlNotice() {
           </div>
 
           <p className="text-neutral-600 dark:text-neutral-300 text-xs leading-relaxed">
-            All RSS feed URLs have migrated from <code className="px-1 py-0.5 rounded bg-neutral-200/60 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 font-mono text-[11px]">/api/feed/...</code> to clean <code className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-200 font-mono font-medium text-[11px]">/feed/...</code> endpoints. Legacy API URLs are no longer supported. Please update your existing subscriptions in your RSS reader. Thank you for your understanding.
+            Magnanium now tracks upcoming and catalog titles on a unified, high-speed feed. If
+            you subscribed to an older <code className="px-1 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono text-[11px]">/feed/...</code> URL,
+            please copy and replace it in your RSS reader below to ensure continued updates.
           </p>
         </div>
 
         <button
-          type="button"
           onClick={handleDismiss}
+          className="absolute top-3 right-3 p-1 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           aria-label="Dismiss notice"
-          className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
         >
           <X className="w-4 h-4" />
         </button>

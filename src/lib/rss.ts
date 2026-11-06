@@ -1,5 +1,6 @@
 import { FormattedRelease } from "@/types/tmdb";
 import { getInformativeNote } from "@/lib/tmdb/releases";
+import { getTmdbImageUrl, getTmdbPosterUrl } from "@/lib/media";
 
 const XML_ENTITIES: Record<string, string> = {
   "<": "&lt;",
@@ -107,11 +108,7 @@ function renderMetadataLines(item: FormattedRelease): string {
 }
 
 function renderItemDescription(item: FormattedRelease): string {
-  const posterSrc = item.posterPath
-    ? item.posterPath.startsWith("http")
-      ? item.posterPath
-      : `https://image.tmdb.org/t/p/w342${item.posterPath}`
-    : null;
+  const posterSrc = getTmdbPosterUrl(item.posterPath, "w342");
 
   const posterHtml = posterSrc
     ? `<p><img src="${escapeXml(posterSrc)}" alt="${escapeXml(item.movieTitle)}" style="max-width: 320px; border-radius: 8px; margin-bottom: 12px;" /></p>`
@@ -169,13 +166,7 @@ export function generateRssFeed({
   const buildDate = hourBucket.toUTCString();
   const itemsXml = releases.map((item) => renderRssItem(item, buildDate)).join("\n");
 
-  const imageUrl =
-    avatarUrl ||
-    (profilePath
-      ? profilePath.startsWith("http")
-        ? profilePath
-        : `https://image.tmdb.org/t/p/w342${profilePath}`
-      : null);
+  const imageUrl = avatarUrl || getTmdbImageUrl(profilePath, "w342");
 
   const imageXml = imageUrl
     ? `

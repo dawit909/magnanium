@@ -1,4 +1,5 @@
 import { kv } from "../kv";
+import { CACHE_TTL } from "../constants";
 
 const TMDB_API_BASE = "https://api.themoviedb.org/3";
 const SERVER_API_KEY = process.env.TMDB_API_KEY || "";
@@ -41,7 +42,7 @@ export function getTmdbHeaders(clientKey?: string): Record<string, string> {
 export async function tmdbFetch<T>(
   endpoint: string,
   params: Record<string, string> = {},
-  revalidateSeconds: number = 3600,
+  revalidateSeconds: number = CACHE_TTL.SEARCH,
   clientKey?: string
 ): Promise<{ data: T | null; status: number }> {
   // Use shared L1/L2 KV cache for shared server API key requests

@@ -8,6 +8,8 @@ import {
   validatePersonId,
   buildCachedResponse,
 } from "@/lib/api-response";
+import { getTmdbImageUrl } from "@/lib/media";
+import { HTTP_CACHE, RATE_LIMITS } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
@@ -23,7 +25,12 @@ export async function GET(
 ) {
   try {
     // 1. Rate limiting (60 req/min per IP)
-    const rateGuard = guardRateLimit(request, "avatar", 60);
+    const rateGuard = guardRateLimit(
+      request,
+      RATE_LIMITS.AVATAR.prefix,
+      RATE_LIMITS.AVATAR.max,
+      RATE_LIMITS.AVATAR.windowMs
+    );
     if (!rateGuard.allowed) {
       return rateGuard.response!;
     }
@@ -44,9 +51,9 @@ export async function GET(
       return buildCachedResponse({
         content: new Uint8Array(cached.buffer),
         contentType: "image/jpeg",
-        maxAge: 86400,
-        sMaxAge: 604800,
-        staleWhileRevalidate: 2592000,
+        maxAge: HTTP_CACHE.AVATAR.maxAge,
+        sMaxAge: HTTP_CACHE.AVATAR.sMaxAge,
+        staleWhileRevalidate: HTTP_CACHE.AVATAR.staleWhileRevalidate,
         etagPayload: cached.buffer,
         ifNoneMatch,
         rateLimitHeaders: rateGuard.headers,
@@ -63,10 +70,11 @@ export async function GET(
     }
 
     // 5. Fetch source portrait & crop to 1:1 square centered JPEG (using TMDB face crop or top-aligned fallback)
-    const tmdbFaceUrl = `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`;
+    const tmdbFaceUrl = getTmdbImageUrl(person.profile_path, "w300_and_h300_face")!;
     let imgRes = await fetch(tmdbFaceUrl, { signal: AbortSignal.timeout(6000) });
     if (!imgRes.ok) {
-      imgRes = await fetch(`https://image.tmdb.org/t/p/w342${person.profile_path}`, {
+      const fallbackUrl = getTmdbImageUrl(person.profile_path, "w342")!;
+      imgRes = await fetch(fallbackUrl, {
         signal: AbortSignal.timeout(6000),
       });
       if (!imgRes.ok) {
@@ -86,15 +94,15 @@ export async function GET(
     return buildCachedResponse({
       content: new Uint8Array(squareBuffer),
       contentType: "image/jpeg",
-      maxAge: 86400,
-      sMaxAge: 604800,
-      staleWhileRevalidate: 2592000,
+      maxAge: HTTP_CACHE.AVATAR.maxAge,
+      sMaxAge: HTTP_CACHE.AVATAR.sMaxAge,
+      staleWhileRevalidate: HTTP_CACHE.AVATAR.staleWhileRevalidate,
       etagPayload: squareBuffer,
       ifNoneMatch,
       rateLimitHeaders: rateGuard.headers,
     });
   } catch (error) {
-    console.error("Avatar processing error:", error);
-    return new NextResponse("Failed to process avatar", { status: 500 });
+    console.error("Avatar API error:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

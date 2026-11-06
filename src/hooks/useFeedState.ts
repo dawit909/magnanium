@@ -10,8 +10,10 @@ import {
   DEFAULT_FEED_OPTIONS,
   FeedOptionsSettings,
 } from "@/lib/feed-options";
-import { detectBrowserCountry } from "@/lib/constants";
+import { detectBrowserCountry, CACHE_TTL, STORAGE_KEYS } from "@/lib/constants";
 import { filterReleases } from "@/lib/feed-filter";
+import { safeSessionStorage } from "@/lib/storage";
+import { buildFeedUrls } from "@/lib/feed-params";
 
 interface StoredRawReleasesEntry {
   releases: FormattedRelease[];
@@ -19,37 +21,28 @@ interface StoredRawReleasesEntry {
 }
 
 const rawReleasesCache = new BoundedMap<string, StoredRawReleasesEntry>(120);
-const RAW_STORAGE_PREFIX = "magnanium_raw_";
-const SWR_FRESHNESS_MS = 15 * 60 * 1000; // 15-minute client freshness window
 
 function getStoredRawReleases(personId: number, country: string): StoredRawReleasesEntry | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = sessionStorage.getItem(`${RAW_STORAGE_PREFIX}${personId}_${country}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Modern format with timestamp
-      if (parsed && Array.isArray(parsed.releases) && typeof parsed.timestamp === "number") {
-        return parsed as StoredRawReleasesEntry;
-      }
-      // Backward compatibility with raw arrays (treat as stale to trigger background refresh)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return { releases: parsed, timestamp: 0 };
-      }
-    }
-  } catch {}
+  const parsed = safeSessionStorage.get<any>(`${STORAGE_KEYS.RAW_PREFIX}${personId}_${country}`);
+  if (!parsed) return null;
+  // Modern format with timestamp
+  if (Array.isArray(parsed.releases) && typeof parsed.timestamp === "number") {
+    return parsed as StoredRawReleasesEntry;
+  }
+  // Backward compatibility with raw arrays (treat as stale to trigger background refresh)
+  if (Array.isArray(parsed) && parsed.length > 0) {
+    return { releases: parsed, timestamp: 0 };
+  }
   return null;
 }
 
 function setStoredRawReleases(personId: number, country: string, releases: FormattedRelease[]): void {
-  if (typeof window === "undefined" || !releases) return;
-  try {
-    const entry: StoredRawReleasesEntry = {
-      releases,
-      timestamp: Date.now(),
-    };
-    sessionStorage.setItem(`${RAW_STORAGE_PREFIX}${personId}_${country}`, JSON.stringify(entry));
-  } catch {}
+  if (!releases) return;
+  const entry: StoredRawReleasesEntry = {
+    releases,
+    timestamp: Date.now(),
+  };
+  safeSessionStorage.set(`${STORAGE_KEYS.RAW_PREFIX}${personId}_${country}`, entry);
 }
 
 export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
@@ -193,24 +186,19 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     if (!selectedPerson || !origin) {
       return { feedUrl: "", feedProtocolUrl: "" };
     }
-    const params = new URLSearchParams({
-      roles: roles.join(","),
-      types: types.join(","),
-      country,
-      alert,
-      exclude_shorts: String(excludeShorts),
-      exclude_rereleases: String(excludeReReleases),
-      exclude_uncredited: String(excludeUncredited),
+    return buildFeedUrls({
+      origin,
+      personId: selectedPerson.id,
+      options: {
+        roles,
+        types,
+        country,
+        alert,
+        excludeShorts,
+        excludeReReleases,
+        excludeUncredited,
+      },
     });
-    const queryString = params.toString();
-    const feed = `${origin}/feed/${selectedPerson.id}?${queryString}`;
-    const hostWithPort = origin.replace(/^https?:\/\//, "");
-    const feedProtocol = `feed://${hostWithPort}/feed/${selectedPerson.id}?${queryString}`;
-
-    return {
-      feedUrl: feed,
-      feedProtocolUrl: feedProtocol,
-    };
   }, [selectedPerson?.id, origin, roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 
   // Fetch artist's raw releases for the selected country (with instant storage restore & background SWR)
@@ -232,8 +220,8 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
       setRawReleases(storedEntry.releases);
       setIsLoadingPreview(false);
 
-      // Check if data is within the 15-minute freshness window
-      isFresh = Date.now() - storedEntry.timestamp < SWR_FRESHNESS_MS;
+      // Check if data is within the client freshness window
+      isFresh = Date.now() - storedEntry.timestamp < CACHE_TTL.SWR_FRESHNESS_MS;
       if (isFresh) {
         // Data is completely fresh — skip background network request!
         return;

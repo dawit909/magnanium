@@ -36,6 +36,104 @@ export const COUNTRIES: CountryOption[] = [
 ];
 
 /**
+ * Standard time durations in milliseconds
+ */
+export const TIME_MS = {
+  SECOND: 1000,
+  MINUTE: 60 * 1000,
+  HOUR: 60 * 60 * 1000,
+  DAY: 24 * 60 * 60 * 1000,
+  WEEK: 7 * 24 * 60 * 60 * 1000,
+} as const;
+
+/**
+ * Standard time durations in seconds
+ */
+export const TIME_SECONDS = {
+  MINUTE: 60,
+  HOUR: 3600,
+  DAY: 86400,
+  WEEK: 7 * 86400,
+} as const;
+
+/**
+ * Standard Cache TTLs in seconds (unless suffixed with _MS)
+ */
+export const CACHE_TTL = {
+  PERSON_DETAILS: 7 * TIME_SECONDS.DAY, // 7 days (604,800s)
+  PERSON_CREDITS: TIME_SECONDS.DAY,     // 24 hours (86,400s)
+  RAW_RELEASES: TIME_SECONDS.DAY,       // 24 hours (86,400s)
+  FEED_ETAG: TIME_SECONDS.DAY,          // 24 hours (86,400s)
+  SEARCH: TIME_SECONDS.HOUR,            // 1 hour (3,600s)
+  POPULAR_ARTISTS_INDEX: TIME_SECONDS.DAY, // 24 hours
+  SWR_FRESHNESS_MS: 15 * TIME_MS.MINUTE,   // 15 minutes client freshness window
+} as const;
+
+/**
+ * Centralized HTTP caching directives
+ */
+export const HTTP_CACHE = {
+  FEED_JSON: {
+    maxAge: 300,
+    sMaxAge: 3600,
+    staleWhileRevalidate: 172800,
+  },
+  FEED_RSS: {
+    maxAge: 3600,
+    sMaxAge: 86400,
+    staleWhileRevalidate: 172800,
+  },
+  SEARCH: {
+    maxAge: 300,
+    sMaxAge: 3600,
+    staleWhileRevalidate: 86400,
+  },
+  AVATAR: {
+    maxAge: 86400,
+    sMaxAge: 604800,
+    staleWhileRevalidate: 172800,
+  },
+} as const;
+
+/**
+ * Centralized rate limit configurations
+ */
+export const RATE_LIMITS = {
+  FEED_PREVIEW: {
+    max: 120,
+    windowMs: TIME_MS.MINUTE,
+    prefix: "feed-preview",
+  },
+  FEED_RSS: {
+    max: 30,
+    windowMs: TIME_MS.MINUTE,
+    prefix: "feed-rss",
+  },
+  SEARCH: {
+    max: 30,
+    windowMs: TIME_MS.MINUTE,
+    prefix: "search",
+  },
+  AVATAR: {
+    max: 60,
+    windowMs: TIME_MS.MINUTE,
+    prefix: "avatar",
+  },
+} as const;
+
+/**
+ * Storage keys used across client components and hooks
+ */
+export const STORAGE_KEYS = {
+  FEED_OPTIONS: "magnanium_feed_options",
+  OPTIONS_EXPANDED: "magnanium_feed_options_expanded",
+  MOCK_SETTINGS: "magnanium_mock_rss_settings",
+  THEME: "magnanium_theme",
+  NOTICE_DISMISSED: "magnanium_feed_url_notice_dismissed",
+  RAW_PREFIX: "magnanium_raw_",
+} as const;
+
+/**
  * Get country display name using Intl.DisplayNames where available.
  */
 export function getCountryDisplayName(code: string): string {

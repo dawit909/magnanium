@@ -3,6 +3,7 @@
 import { useState, memo } from "react";
 import { User, ExternalLink } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
+import { getTmdbImageUrl } from "@/lib/media";
 
 interface ArtistHeroProps {
   person: TMDBPersonSearchResult;
@@ -31,14 +32,17 @@ const ArtistHero = memo(function ArtistHero({ person }: ArtistHeroProps) {
                 setIsLoaded(true);
               }
             }}
-            src={`https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`}
+            src={getTmdbImageUrl(person.profile_path, "w300_and_h300_face") || ""}
             alt={person.name}
             loading="eager"
             decoding="async"
             fetchPriority="high"
             onLoad={() => setIsLoaded(true)}
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = `https://image.tmdb.org/t/p/w185${person.profile_path}`;
+              const fallback = getTmdbImageUrl(person.profile_path, "w185");
+              if (fallback) {
+                (e.currentTarget as HTMLImageElement).src = fallback;
+              }
             }}
             className={`absolute inset-0 w-full h-full object-cover object-[center_20%] text-transparent select-none transition-opacity duration-150 ${
               isLoaded ? "opacity-100" : "opacity-0"

@@ -4,6 +4,7 @@ import { memo } from "react";
 import { Film, Tv } from "lucide-react";
 import { FormattedRelease } from "@/types/tmdb";
 import { getInformativeNote } from "@/lib/tmdb/releases";
+import { getTmdbPosterUrl } from "@/lib/media";
 
 interface ReleaseListProps {
   releases: FormattedRelease[];
@@ -18,11 +19,7 @@ const ReleaseItemCard = memo(function ReleaseItemCard({
   item: FormattedRelease;
   priority?: boolean;
 }) {
-  const posterSrc = item.posterPath
-    ? item.posterPath.startsWith("http")
-      ? item.posterPath
-      : `https://image.tmdb.org/t/p/w185${item.posterPath}`
-    : null;
+  const posterSrc = getTmdbPosterUrl(item.posterPath, "w185");
 
   const informativeNote = getInformativeNote(item.note, item.releaseTypeLabel);
 
