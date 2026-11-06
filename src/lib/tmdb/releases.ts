@@ -237,7 +237,7 @@ export async function getPersonCreditedSeasons(
     Array<{ episodeNumber: number; airDate?: string; name?: string }>
   >();
 
-  const uniqueCreditIds = Array.from(new Set(creditIds.filter(Boolean))).slice(0, 3);
+  const uniqueCreditIds = Array.from(new Set(creditIds.filter(Boolean)));
   if (uniqueCreditIds.length === 0) {
     return { seasons, episodesBySeason };
   }

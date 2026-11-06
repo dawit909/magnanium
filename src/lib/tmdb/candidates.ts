@@ -15,9 +15,9 @@ export interface CandidateEntry {
 }
 
 export const CANDIDATE_LIMITS = {
-  CORE_TV: 12,
-  GUEST_TV: 4,
-  CATALOG_MOVIES: 10,
+  CORE_TV: 20,
+  GUEST_TV: 10,
+  CATALOG_MOVIES: 18,
 } as const;
 
 /**
@@ -125,13 +125,7 @@ export function selectAndSortCandidates(
     .slice(0, CANDIDATE_LIMITS.CORE_TV);
 
   const guestTvCandidates = allCandidates
-    .filter(
-      (c) =>
-        c.mediaType === "tv" &&
-        c.dateStr < oneYearAgoStr &&
-        c.isUncredited &&
-        (!c.item.first_credit_air_date || c.item.first_credit_air_date >= oneYearAgoStr)
-    )
+    .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr && c.isUncredited)
     .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
     .slice(0, CANDIDATE_LIMITS.GUEST_TV);
 
