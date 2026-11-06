@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useEffect } from "react";
+import { RefObject } from "react";
 import { Search, Sun, Moon, User, Loader2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import Logo from "./Logo";
@@ -42,20 +42,6 @@ export default function Header({
   searchInputRef,
   onKeyDown,
 }: HeaderProps) {
-  // Speculatively preload hero and avatar images for top search results so they render in 0ms on click
-  useEffect(() => {
-    if (typeof window === "undefined" || searchResults.length === 0) return;
-    searchResults.slice(0, 5).forEach((person) => {
-      if (person.profile_path) {
-        // Preload dropdown thumbnail
-        const thumb = new Image();
-        thumb.src = `https://image.tmdb.org/t/p/w180_and_h180_face${person.profile_path}`;
-        // Preload artist page hero image
-        const hero = new Image();
-        hero.src = `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`;
-      }
-    });
-  }, [searchResults]);
   const isSearchDropdownOpen =
     isOpen && (searchResults.length > 0 || (hasSearched && !isSearching));
 

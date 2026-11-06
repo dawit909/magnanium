@@ -86,8 +86,9 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
     isElevated,
   } = useDraggableWindow(initialSettings.current);
 
-  // Persist tab settings to sessionStorage on changes (scoped only to the current tab)
+  // Persist tab settings to sessionStorage on changes (scoped only to the current tab, skipped during active dragging/resizing)
   useEffect(() => {
+    if (isDragging || isResizing) return;
     try {
       const settings: MockRssSettings = {
         selectedId,
@@ -98,7 +99,7 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
       };
       sessionStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(settings));
     } catch {}
-  }, [selectedId, readIds, isMinimized, size, offset]);
+  }, [selectedId, readIds, isMinimized, size, offset, isDragging, isResizing]);
 
   const activeItem =
     SAMPLE_ITEMS.find((item) => item.id === selectedId) || SAMPLE_ITEMS[0];

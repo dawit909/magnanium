@@ -210,7 +210,7 @@ export async function getPersonDetails(
   const { data, status } = await tmdbFetch<TMDBPersonDetails>(
     `/person/${personId}`,
     {},
-    86400,
+    604800, // 7 days
     customApiKey
   );
 
@@ -403,19 +403,24 @@ async function fetchRawPersonReleasesFromTMDB(
   );
 
   // 3. Returning TV series that debuted before the 1-year window:
-  // We evaluate core recurring/starring/crew TV roles (up to 20 by popularity)
-  // and guest/special appearances (up to 10 by popularity) in separate quotas.
-  // This guarantees that talk show guest appearances can never displace core starring series,
-  // while still capturing major guest appearances (e.g. Conan on Fallon).
+  // We evaluate core recurring/starring/crew TV roles (up to 12 by popularity)
+  // and guest/special appearances (up to 4 by popularity, only if aired within the window) in separate quotas.
+  // This guarantees that talk show guest appearances can never displace core starring series.
   const coreTvCandidates = allCandidates
     .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr && !c.isUncredited)
     .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
-    .slice(0, 20);
+    .slice(0, 12);
 
   const guestTvCandidates = allCandidates
-    .filter((c) => c.mediaType === "tv" && c.dateStr < oneYearAgoStr && c.isUncredited)
+    .filter(
+      (c) =>
+        c.mediaType === "tv" &&
+        c.dateStr < oneYearAgoStr &&
+        c.isUncredited &&
+        (!c.item.first_credit_air_date || c.item.first_credit_air_date >= oneYearAgoStr)
+    )
     .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
-    .slice(0, 10);
+    .slice(0, 4);
 
   const catalogMovieCandidates = allCandidates
     .filter(
@@ -425,7 +430,7 @@ async function fetchRawPersonReleasesFromTMDB(
         c.dateStr !== "0000-00-00"
     )
     .sort((a, b) => (b.item.popularity || 0) - (a.item.popularity || 0))
-    .slice(0, 18);
+    .slice(0, 10);
 
   const selectedCandidatesMap = new Map<string, CandidateEntry>();
   for (const list of [
@@ -475,16 +480,21 @@ async function fetchRawPersonReleasesFromTMDB(
     activeCandidates,
     10,
     async ({ item, roles: candidateRoles, mediaType, isUncredited, creditIds }) => {
-      const combinedRole = sortAndJoinRoles(candidateRoles);
-      const itemCtx: ReleaseExtractionContext = {
-        ...ctx,
-        isCandidateUncredited: isUncredited,
-        creditIds: creditIds || (item.credit_id ? [item.credit_id] : []),
-      };
-      if (mediaType === "movie") {
-        return extractMovieReleases(item, combinedRole, itemCtx);
+      try {
+        const combinedRole = sortAndJoinRoles(candidateRoles);
+        const itemCtx: ReleaseExtractionContext = {
+          ...ctx,
+          isCandidateUncredited: isUncredited,
+          creditIds: creditIds || (item.credit_id ? [item.credit_id] : []),
+        };
+        if (mediaType === "movie") {
+          return await extractMovieReleases(item, combinedRole, itemCtx);
+        }
+        return await extractTvReleases(item, combinedRole, itemCtx);
+      } catch (err) {
+        console.warn(`Error extracting releases for ${mediaType} ${item.id}:`, err);
+        return [];
       }
-      return extractTvReleases(item, combinedRole, itemCtx);
     }
   );
 

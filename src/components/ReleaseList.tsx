@@ -11,7 +11,13 @@ interface ReleaseListProps {
   totalCount?: number | null;
 }
 
-const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: FormattedRelease }) {
+const ReleaseItemCard = memo(function ReleaseItemCard({
+  item,
+  priority = false,
+}: {
+  item: FormattedRelease;
+  priority?: boolean;
+}) {
   const posterSrc = item.posterPath
     ? item.posterPath.startsWith("http")
       ? item.posterPath
@@ -30,8 +36,9 @@ const ReleaseItemCard = memo(function ReleaseItemCard({ item }: { item: Formatte
             <img
               src={posterSrc}
               alt={item.movieTitle}
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
               decoding="async"
+              fetchPriority={priority ? "high" : "auto"}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform text-transparent select-none"
             />
           ) : (
@@ -176,8 +183,8 @@ const ReleaseList = memo(function ReleaseList({
         </div>
       ) : (
         <div className="divide-y divide-neutral-100 dark:divide-neutral-900 border-t border-b border-neutral-100 dark:border-neutral-900">
-          {releases.map((item) => (
-            <ReleaseItemCard key={item.id} item={item} />
+          {releases.map((item, index) => (
+            <ReleaseItemCard key={item.id} item={item} priority={index < 3} />
           ))}
         </div>
       )}

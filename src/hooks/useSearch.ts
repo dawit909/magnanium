@@ -24,11 +24,30 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const fuzzyIndexRef = useRef<TopArtistsFuzzyIndex | null>(null);
 
-  // Approach 2: Pre-cache top popular artists index for instant (< 2ms) fuzzy search
+  // Approach 2: Pre-cache top popular artists index during idle or immediately on search interaction
   useEffect(() => {
-    getPopularArtistsIndex().then((idx) => {
-      if (idx) fuzzyIndexRef.current = idx;
-    });
+    const loadFuzzyIndex = () => {
+      if (!fuzzyIndexRef.current) {
+        getPopularArtistsIndex().then((idx) => {
+          if (idx) fuzzyIndexRef.current = idx;
+        });
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        const id = (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback(
+          loadFuzzyIndex,
+          { timeout: 2500 }
+        );
+        return () => {
+          (window as unknown as { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id);
+        };
+      } else {
+        const id = setTimeout(loadFuzzyIndex, 1200);
+        return () => clearTimeout(id);
+      }
+    }
   }, []);
 
   // Focus search bar on "/" keypress anywhere on the page

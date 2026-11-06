@@ -237,13 +237,13 @@ export async function getPersonCreditedSeasons(
     Array<{ episodeNumber: number; airDate?: string; name?: string }>
   >();
 
-  if (!creditIds || creditIds.length === 0) {
+  const uniqueCreditIds = Array.from(new Set(creditIds.filter(Boolean))).slice(0, 3);
+  if (uniqueCreditIds.length === 0) {
     return { seasons, episodesBySeason };
   }
 
   await Promise.all(
-    creditIds.map(async (creditId) => {
-      if (!creditId) return;
+    uniqueCreditIds.map(async (creditId) => {
       try {
         const { data } = await tmdbFetch<TMDBCreditDetails>(
           `/credit/${creditId}`,

@@ -37,6 +37,7 @@ export const kv = {
         },
         // Cache: no-store on the fetch call itself so we always query live Redis
         cache: "no-store",
+        signal: AbortSignal.timeout(3000),
       });
 
       if (!res.ok) return null;
@@ -87,6 +88,7 @@ export const kv = {
         },
         body: JSON.stringify(["SET", key, serialized, "EX", ttlSeconds]),
         cache: "no-store",
+        signal: AbortSignal.timeout(3000),
       });
     } catch (err) {
       console.warn(`L2 Redis SET error for key ${key}:`, err);
