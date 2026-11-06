@@ -73,8 +73,8 @@ export async function tmdbFetch<T>(
     const data: T = await res.json();
 
     if (isSharedRequest && data) {
-      // Asynchronously populate shared L1/L2 KV cache with TTL
-      kv.set(cacheKey, data, revalidateSeconds).catch(() => {});
+      // Populate shared L1/L2 KV cache with TTL
+      await kv.set(cacheKey, data, revalidateSeconds).catch(() => {});
     }
 
     return { data, status: res.status };

@@ -157,7 +157,16 @@ export function filterReleasesByType(
     }));
   }
 
-  return candidates.filter((rel) => normalizedTypes.includes(rel.releaseType));
+  const filtered = candidates.filter((rel) => normalizedTypes.includes(rel.releaseType));
+  const uniqueList: FormattedRelease[] = [];
+  const seen = new Set<string>();
+  for (const item of filtered) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      uniqueList.push(item);
+    }
+  }
+  return uniqueList;
 }
 
 export function isRealEarliestInWindow(
@@ -735,8 +744,18 @@ export async function extractMovieReleases(
   // Sort chronologically (earliest first). On tie, prefer theatrical/cinema over digital/physical.
   allReleases.sort(compareReleasesAscending);
 
+  // Deduplicate entries with identical IDs (keeps the earliest date)
+  const uniqueReleases: FormattedRelease[] = [];
+  const seenIds = new Set<string>();
+  for (const rel of allReleases) {
+    if (!seenIds.has(rel.id)) {
+      seenIds.add(rel.id);
+      uniqueReleases.push(rel);
+    }
+  }
+
   if (ctx.isEarliestOnly) {
-    const earliest = allReleases[0];
+    const earliest = uniqueReleases[0];
     const isRealEarliest = isRealEarliestInWindow(
       earliest.releaseDate,
       movie.release_date,
@@ -756,7 +775,7 @@ export async function extractMovieReleases(
   }
 
   // Filter by requested release categories (cinema, home)
-  const typeFiltered = allReleases.filter((rel) =>
+  const typeFiltered = uniqueReleases.filter((rel) =>
     ctx.normalizedTypes.includes(rel.releaseType)
   );
 
