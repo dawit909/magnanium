@@ -103,8 +103,8 @@ export async function GET(
       const cachedEtag = await kv.get<string>(etagKey);
       if (cachedEtag && isEtagMatch(ifNoneMatch, cachedEtag)) {
         const maxAge = isJson ? 300 : 3600;
-        const sMaxAge = isJson ? 3600 : 43200;
-        const staleWhileRevalidate = 86400;
+        const sMaxAge = isJson ? 3600 : 86400;
+        const staleWhileRevalidate = 172800;
 
         return new NextResponse(null, {
           status: 304,
@@ -180,16 +180,16 @@ export async function GET(
       contentType = "application/rss+xml; charset=utf-8";
     }
 
-    // 4. Generate ETag, update KV cache with 12h TTL, and negotiate cached response
+    // 4. Generate ETag, update KV cache with 24h TTL, and negotiate cached response
     const etag = generateEtag(payload);
-    kv.set(etagKey, etag, 43200).catch(() => {});
+    kv.set(etagKey, etag, 86400).catch(() => {});
 
     return buildCachedResponse({
       content: payload,
       contentType,
       maxAge: isJson ? 300 : 3600,
-      sMaxAge: isJson ? 3600 : 43200,
-      staleWhileRevalidate: 86400,
+      sMaxAge: isJson ? 3600 : 86400,
+      staleWhileRevalidate: 172800,
       etag,
       ifNoneMatch,
       rateLimitHeaders: rateGuard.headers,

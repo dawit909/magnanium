@@ -232,7 +232,7 @@ export async function getPersonCredits(
   const { data } = await tmdbFetch<TMDBPersonCreditsResponse>(
     `/person/${personId}/combined_credits`,
     {},
-    21600,
+    86400,
     customApiKey
   );
   return data || { id: personId, cast: [], crew: [] };
@@ -284,8 +284,8 @@ export async function getRawPersonReleases(
     try {
       const result = await fetchRawPersonReleasesFromTMDB(personId, countryUpper, customApiKey);
       if (!result.notFound && result.releases) {
-        // Cache compiled raw releases in L1/L2 KV for 12 hours (43,200 seconds)
-        await kv.set(cacheKey, result, 43200);
+        // Cache compiled raw releases in L1/L2 KV for 24 hours (86,400 seconds)
+        await kv.set(cacheKey, result, 86400);
       }
       return result;
     } finally {

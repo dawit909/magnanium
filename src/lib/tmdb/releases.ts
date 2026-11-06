@@ -589,7 +589,7 @@ export async function extractMovieReleases(
   const { data: movieDetails } = await tmdbFetch<MovieDetailsWithReleases>(
     `/movie/${movie.id}`,
     { append_to_response: "release_dates,watch/providers,credits" },
-    43200,
+    86400,
     ctx.clientKey
   );
 
@@ -796,7 +796,7 @@ export async function extractTvReleases(
   >(
     `/tv/${tvShow.id}`,
     { append_to_response: "watch/providers,credits" },
-    43200,
+    86400,
     ctx.clientKey
   );
 
