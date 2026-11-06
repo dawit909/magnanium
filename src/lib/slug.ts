@@ -1,3 +1,5 @@
+import { isValidPersonId } from "./negative-cache";
+
 export function createPersonSlug(id: number, name: string): string {
   const cleanName = name
     .toLowerCase()
@@ -9,8 +11,9 @@ export function createPersonSlug(id: number, name: string): string {
 }
 
 export function parsePersonIdFromSlug(slug: string): number | null {
-  const match = slug.match(/^(\d+)/);
+  const match = slug.match(/^(\d+)(?:-|$)/);
   if (!match) return null;
   const id = parseInt(match[1], 10);
-  return isNaN(id) ? null : id;
+  if (isNaN(id) || !isValidPersonId(id)) return null;
+  return id;
 }

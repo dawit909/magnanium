@@ -64,9 +64,11 @@ export async function GET(
 
     // 5. Fetch source portrait & crop to 1:1 square centered JPEG (using TMDB face crop or top-aligned fallback)
     const tmdbFaceUrl = `https://image.tmdb.org/t/p/w300_and_h300_face${person.profile_path}`;
-    let imgRes = await fetch(tmdbFaceUrl);
+    let imgRes = await fetch(tmdbFaceUrl, { signal: AbortSignal.timeout(6000) });
     if (!imgRes.ok) {
-      imgRes = await fetch(`https://image.tmdb.org/t/p/w342${person.profile_path}`);
+      imgRes = await fetch(`https://image.tmdb.org/t/p/w342${person.profile_path}`, {
+        signal: AbortSignal.timeout(6000),
+      });
       if (!imgRes.ok) {
         return new NextResponse("Image not found on TMDB", { status: imgRes.status });
       }

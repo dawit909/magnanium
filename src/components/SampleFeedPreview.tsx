@@ -123,9 +123,12 @@ export default function SampleFeedPreview({ onSelectSampleArtist }: SampleFeedPr
         ),
         popularity: artist.popularity,
       };
-      onSelectSampleArtist?.(tmdbPerson);
-      const slug = createPersonSlug(artist.id, artist.name);
-      router.push(`/${slug}`);
+      if (onSelectSampleArtist) {
+        onSelectSampleArtist(tmdbPerson);
+      } else {
+        const slug = createPersonSlug(artist.id, artist.name);
+        router.push(`/${slug}`);
+      }
     },
     [onSelectSampleArtist, router]
   );

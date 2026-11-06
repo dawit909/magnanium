@@ -195,13 +195,12 @@ export function filterReleases(
       }
     }
 
-    const earliestList = Array.from(projectMap.values());
-    for (let i = 0; i < earliestList.length; i++) {
-      const it = earliestList[i];
-      if (!it.releaseTypeLabel.includes("(Earliest)")) {
-        it.releaseTypeLabel = `${it.releaseTypeLabel} (Earliest)`;
-      }
-    }
+    const earliestList = Array.from(projectMap.values()).map((it) => ({
+      ...it,
+      releaseTypeLabel: it.releaseTypeLabel.includes("(Earliest)")
+        ? it.releaseTypeLabel
+        : `${it.releaseTypeLabel} (Earliest)`,
+    }));
     earliestList.sort(compareReleasesDescending);
     return earliestList;
   }

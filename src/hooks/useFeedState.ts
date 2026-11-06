@@ -69,6 +69,13 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   );
 
   const hasHydratedOptionsRef = useRef(false);
+  const defaultCountryRef = useRef<string | null>(null);
+  if (!defaultCountryRef.current) {
+    defaultCountryRef.current =
+      typeof window !== "undefined"
+        ? detectBrowserCountry() || DEFAULT_FEED_OPTIONS.country
+        : DEFAULT_FEED_OPTIONS.country;
+  }
 
   // Sync origin on client mount
   useEffect(() => {
@@ -156,14 +163,6 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
     setExcludeReReleasesState(defaults.excludeReReleases);
     setExcludeUncreditedState(defaults.excludeUncredited);
   }, []);
-
-  const defaultCountryRef = useRef<string | null>(null);
-  if (!defaultCountryRef.current) {
-    defaultCountryRef.current =
-      typeof window !== "undefined"
-        ? detectBrowserCountry() || DEFAULT_FEED_OPTIONS.country
-        : DEFAULT_FEED_OPTIONS.country;
-  }
 
   const isCustomized = useMemo(() => {
     const rolesMatch =

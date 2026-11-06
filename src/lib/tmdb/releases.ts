@@ -659,10 +659,10 @@ export async function extractMovieReleases(
           continue;
         }
 
-        const noteSlug =
-          rd.note && rd.note.trim()
-            ? `-${rd.note.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
-            : "";
+        const cleanNote = rd.note
+          ? rd.note.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+          : "";
+        const noteSlug = cleanNote ? `-${cleanNote}` : "";
 
         allReleases.push(
           createReleaseItem({

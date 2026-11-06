@@ -46,7 +46,16 @@ export const kv = {
         return null;
       }
 
-      const parsed: T = typeof data.result === "string" ? JSON.parse(data.result) : data.result;
+      let parsed: T;
+      if (typeof data.result === "string") {
+        try {
+          parsed = JSON.parse(data.result);
+        } catch {
+          parsed = data.result as unknown as T;
+        }
+      } else {
+        parsed = data.result;
+      }
 
       // Populate L1 cache for subsequent fast hits
       l1Cache.set(key, parsed);

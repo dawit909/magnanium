@@ -17,11 +17,27 @@ const FeedUrlCard = memo(function FeedUrlCard({
   const resolvedFeedProtocol =
     feedProtocolUrl || (feedUrl ? feedUrl.replace(/^https?:\/\//, "feed://") : "");
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!feedUrl) return;
-    navigator.clipboard.writeText(feedUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Fallback for restricted clipboard contexts
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = feedUrl;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch {}
+    }
   };
 
   return (

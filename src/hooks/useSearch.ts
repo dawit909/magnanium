@@ -34,7 +34,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
   // Focus search bar on "/" keypress anywhere on the page
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/") {
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         const active = document.activeElement;
         const isInput =
           active instanceof HTMLInputElement ||
@@ -188,6 +188,7 @@ export function useSearch(onSelect: (person: TMDBPersonSearchResult) => void) {
     setIsSearching(false);
     setHasSearched(false);
     setIsOpen(false);
+    searchInputRef.current?.blur();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;

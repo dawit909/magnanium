@@ -14,6 +14,10 @@ function escapeXml(unsafe: string): string {
   return unsafe.replace(XML_REGEX, (c) => XML_ENTITIES[c] || c);
 }
 
+function escapeCdata(unsafe: string): string {
+  return unsafe.replace(/]]>/g, "]]]]><![CDATA[>");
+}
+
 function formatPubDate(releaseDate: string, fallbackDate: string): string {
   try {
     const d = new Date(releaseDate);
@@ -136,7 +140,7 @@ function renderRssItem(item: FormattedRelease, buildDate: string): string {
       <link>${escapeXml(item.tmdbUrl)}</link>
       <guid isPermaLink="false">${escapeXml(item.id)}</guid>
       <pubDate>${pubDate}</pubDate>
-      <description><![CDATA[${descriptionContent}]]></description>
+      <description><![CDATA[${escapeCdata(descriptionContent)}]]></description>
       <category>${escapeXml(mediumLabel)}</category>
       <category>${escapeXml(item.releaseTypeLabel)}</category>
       <category>${escapeXml(item.role)}</category>${languageCategory}

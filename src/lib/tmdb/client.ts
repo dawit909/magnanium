@@ -63,6 +63,7 @@ export async function tmdbFetch<T>(
   try {
     const res = await fetch(url, {
       headers,
+      signal: AbortSignal.timeout(10000),
       next: { revalidate: revalidateSeconds },
     });
 

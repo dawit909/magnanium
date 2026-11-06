@@ -48,6 +48,14 @@ export default function FeedApp({
     handleKeyDown,
   } = useSearch(handleSelectPerson);
 
+  const handleSelectPersonFromHeader = useCallback(
+    (person: TMDBPersonSearchResult) => {
+      resetSearch();
+      handleSelectPerson(person);
+    },
+    [resetSearch, handleSelectPerson]
+  );
+
   const {
     roles,
     toggleRole,
@@ -94,7 +102,7 @@ export default function FeedApp({
         searchResults={searchResults}
         activeIndex={activeIndex}
         onSetActiveIndex={setActiveIndex}
-        onSelectPerson={handleSelectPerson}
+        onSelectPerson={handleSelectPersonFromHeader}
         isSearching={isSearching}
         hasSearched={hasSearched}
         isOpen={isOpen}
@@ -111,7 +119,7 @@ export default function FeedApp({
         </div>
       ) : (
         <div className="mt-8 space-y-6 animate-in fade-in duration-200">
-          <ArtistHero person={selectedPerson} />
+          <ArtistHero key={selectedPerson.id} person={selectedPerson} />
 
           <FeedUrlCard
             feedUrl={feedUrl}

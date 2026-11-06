@@ -14,7 +14,7 @@ export const ROLE_PRIORITY = [
 ];
 
 export const ROLE_REGEX = {
-  director: /director/i,
+  director: /(?<!\b(?:art|casting|technical|lighting|assistant|associate)\s+)\b(co-)?director\b(?!\s+of\b)/i,
   writer: /writer|screenplay|creator|teleplay|story/i,
   producer: /producer/i,
   actor: /actor/i,
@@ -49,12 +49,21 @@ export function sortAndJoinRoles(roles: string[]): string {
 }
 
 export function isDirectorCredit(item: TMDBCreditItem): boolean {
-  const job = (item.job || "").toLowerCase();
-  const dept = (item.department || "").toLowerCase();
-  if (job.includes("photography") || dept.includes("camera")) {
+  const job = (item.job || "").toLowerCase().trim();
+  const dept = (item.department || "").toLowerCase().trim();
+  if (
+    job.includes("photography") ||
+    dept.includes("camera") ||
+    job.includes("art director") ||
+    job.includes("casting director") ||
+    job.includes("technical director") ||
+    job.includes("lighting director") ||
+    job.includes("assistant director") ||
+    job.includes("associate director")
+  ) {
     return false;
   }
-  return job.includes("director") || dept.includes("directing");
+  return job === "director" || job === "co-director" || (job.includes("director") && dept.includes("directing"));
 }
 
 export function isWriterCredit(item: TMDBCreditItem): boolean {
