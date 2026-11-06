@@ -184,7 +184,7 @@ export function filterReleases(
     const projectMap = new Map<string, FormattedRelease>();
     for (let i = 0; i < result.length; i++) {
       const item = result[i];
-      const seasonMatch = item.id.match(/-s(\d+)-/);
+      const seasonMatch = item.id.match(/-s(\d+)(?:-|$)/);
       const key =
         item.mediaType === "tv"
           ? `tv-${item.movieId}-${seasonMatch ? `s${seasonMatch[1]}` : item.movieTitle}`

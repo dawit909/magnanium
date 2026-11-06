@@ -141,7 +141,7 @@ export function filterReleasesByType(
   if (isEarliestOnly) {
     const seasonMap = new Map<string, FormattedRelease>();
     for (const item of candidates) {
-      const seasonMatch = item.id.match(/-s(\d+)-/);
+      const seasonMatch = item.id.match(/-s(\d+)(?:-|$)/);
       const key = seasonMatch ? `s${seasonMatch[1]}` : item.movieTitle;
       const existing = seasonMap.get(key);
       if (!existing || compareReleasesAscending(item, existing) < 0) {
@@ -657,7 +657,7 @@ export async function extractMovieReleases(
 
         allReleases.push(
           createReleaseItem({
-            id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}-${dateStr}${noteSlug}`,
+            id: `${movie.id}-${rd.type}-${countryData.iso_3166_1}${noteSlug}`,
             mediaType: "movie",
             movieId: movie.id,
             movieTitle,
@@ -703,7 +703,7 @@ export async function extractMovieReleases(
     const dateStr = movie.release_date;
     allReleases.push(
       createReleaseItem({
-        id: `${movie.id}-general-${dateStr}`,
+        id: `${movie.id}-general`,
         mediaType: "movie",
         movieId: movie.id,
         movieTitle,
@@ -919,7 +919,7 @@ export async function extractTvReleases(
 
       candidates.push(
         createReleaseItem({
-          id: `${tvShow.id}-s${season.season_number}-${dateStr}`,
+          id: `${tvShow.id}-s${season.season_number}`,
           mediaType: "tv",
           movieId: tvShow.id,
           movieTitle: seasonTitle,
@@ -967,7 +967,7 @@ export async function extractTvReleases(
     ) {
       candidates.push(
         createReleaseItem({
-          id: `${tvShow.id}-general-${dateStr}`,
+          id: `${tvShow.id}-general`,
           mediaType: "tv",
           movieId: tvShow.id,
           movieTitle: showTitle,
