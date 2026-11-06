@@ -309,7 +309,10 @@ export function getPopularArtistsIndex(): Promise<TopArtistsFuzzyIndex | null> {
       if (typeof window !== "undefined") {
         // Client-side fetch
         const res = await fetch("/data/popular-artists.json");
-        if (!res.ok) return null;
+        if (!res.ok) {
+          globalIndexPromise = null;
+          return null;
+        }
         artistsData = await res.json();
       } else {
         // Server-side filesystem read
@@ -323,6 +326,7 @@ export function getPopularArtistsIndex(): Promise<TopArtistsFuzzyIndex | null> {
       return new TopArtistsFuzzyIndex(artistsData);
     } catch (err) {
       console.warn("Failed to load popular artists fuzzy index:", err);
+      globalIndexPromise = null;
       return null;
     }
   })();

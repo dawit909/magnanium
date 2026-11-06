@@ -178,7 +178,7 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
       setSize((prev) => {
         if (!prev) return null;
         if (prev.width > maxPageWidth) {
-          return { ...prev, width: Math.max(340, maxPageWidth) };
+          return { ...prev, width: maxPageWidth };
         }
         return prev;
       });
@@ -331,6 +331,7 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
 
         const maxPageWidth = document.documentElement.clientWidth || window.innerWidth;
         const docHeight = baselineDocHeight;
+        const minWidth = Math.min(340, maxPageWidth);
 
         let newWidth = startWidth;
         let newHeight = startHeight;
@@ -340,11 +341,11 @@ export function useDraggableWindow(initialSettings?: StoredWindowSettings | null
         // Horizontal resizing
         if (currentDir.includes("e")) {
           const maxAllowedWidth = maxPageWidth - (baselineLeft + startOffsetX);
-          newWidth = Math.max(340, Math.min(maxAllowedWidth, startWidth + deltaX));
+          newWidth = Math.max(minWidth, Math.min(maxAllowedWidth, startWidth + deltaX));
         } else if (currentDir.includes("w")) {
           const minX = -baselineLeft;
           const maxPossibleWidth = startWidth + (startOffsetX - minX);
-          newWidth = Math.max(340, Math.min(maxPossibleWidth, startWidth - deltaX));
+          newWidth = Math.max(minWidth, Math.min(maxPossibleWidth, startWidth - deltaX));
           newOffsetX = startOffsetX + (startWidth - newWidth);
         }
 

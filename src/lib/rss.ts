@@ -9,13 +9,18 @@ const XML_ENTITIES: Record<string, string> = {
   '"': "&quot;",
 };
 const XML_REGEX = /[<>&'"]/g;
+const INVALID_XML_CONTROL_REGEX = /[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/g;
 
 function escapeXml(unsafe: string): string {
-  return unsafe.replace(XML_REGEX, (c) => XML_ENTITIES[c] || c);
+  return unsafe
+    .replace(INVALID_XML_CONTROL_REGEX, "")
+    .replace(XML_REGEX, (c) => XML_ENTITIES[c] || c);
 }
 
 function escapeCdata(unsafe: string): string {
-  return unsafe.replace(/]]>/g, "]]]]><![CDATA[>");
+  return unsafe
+    .replace(INVALID_XML_CONTROL_REGEX, "")
+    .replace(/]]>/g, "]]]]><![CDATA[>");
 }
 
 function formatPubDate(releaseDate: string, fallbackDate: string): string {
@@ -41,16 +46,12 @@ function renderWatchProvidersHtml(item: FormattedRelease): string {
       .join(" · ");
     parts.push(`<strong>Streaming in ${escapeXml(item.country)}:</strong> ${streamPills}`);
   }
-  if (wp.rent && wp.rent.length > 0) {
-    const rentPills = wp.rent
-      .map((r) => `[Rent on ${escapeXml(r)}]`)
+  const rentBuyList = Array.from(new Set([...(wp.rent || []), ...(wp.buy || [])]));
+  if (rentBuyList.length > 0) {
+    const rentBuyPills = rentBuyList
+      .map((r) => `[Rent / Buy on ${escapeXml(r)}]`)
       .join(" · ");
-    parts.push(`<strong>Rent / Buy:</strong> ${rentPills}`);
-  } else if (wp.buy && wp.buy.length > 0) {
-    const buyPills = wp.buy
-      .map((b) => `[Buy on ${escapeXml(b)}]`)
-      .join(" · ");
-    parts.push(`<strong>Buy:</strong> ${buyPills}`);
+    parts.push(`<strong>Rent / Buy:</strong> ${rentBuyPills}`);
   }
 
   const linkHtml = wp.link
@@ -113,7 +114,7 @@ function renderItemDescription(item: FormattedRelease): string {
     : null;
 
   const posterHtml = posterSrc
-    ? `<p><img src="${posterSrc}" alt="${escapeXml(item.movieTitle)}" style="max-width: 320px; border-radius: 8px; margin-bottom: 12px;" /></p>`
+    ? `<p><img src="${escapeXml(posterSrc)}" alt="${escapeXml(item.movieTitle)}" style="max-width: 320px; border-radius: 8px; margin-bottom: 12px;" /></p>`
     : "";
 
   const metaHtml = renderMetadataLines(item);

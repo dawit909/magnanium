@@ -43,7 +43,10 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
     const format = searchParams.get("format");
-    const isJson = format === "json" || Boolean(request.headers.get("accept")?.includes("application/json"));
+    const accept = request.headers.get("accept") || "";
+    const isJson =
+      format === "json" ||
+      (accept.includes("application/json") && !accept.includes("xml"));
 
     // 1. IP Rate Limiting:
     // - Interactive JSON preview in UI: 120 req/min with dedicated prefix so rapid filtering never starves.
@@ -154,8 +157,14 @@ export async function GET(
       return new NextResponse("Person not found", { status: 404 });
     }
 
-    const host = request.headers.get("host") || "localhost:3000";
-    const protocol = host.includes("localhost") ? "http" : "https";
+    const host =
+      request.headers.get("x-forwarded-host") ||
+      request.headers.get("host") ||
+      "localhost:3000";
+    const forwardedProto = request.headers.get("x-forwarded-proto");
+    const protocol =
+      forwardedProto ||
+      (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
     const siteUrl = `${protocol}://${host}`;
     const feedUrl = request.url;
     const avatarUrl = profilePath

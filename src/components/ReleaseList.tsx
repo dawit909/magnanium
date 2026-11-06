@@ -171,7 +171,7 @@ const ReleaseList = memo(function ReleaseList({
             No releases match your current filters.
           </p>
           <p className="text-[11px] text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto">
-            Try switching the time window to &ldquo;All Releases&rdquo; or enabling additional media and role filters above.
+            Try enabling additional format and role filters above, or switching alert timing to &ldquo;When Announced&rdquo;.
           </p>
         </div>
       ) : (

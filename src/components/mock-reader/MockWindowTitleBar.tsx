@@ -29,27 +29,29 @@ export function MockWindowTitleBar({
       title="Drag by top bar to move · Double-click to center"
     >
       <div className="flex items-center gap-2">
-        <span
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onClose();
           }}
+          aria-label="Close reader preview"
           title="Close RSS Reader"
-          className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] cursor-pointer hover:opacity-80 transition-opacity"
+          className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
         />
-        <span
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onMinimize();
           }}
+          aria-label="Minimize reader preview"
           title="Minimize to bottom right corner"
-          className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] cursor-pointer hover:opacity-80 transition-opacity"
+          className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
         />
         <span
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
           className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] cursor-default"
+          aria-hidden="true"
         />
       </div>
 

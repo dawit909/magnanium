@@ -326,6 +326,8 @@ interface RawProviderEntry {
 interface RawCountryProviders {
   link?: string;
   flatrate?: RawProviderEntry[];
+  free?: RawProviderEntry[];
+  ads?: RawProviderEntry[];
   rent?: RawProviderEntry[];
   buy?: RawProviderEntry[];
 }
@@ -432,14 +434,16 @@ export function extractWatchProviders(
   if (!rawProvidersData?.results) return null;
 
   const countryUpper = targetCountry.toUpperCase();
-  const countryData =
-    rawProvidersData.results[countryUpper] ||
-    rawProvidersData.results["US"] ||
-    null;
+  const countryData = rawProvidersData.results[countryUpper] || null;
 
   if (!countryData) return null;
 
-  const stream = getDeduplicatedProviderNames(countryData.flatrate, 4);
+  const allStream = [
+    ...(countryData.flatrate || []),
+    ...(countryData.free || []),
+    ...(countryData.ads || []),
+  ];
+  const stream = getDeduplicatedProviderNames(allStream, 4);
   const rent = getDeduplicatedProviderNames(countryData.rent, 3);
   const buy = getDeduplicatedProviderNames(countryData.buy, 3);
 

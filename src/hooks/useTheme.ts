@@ -18,8 +18,18 @@ export function useTheme() {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    const saved = localStorage.getItem(THEME_KEY) as Theme | null;
-    const initial = saved === "dark" ? "dark" : "light";
+    let initial: Theme = "light";
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === "dark" || saved === "light") {
+        initial = saved;
+      } else if (
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      ) {
+        initial = "dark";
+      }
+    } catch {}
     setTheme(initial);
     applyThemeToDocument(initial);
   }, []);
