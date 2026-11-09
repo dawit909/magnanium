@@ -1,9 +1,11 @@
 "use client";
 
 import { RefObject } from "react";
+import Link from "next/link";
 import { Search, Sun, Moon, User, Loader2 } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
+import { createPersonSlug } from "@/lib/slug";
 import Logo from "./Logo";
 
 interface HeaderProps {
@@ -109,19 +111,23 @@ export default function Header({
           {isOpen && searchResults.length > 0 && (
             <div
               id="search-dropdown-listbox"
-              role="listbox"
               aria-label="Search suggestions"
               className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60"
             >
               {searchResults.slice(0, 6).map((person, index) => {
                 const isActive = activeIndex === index;
+                const slug = createPersonSlug(person.id, person.name);
                 return (
-                  <button
+                  <Link
                     key={person.id}
                     id={`search-result-${index}`}
-                    role="option"
-                    aria-selected={isActive}
-                    onClick={() => onSelectPerson(person)}
+                    href={`/${slug}`}
+                    prefetch={false}
+                    onClick={(e) => {
+                      if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0) {
+                        onSelectPerson(person);
+                      }
+                    }}
                     onMouseEnter={() => {
                       onSetActiveIndex(index);
                       if (person.profile_path && typeof window !== "undefined") {
@@ -130,7 +136,7 @@ export default function Header({
                         if (heroUrl) hero.src = heroUrl;
                       }
                     }}
-                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400 ${
+                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400 no-underline cursor-pointer ${
                       isActive
                         ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium ring-1 ring-inset ring-neutral-300 dark:ring-neutral-700"
                         : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200"
@@ -166,7 +172,7 @@ export default function Header({
                     <span className="text-neutral-500 dark:text-neutral-400 text-[10px] ml-2 flex-shrink-0">
                       {person.known_for_department}
                     </span>
-                  </button>
+                  </Link>
                 );
               })}
             </div>
