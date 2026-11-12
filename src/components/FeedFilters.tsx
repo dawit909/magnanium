@@ -106,8 +106,8 @@ const FORMAT_OPTIONS = [
 
 const ALERT_OPTIONS: Array<{ id: AlertTimingWindow; label: string }> = [
   { id: "announced", label: "When Announced" },
-  { id: "month_before", label: "Month Before Release" },
-  { id: "week_before", label: "Week Before Release" },
+  { id: "month_before", label: "Month Before" },
+  { id: "week_before", label: "Week Before" },
   { id: "when_released", label: "When Released" },
 ];
 
@@ -303,10 +303,10 @@ const FeedFilters = memo(function FeedFilters({
                     <strong className="font-medium text-white dark:text-neutral-100">&ldquo;When Announced&rdquo;</strong> alerts as soon as a future date is scheduled.
                   </p>
                   <p>
-                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Month Before Release&rdquo;</strong> alerts 30 days prior to release.
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Month Before&rdquo;</strong> alerts 30 days prior to release.
                   </p>
                   <p>
-                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Week Before Release&rdquo;</strong> alerts 7 days prior to release.
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Week Before&rdquo;</strong> alerts 7 days prior to release.
                   </p>
                   <p>
                     <strong className="font-medium text-white dark:text-neutral-100">&ldquo;When Released&rdquo;</strong> alerts on or after the official release date.
