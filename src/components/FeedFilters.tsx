@@ -4,14 +4,15 @@ import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Info, Settings2, ChevronRight, RotateCcw } from "lucide-react";
 import { getCountryOptions, STORAGE_KEYS } from "@/lib/constants";
 import { safeSessionStorage } from "@/lib/storage";
+import { AlertTimingWindow } from "@/types/tmdb";
 
 interface FeedFiltersProps {
   roles: string[];
   onToggleRole: (r: string) => void;
   types: string[];
   onToggleType: (t: string) => void;
-  alert: "announced" | "month_before" | "week_before";
-  onSetAlert: (a: "announced" | "month_before" | "week_before") => void;
+  alert: AlertTimingWindow;
+  onSetAlert: (a: AlertTimingWindow) => void;
   country: string;
   onSetCountry: (c: string) => void;
   excludeShorts: boolean;
@@ -103,10 +104,11 @@ const FORMAT_OPTIONS = [
   { id: "earliest", label: "Earliest" },
 ];
 
-const ALERT_OPTIONS = [
+const ALERT_OPTIONS: Array<{ id: AlertTimingWindow; label: string }> = [
   { id: "announced", label: "When Announced" },
   { id: "month_before", label: "Month Before Release" },
   { id: "week_before", label: "Week Before Release" },
+  { id: "when_released", label: "When Released" },
 ];
 
 export const STORAGE_KEY_OPTIONS_EXPANDED = STORAGE_KEYS.OPTIONS_EXPANDED;
@@ -287,7 +289,7 @@ const FeedFilters = memo(function FeedFilters({
               <FilterPill
                 key={a.id}
                 active={alert === a.id}
-                onClick={() => onSetAlert(a.id as "announced" | "month_before" | "week_before")}
+                onClick={() => onSetAlert(a.id)}
               >
                 {a.label}
               </FilterPill>
@@ -305,6 +307,9 @@ const FeedFilters = memo(function FeedFilters({
                   </p>
                   <p>
                     <strong className="font-medium text-white dark:text-neutral-100">&ldquo;Week Before Release&rdquo;</strong> alerts 7 days prior to release.
+                  </p>
+                  <p>
+                    <strong className="font-medium text-white dark:text-neutral-100">&ldquo;When Released&rdquo;</strong> alerts on or after the official release date.
                   </p>
                 </div>
               }

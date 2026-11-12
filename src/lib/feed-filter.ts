@@ -157,6 +157,7 @@ export function filterReleases(
     const d = item.releaseDate;
     if (!d || d < oneYearAgoStr) continue;
     if (options.window === "upcoming" && d < boundaries.nowStr) continue;
+    if (alert === "when_released" && d > boundaries.nowStr) continue;
     if (alert === "week_before" && d > sevenDaysFromNowStr) continue;
     if (alert === "month_before" && d > thirtyDaysFromNowStr) continue;
 

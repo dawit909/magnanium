@@ -144,7 +144,7 @@ export interface TvDetails {
 
 export type ReleaseTypeCategory = "cinema" | "home" | "tv" | "premiere" | "earliest";
 
-export type AlertTimingWindow = "announced" | "month_before" | "week_before";
+export type AlertTimingWindow = "announced" | "month_before" | "week_before" | "when_released";
 
 export interface WatchProvidersInfo {
   link?: string;

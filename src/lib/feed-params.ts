@@ -132,7 +132,14 @@ export function parseFeedRequestParams(
   const typesParam = searchParams.get("types");
   const country = searchParams.get("country") || DEFAULT_FEED_OPTIONS.country;
   const window = (searchParams.get("window") as "upcoming" | "all") || "all";
-  const alert = (searchParams.get("alert") as AlertTimingWindow) || DEFAULT_FEED_OPTIONS.alert;
+  const rawAlert = searchParams.get("alert");
+  const alert: AlertTimingWindow =
+    rawAlert === "announced" ||
+    rawAlert === "month_before" ||
+    rawAlert === "week_before" ||
+    rawAlert === "when_released"
+      ? rawAlert
+      : DEFAULT_FEED_OPTIONS.alert;
   const excludeShorts = searchParams.get("exclude_shorts") === "true";
   const excludeReReleases = searchParams.get("exclude_rereleases") !== "false";
   const excludeUncredited = searchParams.get("exclude_uncredited") !== "false";

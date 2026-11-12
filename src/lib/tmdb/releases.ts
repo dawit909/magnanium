@@ -124,6 +124,7 @@ export function isDateInWindow(
   thirtyDaysFromNowStr?: string
 ): boolean {
   if (!dateStr) return false;
+  if (alert === "when_released" && dateStr > nowStr) return false;
   if (alert === "week_before" && sevenDaysFromNowStr && dateStr > sevenDaysFromNowStr) return false;
   if (alert === "month_before" && thirtyDaysFromNowStr && dateStr > thirtyDaysFromNowStr) return false;
   if (window === "upcoming" && dateStr < nowStr) return false;

@@ -55,7 +55,7 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       : DEFAULT_FEED_OPTIONS.country;
 
   const validAlert =
-    ["announced", "month_before", "week_before"].includes(parsed.alert)
+    ["announced", "month_before", "week_before", "when_released"].includes(parsed.alert)
       ? (parsed.alert as FeedOptionsSettings["alert"])
       : DEFAULT_FEED_OPTIONS.alert;
 
