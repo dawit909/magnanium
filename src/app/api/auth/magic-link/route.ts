@@ -3,6 +3,8 @@ import { createMagicToken, normalizeEmail } from "@/lib/subscriptions";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { guardRateLimit, getRequestSiteUrl } from "@/lib/api-response";
 import { RATE_LIMITS } from "@/lib/constants";
+import { normalizeTypes } from "@/lib/feed-options";
+import { DigestFrequency } from "@/types/tmdb";
 
 export const runtime = "nodejs";
 
@@ -33,9 +35,12 @@ export async function POST(request: NextRequest) {
           personName: String(body.artist.personName || "Artist"),
           profilePath: body.artist.profilePath ? String(body.artist.profilePath) : null,
           alert: body.artist.alert || "announced",
+          frequency: ["instant", "weekly", "monthly"].includes(body.artist.frequency)
+            ? (body.artist.frequency as DigestFrequency)
+            : "instant",
           country: body.artist.country || "US",
           ...(Array.isArray(body.artist.roles) ? { roles: body.artist.roles } : {}),
-          ...(Array.isArray(body.artist.types) ? { types: body.artist.types } : {}),
+          ...(Array.isArray(body.artist.types) ? { types: normalizeTypes(body.artist.types) } : {}),
           ...(typeof body.artist.excludeShorts === "boolean"
             ? { excludeShorts: body.artist.excludeShorts }
             : {}),

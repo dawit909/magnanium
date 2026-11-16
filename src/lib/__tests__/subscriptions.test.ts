@@ -4,6 +4,10 @@ import {
   generateSecureToken,
   createUnsubscribeToken,
   verifyUnsubscribeToken,
+  createMagicToken,
+  verifyAndConsumeMagicToken,
+  subscribeArtist,
+  getUser,
 } from "../subscriptions";
 
 describe("subscriptions utilities", () => {
@@ -47,6 +51,67 @@ describe("subscriptions utilities", () => {
       const validToken = createUnsubscribeToken("user@example.com", 123);
       const tampered = validToken.slice(0, -4) + "XXXX";
       expect(verifyUnsubscribeToken(tampered)).toBeNull();
+    });
+  });
+
+  describe("magic token payload & frequency persistence", () => {
+    it("preserves monthly frequency through magic token lifecycle to subscription", async () => {
+      const email = "monthly-subscriber@example.com";
+      const artist = {
+        personId: 9999,
+        personName: "Shameik Moore",
+        profilePath: "/shameik.jpg",
+        alert: "when_released" as const,
+        frequency: "monthly" as const,
+        country: "US",
+      };
+
+      const token = await createMagicToken(email, artist);
+      expect(typeof token).toBe("string");
+
+      const consumed = await verifyAndConsumeMagicToken(token);
+      expect(consumed).not.toBeNull();
+      expect(consumed?.email).toBe(email);
+      expect(consumed?.artist?.frequency).toBe("monthly");
+
+      if (consumed?.artist) {
+        const user = await subscribeArtist(consumed.email, consumed.artist);
+        expect(user.artists["9999"]).toBeDefined();
+        expect(user.artists["9999"].frequency).toBe("monthly");
+      }
+
+      // Check user record directly
+      const saved = await getUser(email);
+      expect(saved?.artists["9999"]?.frequency).toBe("monthly");
+    });
+
+    it("preserves weekly frequency through subscription", async () => {
+      const email = "weekly-subscriber@example.com";
+      const artist = {
+        personId: 8888,
+        personName: "Christopher Nolan",
+        profilePath: null,
+        alert: "announced" as const,
+        frequency: "weekly" as const,
+        country: "US",
+      };
+
+      const user = await subscribeArtist(email, artist);
+      expect(user.artists["8888"].frequency).toBe("weekly");
+    });
+
+    it("defaults to instant if frequency is not specified", async () => {
+      const email = "default-subscriber@example.com";
+      const artist = {
+        personId: 7777,
+        personName: "Denis Villeneuve",
+        profilePath: null,
+        alert: "announced" as const,
+        country: "US",
+      };
+
+      const user = await subscribeArtist(email, artist);
+      expect(user.artists["7777"].frequency).toBe("instant");
     });
   });
 });
