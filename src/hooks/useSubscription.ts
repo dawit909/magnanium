@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AlertTimingWindow } from "@/types/tmdb";
+import { AlertTimingWindow, DigestFrequency } from "@/types/tmdb";
 import { SubscribedArtist } from "@/lib/subscriptions";
 
 export interface SubscriptionState {
@@ -88,6 +88,7 @@ export function useSubscription() {
         personName: string;
         profilePath: string | null;
         alert: AlertTimingWindow;
+        frequency?: DigestFrequency;
         country: string;
         roles?: string[];
         types?: string[];
@@ -158,6 +159,7 @@ export function useSubscription() {
       alert: AlertTimingWindow,
       country: string,
       options?: {
+        frequency?: DigestFrequency;
         roles?: string[];
         types?: string[];
         excludeShorts?: boolean;
@@ -171,6 +173,7 @@ export function useSubscription() {
         personName: person.name,
         profilePath: person.profile_path,
         alert,
+        frequency: options?.frequency || "instant",
         country,
         ...(options?.roles ? { roles: options.roles } : {}),
         ...(options?.types ? { types: options.types } : {}),
@@ -208,6 +211,7 @@ export function useSubscription() {
       personId: number,
       options: {
         alert?: AlertTimingWindow;
+        frequency?: DigestFrequency;
         country?: string;
         roles?: string[];
         types?: string[];

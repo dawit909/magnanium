@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       personName,
       profilePath,
       alert,
+      frequency,
       country,
       roles,
       types,
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
       personName: String(personName || "Artist"),
       profilePath: profilePath ? String(profilePath) : null,
       alert: (alert as AlertTimingWindow) || "announced",
+      frequency: ["instant", "weekly", "monthly"].includes(frequency) ? frequency : "instant",
       country: String(country || "US"),
       ...(Array.isArray(roles) ? { roles } : {}),
       ...(sanitizedTypes ? { types: sanitizedTypes } : {}),
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest) {
   } else if (action === "update_options" || action === "update_alert") {
     const {
       alert,
+      frequency,
       country,
       roles,
       types,
@@ -70,6 +73,7 @@ export async function POST(request: NextRequest) {
     const sanitizedTypes = Array.isArray(types) ? normalizeTypes(types) : undefined;
     updatedUser = await updateArtistSubscription(session.email, personId, {
       alert: alert as AlertTimingWindow,
+      frequency: ["instant", "weekly", "monthly"].includes(frequency) ? frequency : undefined,
       country,
       roles,
       ...(sanitizedTypes !== undefined ? { types: sanitizedTypes } : {}),

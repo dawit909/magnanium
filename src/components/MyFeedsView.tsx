@@ -13,7 +13,12 @@ import {
 import { useSubscription } from "@/hooks/useSubscription";
 import { AlertTimingWindow, TMDBPersonSearchResult } from "@/types/tmdb";
 import { SubscribedArtist } from "@/lib/subscriptions";
-import { extractFeedOptions, isDefaultFeedOptions, DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
+import {
+  extractFeedOptions,
+  isDefaultFeedOptions,
+  DEFAULT_FEED_OPTIONS,
+  DIGEST_FREQUENCIES,
+} from "@/lib/feed-options";
 import { formatSubscribedDate } from "@/lib/date";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
@@ -138,6 +143,35 @@ function FollowedPersonItem({
             </div>
             <div className="text-[11px] text-neutral-400 dark:text-neutral-500">
               Following since {formatSubscribedDate(artist.subscribedAt)}
+            </div>
+            {/* Frequency Selector */}
+            <div className="flex items-center gap-1.5 pt-1.5">
+              <span className="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 dark:text-neutral-500">
+                Digest:
+              </span>
+              <div className="inline-flex rounded-lg bg-neutral-100 dark:bg-neutral-800/80 p-0.5 text-[10px]">
+                {DIGEST_FREQUENCIES.map((freq) => {
+                  const isSelected = (artist.frequency || "instant") === freq.value;
+                  return (
+                    <button
+                      key={freq.value}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onUpdateOptions(artist.personId, { frequency: freq.value });
+                      }}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-sm"
+                          : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                      }`}
+                    >
+                      {freq.label.replace(" Digest", "")}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </Link>

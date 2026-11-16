@@ -1,5 +1,5 @@
 import { COUNTRIES, detectBrowserCountry, STORAGE_KEYS } from "./constants";
-import { AlertTimingWindow } from "@/types/tmdb";
+import { AlertTimingWindow, DigestFrequency } from "@/types/tmdb";
 import { safeLocalStorage } from "./storage";
 
 export interface FeedOptionsSettings {
@@ -7,6 +7,7 @@ export interface FeedOptionsSettings {
   types: string[];
   country: string;
   alert: AlertTimingWindow;
+  frequency?: DigestFrequency;
   excludeShorts: boolean;
   excludeReReleases: boolean;
   excludeUncredited: boolean;
@@ -19,10 +20,17 @@ export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
   types: ["cinema", "home", "tv", "premiere"],
   country: "US",
   alert: "announced",
+  frequency: "instant",
   excludeShorts: false,
   excludeReReleases: true,
   excludeUncredited: true,
 };
+
+export const DIGEST_FREQUENCIES: Array<{ value: DigestFrequency; label: string; description: string }> = [
+  { value: "instant", label: "Instant", description: "Real-time alerts on release detection" },
+  { value: "weekly", label: "Weekly Digest", description: "Weekly roundup of upcoming releases" },
+  { value: "monthly", label: "Monthly Digest", description: "Monthly preview of upcoming releases" },
+];
 
 // Global in-memory cache for instant client-side SPA navigation
 let inMemoryOptions: FeedOptionsSettings = { ...DEFAULT_FEED_OPTIONS };
@@ -66,6 +74,7 @@ export function extractFeedOptions(
     types: normalizeTypes(options.types),
     country: (options.country || defaultCountry).toUpperCase(),
     alert: options.alert || DEFAULT_FEED_OPTIONS.alert,
+    frequency: options.frequency || DEFAULT_FEED_OPTIONS.frequency,
     excludeShorts:
       options.excludeShorts !== undefined
         ? options.excludeShorts
@@ -96,6 +105,7 @@ export function areFeedOptionsEqual(
 
   if (optA.country !== optB.country) return false;
   if (optA.alert !== optB.alert) return false;
+  if (optA.frequency !== optB.frequency) return false;
   if (optA.excludeShorts !== optB.excludeShorts) return false;
   if (optA.excludeReReleases !== optB.excludeReReleases) return false;
   if (optA.excludeUncredited !== optB.excludeUncredited) return false;
@@ -156,6 +166,11 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
       ? (parsed.alert as FeedOptionsSettings["alert"])
       : DEFAULT_FEED_OPTIONS.alert;
 
+  const validFrequency =
+    ["instant", "weekly", "monthly"].includes(parsed.frequency)
+      ? (parsed.frequency as DigestFrequency)
+      : DEFAULT_FEED_OPTIONS.frequency;
+
   const validExcludeShorts =
     typeof parsed.excludeShorts === "boolean"
       ? parsed.excludeShorts
@@ -176,6 +191,7 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
     types: validTypes,
     country: validCountry,
     alert: validAlert,
+    frequency: validFrequency,
     excludeShorts: validExcludeShorts,
     excludeReReleases: validExcludeReReleases,
     excludeUncredited: validExcludeUncredited,

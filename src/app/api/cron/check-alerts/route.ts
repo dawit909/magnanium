@@ -12,6 +12,7 @@ import { getDateWindowBoundaries, filterReleases } from "@/lib/feed-filter";
 import { extractFeedOptions } from "@/lib/feed-options";
 import { getRequestSiteUrl } from "@/lib/api-response";
 import { AUTH_CONFIG } from "@/lib/constants";
+import { mapConcurrent } from "@/lib/async";
 import { kv } from "@/lib/kv";
 import { createPersonSlug } from "@/lib/slug";
 import { FormattedRelease, AlertTimingWindow } from "@/types/tmdb";
@@ -38,11 +39,12 @@ export async function GET(request: NextRequest) {
     let emailsSent = 0;
     let releasesNotified = 0;
 
-    for (const personId of artistIds) {
+    // Process artists with bounded concurrency of 6 to prevent serverless timeouts
+    await mapConcurrent(artistIds, 6, async (personId) => {
       try {
         const subscriberEmails = await getArtistSubscribers(personId);
         if (!subscriberEmails || subscriberEmails.length === 0) {
-          continue;
+          return;
         }
 
         // Cache raw releases per country for this artist during this cron run
@@ -59,6 +61,23 @@ export async function GET(request: NextRequest) {
             }
 
             const subInfo = user.artists[String(personId)];
+            const frequency = subInfo.frequency || "instant";
+
+            // For weekly / monthly frequency digests, verify sending window interval
+            if (frequency === "weekly") {
+              const weeklyKey = SUB_KEYS.digestSent("weekly", email, personId);
+              const alreadySentWeekly = await kv.get<number>(weeklyKey);
+              if (alreadySentWeekly) {
+                continue; // Wait until 7-day interval elapses
+              }
+            } else if (frequency === "monthly") {
+              const monthlyKey = SUB_KEYS.digestSent("monthly", email, personId);
+              const alreadySentMonthly = await kv.get<number>(monthlyKey);
+              if (alreadySentMonthly) {
+                continue; // Wait until 30-day interval elapses
+              }
+            }
+
             const country = (subInfo.country || "US").toUpperCase();
 
             let countryData = countryReleasesCache.get(country);
@@ -126,10 +145,15 @@ export async function GET(request: NextRequest) {
 
               if (!matchesTiming) continue;
 
-              // Deduplication: check if already notified
-              const dedupKey = SUB_KEYS.alertSent(email, rel.id, alertTiming);
-              const alreadySent = await kv.get<number>(dedupKey);
-              if (!alreadySent) {
+              // For instant alerts, check per-release deduplication
+              if (frequency === "instant") {
+                const dedupKey = SUB_KEYS.alertSent(email, rel.id, alertTiming);
+                const alreadySent = await kv.get<number>(dedupKey);
+                if (!alreadySent) {
+                  matchingReleases.push(rel);
+                }
+              } else {
+                // Weekly / Monthly digests include candidate releases for the period
                 matchingReleases.push(rel);
               }
             }
@@ -155,12 +179,21 @@ export async function GET(request: NextRequest) {
                 artistUrl,
                 manageUrl,
                 unsubscribeUrl,
+                frequency,
                 artistProfilePath: countryData?.profilePath || subInfo?.profilePath,
               });
 
               if (result.success) {
                 emailsSent++;
                 releasesNotified += alertBatch.length;
+
+                if (frequency === "weekly") {
+                  const weeklyKey = SUB_KEYS.digestSent("weekly", email, personId);
+                  await kv.set(weeklyKey, 1, 7 * 86400);
+                } else if (frequency === "monthly") {
+                  const monthlyKey = SUB_KEYS.digestSent("monthly", email, personId);
+                  await kv.set(monthlyKey, 1, 30 * 86400);
+                }
 
                 // Mark deduplication keys with TTL
                 for (const rel of alertBatch) {
@@ -176,7 +209,7 @@ export async function GET(request: NextRequest) {
       } catch (artistErr) {
         console.error(`Error processing artist ${personId} in alert cron:`, artistErr);
       }
-    }
+    });
 
     return NextResponse.json({
       success: true,

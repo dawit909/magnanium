@@ -146,6 +146,8 @@ export type ReleaseTypeCategory = "cinema" | "home" | "tv" | "premiere" | "earli
 
 export type AlertTimingWindow = "announced" | "month_before" | "week_before" | "when_released";
 
+export type DigestFrequency = "instant" | "weekly" | "monthly";
+
 export interface WatchProvidersInfo {
   link?: string;
   stream?: string[];

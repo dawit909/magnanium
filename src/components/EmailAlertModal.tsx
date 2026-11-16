@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Mail, Check, Loader2, X, Bell } from "lucide-react";
-import { AlertTimingWindow, TMDBPersonSearchResult } from "@/types/tmdb";
+import { AlertTimingWindow, DigestFrequency, TMDBPersonSearchResult } from "@/types/tmdb";
 import { useSubscription } from "@/hooks/useSubscription";
+import { DIGEST_FREQUENCIES } from "@/lib/feed-options";
 
 interface EmailAlertModalProps {
   isOpen: boolean;
@@ -42,15 +43,21 @@ export default function EmailAlertModal({
     isAuthenticated,
     userEmail,
     isFollowing,
+    getArtistSub,
     followArtist,
     unfollowArtist,
+    updateArtistOptions,
     sendMagicLink,
   } = useSubscription();
 
   const following = isFollowing(person.id);
+  const existingSub = getArtistSub(person.id);
 
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
+  const [selectedFrequency, setSelectedFrequency] = useState<DigestFrequency>(
+    existingSub?.frequency || "instant"
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -58,6 +65,12 @@ export default function EmailAlertModal({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (existingSub?.frequency) {
+      setSelectedFrequency(existingSub.frequency);
+    }
+  }, [existingSub?.frequency]);
 
   useEffect(() => {
     if (userEmail) {
@@ -90,6 +103,7 @@ export default function EmailAlertModal({
         personName: person.name,
         profilePath: person.profile_path,
         alert: currentAlert,
+        frequency: selectedFrequency,
         country: currentCountry,
         roles,
         types,
@@ -119,6 +133,7 @@ export default function EmailAlertModal({
         currentAlert,
         currentCountry,
         {
+          frequency: selectedFrequency,
           roles,
           types,
           excludeShorts,
@@ -133,6 +148,13 @@ export default function EmailAlertModal({
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleFrequencyChange = async (freq: DigestFrequency) => {
+    setSelectedFrequency(freq);
+    if (following) {
+      await updateArtistOptions(person.id, { frequency: freq });
     }
   };
 
@@ -190,6 +212,37 @@ export default function EmailAlertModal({
               <span className="font-mono text-neutral-800 dark:text-neutral-200 font-medium truncate max-w-[170px]">
                 {userEmail}
               </span>
+            </div>
+
+            {/* Frequency Selector */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-neutral-600 dark:text-neutral-400">
+                  Digest Frequency
+                </label>
+                <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                  {DIGEST_FREQUENCIES.find((f) => f.value === selectedFrequency)?.description}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-100 dark:bg-neutral-800/80 rounded-xl text-xs">
+                {DIGEST_FREQUENCIES.map((freq) => {
+                  const isSelected = selectedFrequency === freq.value;
+                  return (
+                    <button
+                      key={freq.value}
+                      type="button"
+                      onClick={() => handleFrequencyChange(freq.value)}
+                      className={`py-1.5 px-2 rounded-lg font-medium text-[11px] transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-white dark:bg-neutral-900 text-neutral-950 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                          : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                      }`}
+                    >
+                      {freq.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {errorMessage && (
@@ -275,6 +328,37 @@ export default function EmailAlertModal({
               <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
                 We&apos;ll send a confirmation link to activate your subscription.
               </p>
+            </div>
+
+            {/* Frequency Selector for New Subscribers */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-neutral-600 dark:text-neutral-400">
+                  Digest Frequency
+                </label>
+                <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                  {DIGEST_FREQUENCIES.find((f) => f.value === selectedFrequency)?.description}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-100 dark:bg-neutral-800/80 rounded-xl text-xs">
+                {DIGEST_FREQUENCIES.map((freq) => {
+                  const isSelected = selectedFrequency === freq.value;
+                  return (
+                    <button
+                      key={freq.value}
+                      type="button"
+                      onClick={() => setSelectedFrequency(freq.value)}
+                      className={`py-1.5 px-2 rounded-lg font-medium text-[11px] transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-white dark:bg-neutral-900 text-neutral-950 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                          : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                      }`}
+                    >
+                      {freq.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {errorMessage && (

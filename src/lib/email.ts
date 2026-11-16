@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
-import { FormattedRelease } from "@/types/tmdb";
+import { FormattedRelease, DigestFrequency } from "@/types/tmdb";
 import { getTmdbImageUrl, getTmdbPosterUrl } from "./media";
 import { getInformativeNote } from "./tmdb/releases";
 import { formatEmailPubDate, formatDisplayDate } from "./date";
@@ -176,6 +176,7 @@ export interface SendReleaseAlertOptions {
   artistUrl: string;
   manageUrl: string;
   unsubscribeUrl: string;
+  frequency?: DigestFrequency;
   artistProfilePath?: string | null;
   artistAvatarUrl?: string | null;
 }
@@ -278,16 +279,29 @@ export async function sendReleaseAlertEmail({
   artistUrl,
   manageUrl,
   unsubscribeUrl,
+  frequency = "instant",
   artistProfilePath,
   artistAvatarUrl,
 }: SendReleaseAlertOptions): Promise<{ success: boolean; simulated?: boolean; error?: string }> {
   const { user } = getEmailCredentials();
 
+  let subjectPrefix = "";
+  if (frequency === "weekly") {
+    subjectPrefix = "Weekly Digest: ";
+  } else if (frequency === "monthly") {
+    subjectPrefix = "Monthly Digest: ";
+  }
+
+  const subject = releases.length === 1
+    ? `${subjectPrefix}${artistName}: "${releases[0].movieTitle}"`
+    : `${subjectPrefix}${artistName}: ${releases.length} upcoming releases`;
+
   if (!isEmailConfigured()) {
     console.info(
       `\n[MAGNANIUM EMAIL - DEV SIMULATION]\n` +
       `To: ${to}\n` +
-      `Subject: New release alert for ${artistName}\n` +
+      `Subject: ${subject}\n` +
+      `Frequency: ${frequency}\n` +
       `Releases (${releases.length}): ${releases.map((r) => r.movieTitle).join(", ")}\n`
     );
     return { success: true, simulated: true };
@@ -297,10 +311,6 @@ export async function sendReleaseAlertEmail({
   if (!transporter) {
     return { success: false, error: "Email transporter not available" };
   }
-
-  const subject = releases.length === 1
-    ? `${artistName}: "${releases[0].movieTitle}" release alert`
-    : `${artistName}: ${releases.length} new release alerts`;
 
   const artistAvatar =
     artistAvatarUrl ||

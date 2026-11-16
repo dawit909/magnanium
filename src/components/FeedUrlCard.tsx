@@ -60,6 +60,12 @@ const FeedUrlCard = memo(function FeedUrlCard({
   const activeAlertLabel = existingSub
     ? ALERT_LABELS[existingSub.alert] || existingSub.alert
     : ALERT_LABELS[alert] || alert;
+  const frequencyLabel =
+    existingSub?.frequency === "weekly"
+      ? " · Weekly"
+      : existingSub?.frequency === "monthly"
+      ? " · Monthly"
+      : "";
 
   const hasOptionsChanged = useMemo(() => {
     if (!existingSub) return false;
@@ -199,7 +205,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
                 <Check className="w-3.5 h-3.5" />
                 <span>Email alerts active</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                  {activeAlertLabel}
+                  {activeAlertLabel}{frequencyLabel}
                 </span>
               </span>
             ) : (

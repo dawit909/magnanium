@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { kv } from "./kv";
-import { AlertTimingWindow } from "@/types/tmdb";
+import { AlertTimingWindow, DigestFrequency } from "@/types/tmdb";
 import { AUTH_CONFIG } from "./constants";
 
 export interface SubscribedArtist {
@@ -8,8 +8,10 @@ export interface SubscribedArtist {
   personName: string;
   profilePath: string | null;
   alert: AlertTimingWindow;
+  frequency?: DigestFrequency;
   country: string;
   subscribedAt: number;
+  lastDigestSentAt?: number;
   roles?: string[];
   types?: string[];
   excludeShorts?: boolean;
@@ -31,6 +33,7 @@ export interface MagicTokenPayload {
     personName: string;
     profilePath: string | null;
     alert: AlertTimingWindow;
+    frequency?: DigestFrequency;
     country: string;
     roles?: string[];
     types?: string[];
@@ -72,6 +75,8 @@ export const SUB_KEYS = {
   allArtists: "sub:all_artists",
   alertSent: (email: string, releaseId: string, alert: string) =>
     `sub:sent:${normalizeEmail(email)}:${releaseId}:${alert}`,
+  digestSent: (frequency: string, email: string, personId: number) =>
+    `sub:digest:${frequency}:${normalizeEmail(email)}:${personId}`,
 };
 
 /**
@@ -202,6 +207,7 @@ export async function subscribeArtist(
     personName: string;
     profilePath: string | null;
     alert: AlertTimingWindow;
+    frequency?: DigestFrequency;
     country: string;
     roles?: string[];
     types?: string[];
@@ -227,6 +233,7 @@ export async function subscribeArtist(
     personName: artist.personName,
     profilePath: artist.profilePath,
     alert: artist.alert,
+    frequency: artist.frequency || "instant",
     country: artist.country,
     subscribedAt: Date.now(),
     ...(artist.roles ? { roles: artist.roles } : {}),
@@ -284,12 +291,14 @@ export async function updateArtistSubscription(
   personId: number,
   updates: {
     alert?: AlertTimingWindow;
+    frequency?: DigestFrequency;
     country?: string;
     roles?: string[];
     types?: string[];
     excludeShorts?: boolean;
     excludeReReleases?: boolean;
     excludeUncredited?: boolean;
+    lastDigestSentAt?: number;
   }
 ): Promise<EmailUser | null> {
   const normalized = normalizeEmail(email);
@@ -300,12 +309,14 @@ export async function updateArtistSubscription(
   user.artists[String(personId)] = {
     ...current,
     ...(updates.alert !== undefined ? { alert: updates.alert } : {}),
+    ...(updates.frequency !== undefined ? { frequency: updates.frequency } : {}),
     ...(updates.country !== undefined ? { country: updates.country } : {}),
     ...(updates.roles !== undefined ? { roles: updates.roles } : {}),
     ...(updates.types !== undefined ? { types: updates.types } : {}),
     ...(updates.excludeShorts !== undefined ? { excludeShorts: updates.excludeShorts } : {}),
     ...(updates.excludeReReleases !== undefined ? { excludeReReleases: updates.excludeReReleases } : {}),
     ...(updates.excludeUncredited !== undefined ? { excludeUncredited: updates.excludeUncredited } : {}),
+    ...(updates.lastDigestSentAt !== undefined ? { lastDigestSentAt: updates.lastDigestSentAt } : {}),
   };
 
   await saveUser(user);
