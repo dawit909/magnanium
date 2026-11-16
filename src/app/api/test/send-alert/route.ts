@@ -104,6 +104,17 @@ export async function POST(request: NextRequest) {
           mediaType: "movie",
           country: "US",
           tmdbUrl: `https://www.themoviedb.org/person/${personId}`,
+          director: resolvedName,
+          writer: resolvedName,
+          stars: ["Leonardo DiCaprio", "Brad Pitt"],
+          runtime: "2h 41m",
+          language: "English",
+          watchProviders: {
+            stream: ["Apple TV+", "Netflix"],
+            rent: ["Amazon Video", "Google Play Movies"],
+            buy: ["Apple TV", "Amazon Video"],
+            link: "https://www.justwatch.com",
+          },
         },
       ];
     }
@@ -115,6 +126,7 @@ export async function POST(request: NextRequest) {
       artistUrl,
       manageUrl,
       unsubscribeUrl,
+      artistProfilePath: tmdbData.profilePath || user.artists[String(personId)]?.profilePath,
     });
 
     if (!emailResult.success) {

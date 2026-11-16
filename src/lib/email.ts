@@ -1,7 +1,8 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { FormattedRelease } from "@/types/tmdb";
-import { getTmdbImageUrl } from "./media";
+import { getTmdbImageUrl, getTmdbPosterUrl } from "./media";
+import { getInformativeNote } from "./tmdb/releases";
 
 export function getEmailCredentials() {
   const user = (process.env.GMAIL_USER || "").replace(/^["']|["']$/g, "").trim();
@@ -174,10 +175,129 @@ export interface SendReleaseAlertOptions {
   artistUrl: string;
   manageUrl: string;
   unsubscribeUrl: string;
+  artistProfilePath?: string | null;
+  artistAvatarUrl?: string | null;
+}
+
+function escapeHtml(unsafe?: string | null): string {
+  if (!unsafe) return "";
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatEmailPubDate(releaseDate?: string | null): string {
+  if (!releaseDate) return "DATE TBD";
+  try {
+    const d = new Date(releaseDate);
+    if (!isNaN(d.getTime())) {
+      const monthStr = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+      const day = d.getDate();
+      const year = d.getFullYear();
+      return `${monthStr} ${day}, ${year}`;
+    }
+  } catch {}
+  return releaseDate.toUpperCase();
+}
+
+function formatReleaseDate(releaseDate?: string | null): string {
+  if (!releaseDate) return "TBD";
+  try {
+    const d = new Date(releaseDate);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    }
+  } catch {}
+  return releaseDate;
+}
+
+function renderEmailMetadataLines(release: FormattedRelease): string {
+  const lines: string[] = [];
+  if (release.role) {
+    lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Role:</strong> ${escapeHtml(release.role)}</div>`);
+  }
+  if (release.director) {
+    lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Director:</strong> ${escapeHtml(release.director)}</div>`);
+  }
+  if (release.writer) {
+    lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Writer:</strong> ${escapeHtml(release.writer)}</div>`);
+  }
+  if (release.stars && release.stars.length > 0) {
+    lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Stars:</strong> ${release.stars.map(escapeHtml).join(", ")}</div>`);
+  }
+  const dateFormatted = formatReleaseDate(release.releaseDate);
+  const country = release.country || "US";
+  lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Release:</strong> ${dateFormatted} (${escapeHtml(country)})</div>`);
+
+  if (release.mediaType === "tv" && typeof release.episodeCount === "number" && release.episodeCount > 0) {
+    lines.push(
+      `<div><strong style="color: #ffffff; font-weight: 600;">Episodes:</strong> ${release.episodeCount} ${
+        release.episodeCount === 1 ? "episode" : "episodes"
+      }</div>`
+    );
+  }
+  if (release.releaseTypeLabel || release.releaseType) {
+    lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Format:</strong> ${escapeHtml(release.releaseTypeLabel || release.releaseType)}</div>`);
+  }
+  const formatNote = getInformativeNote(release.note, release.releaseTypeLabel);
+  if (formatNote) {
+    lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Format Note:</strong> ${escapeHtml(formatNote)}</div>`);
+  }
+  if (release.runtime) {
+    lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Runtime:</strong> ${escapeHtml(release.runtime)}</div>`);
+  }
+  if (release.language) {
+    lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Language:</strong> ${escapeHtml(release.language)}</div>`);
+  }
+  return lines.join("");
+}
+
+function renderEmailWatchProviders(release: FormattedRelease): string {
+  const wp = release.watchProviders;
+  if (!wp || (!wp.stream?.length && !wp.rent?.length && !wp.buy?.length)) {
+    return "";
+  }
+
+  const country = release.country || "US";
+  const parts: string[] = [];
+  if (wp.stream && wp.stream.length > 0) {
+    const streamPills = wp.stream
+      .map((s) => `[Stream on ${escapeHtml(s)}]`)
+      .join(" · ");
+    parts.push(`<div><strong style="color: #ffffff; font-weight: 600;">Streaming in ${escapeHtml(country)}:</strong> <span style="color: #34d399; font-weight: 500;">${streamPills}</span></div>`);
+  }
+  const rentBuyList = Array.from(new Set([...(wp.rent || []), ...(wp.buy || [])]));
+  if (rentBuyList.length > 0) {
+    const rentBuyPills = rentBuyList
+      .map((r) => `[Rent / Buy on ${escapeHtml(r)}]`)
+      .join(" · ");
+    parts.push(`<div><strong style="color: #ffffff; font-weight: 600;">Rent / Buy:</strong> <span style="color: #a1a1aa;">${rentBuyPills}</span></div>`);
+  }
+
+  const linkHtml = wp.link
+    ? `<div style="margin-top: 8px; font-size: 11px;"><a href="${escapeHtml(
+        wp.link
+      )}" target="_blank" style="color: #2997ff; text-decoration: none; font-weight: 500;">View all streaming options on JustWatch &rarr;</a></div>`
+    : "";
+
+  return `
+    <div style="margin-top: 16px; padding: 12px 14px; background-color: #121214; border: 1px solid #27272a; border-radius: 10px; font-size: 12px; line-height: 1.6; color: #d4d4d8;">
+      ${parts.join("")}
+      ${linkHtml}
+    </div>
+  `.trim();
 }
 
 /**
  * Send release alert email for an artist's upcoming or new releases.
+ * Styled to match the RSS feed reader layout, metadata and aesthetics.
  */
 export async function sendReleaseAlertEmail({
   to,
@@ -186,6 +306,8 @@ export async function sendReleaseAlertEmail({
   artistUrl,
   manageUrl,
   unsubscribeUrl,
+  artistProfilePath,
+  artistAvatarUrl,
 }: SendReleaseAlertOptions): Promise<{ success: boolean; simulated?: boolean; error?: string }> {
   const { user } = getEmailCredentials();
 
@@ -208,60 +330,100 @@ export async function sendReleaseAlertEmail({
     ? `${artistName}: "${releases[0].movieTitle}" release alert`
     : `${artistName}: ${releases.length} new release alerts`;
 
+  const artistAvatar =
+    artistAvatarUrl ||
+    (artistProfilePath
+      ? getTmdbImageUrl(artistProfilePath, "w180_and_h180_face") ||
+        getTmdbImageUrl(artistProfilePath, "w185")
+      : null);
+
   const releasesHtml = releases
-    .map((release) => {
-      const posterUrl = getTmdbImageUrl(release.posterPath, "w180_and_h180_face") || getTmdbImageUrl(release.posterPath, "w92");
-      const releaseDateFormatted = release.releaseDate
-        ? new Date(release.releaseDate).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })
-        : "Release date TBD";
+    .map((release, index) => {
+      const posterUrl = getTmdbPosterUrl(release.posterPath, "w342") || getTmdbImageUrl(release.posterPath, "w342");
+      const pubDateDisplay = formatEmailPubDate(release.releaseDate);
+      const metadataHtml = renderEmailMetadataLines(release);
+      const watchHtml = renderEmailWatchProviders(release);
+      const isLast = index === releases.length - 1;
 
       return `
-        <tr style="border-bottom: 1px solid #27272a;">
-          <td style="padding: 18px 0; vertical-align: top;">
-            <table border="0" cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                ${
-                  posterUrl
-                    ? `
-                  <td width="56" style="vertical-align: top; padding-right: 16px;">
-                    <img src="${posterUrl}" alt="${release.movieTitle}" width="56" style="border-radius: 8px; display: block; border: 1px solid #3f3f46;" />
-                  </td>
-                `
-                    : ""
-                }
-                <td style="vertical-align: top;">
-                  <div style="margin-bottom: 4px;">
-                    <span style="font-size: 15px; font-weight: 600; color: #ffffff;">
-                      ${release.movieTitle}
-                    </span>
-                    <span style="display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #a1a1aa; background-color: #27272a; padding: 2px 7px; border-radius: 4px;">
-                      ${release.releaseTypeLabel || release.releaseType}
-                    </span>
-                  </div>
-                  <div style="font-size: 12px; font-weight: 500; color: #fbbf24; margin-bottom: 6px;">
-                    📅 ${releaseDateFormatted}
-                  </div>
-                  ${
-                    release.role
-                      ? `<div style="font-size: 11px; color: #71717a; margin-bottom: 6px;">Role: ${release.role}</div>`
-                      : ""
-                  }
-                  ${
-                    release.overview
-                      ? `<p style="margin: 0; font-size: 12px; line-height: 1.5; color: #a1a1aa; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                          ${release.overview}
-                        </p>`
-                      : ""
-                  }
+        <div style="margin-bottom: ${isLast ? "0" : "36px"};">
+          <!-- Author row -->
+          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 12px;">
+            <tr>
+              <td style="vertical-align: middle;">
+                <a href="${artistUrl}" target="_blank" style="font-size: 16px; font-weight: 600; color: #2997ff; text-decoration: none;">
+                  ${escapeHtml(artistName)}
+                </a>
+              </td>
+              ${
+                artistAvatar
+                  ? `
+                <td align="right" style="vertical-align: middle;">
+                  <a href="${artistUrl}" target="_blank" style="text-decoration: none;">
+                    <img src="${escapeHtml(artistAvatar)}" alt="${escapeHtml(artistName)}" width="40" height="40" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid #3f3f46; display: block;" />
+                  </a>
                 </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+              `
+                  : ""
+              }
+            </tr>
+          </table>
+
+          <!-- Dividing line -->
+          <hr style="border: none; border-top: 1px solid #27272a; margin: 0 0 14px 0;" />
+
+          <!-- Large Title & Timestamp -->
+          <div style="margin-bottom: 14px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em;">
+              <a href="${escapeHtml(release.tmdbUrl)}" target="_blank" style="color: #ffffff; text-decoration: none;">
+                ${escapeHtml(release.movieTitle)}
+              </a>
+            </h1>
+            <div style="margin-top: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #71717a; font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', Menlo, Consolas, monospace;">
+              ${pubDateDisplay}
+            </div>
+          </div>
+
+          <!-- Movie/Show Poster (portrait image, matching RSS feed) -->
+          ${
+            posterUrl
+              ? `
+            <div style="margin: 0 0 16px 0;">
+              <a href="${escapeHtml(release.tmdbUrl)}" target="_blank" style="text-decoration: none; display: inline-block;">
+                <img
+                  src="${escapeHtml(posterUrl)}"
+                  alt="${escapeHtml(release.movieTitle)}"
+                  width="320"
+                  style="max-width: 320px; width: 100%; height: auto; border-radius: 12px; border: 1px solid #27272a; display: block; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);"
+                />
+              </a>
+            </div>
+          `
+              : ""
+          }
+
+          <!-- Formatted Metadata Lines -->
+          <div style="margin: 0 0 14px 0; font-size: 13px; line-height: 1.6; color: #d4d4d8;">
+            ${metadataHtml}
+          </div>
+
+          <!-- Description Overview (Plot) -->
+          ${
+            release.overview
+              ? `
+            <div style="margin: 0 0 16px 0;">
+              <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #a1a1aa;">
+                ${escapeHtml(release.overview)}
+              </p>
+            </div>
+          `
+              : ""
+          }
+
+          <!-- Streaming Box (JustWatch) -->
+          ${watchHtml}
+        </div>
+        ${!isLast ? `<div style="margin: 32px 0; border-top: 1px dashed #27272a;"></div>` : ""}
       `;
     })
     .join("");
@@ -272,13 +434,13 @@ export async function sendReleaseAlertEmail({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${subject}</title>
+  <title>${escapeHtml(subject)}</title>
 </head>
-<body style="margin: 0; padding: 32px 16px; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4f4f5;">
-  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 540px; margin: 0 auto; background-color: #18181b; border: 1px solid #27272a; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
-    <!-- Header -->
+<body style="margin: 0; padding: 32px 16px; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4f4f5; -webkit-font-smoothing: antialiased;">
+  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; margin: 0 auto; background-color: #18181b; border: 1px solid #27272a; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+    <!-- Top Branding Bar -->
     <tr>
-      <td style="padding: 28px 32px 18px 32px; border-bottom: 1px solid #27272a;">
+      <td style="padding: 20px 28px; border-bottom: 1px solid #27272a; background-color: #121214;">
         <table border="0" cellpadding="0" cellspacing="0" width="100%">
           <tr>
             <td>
@@ -288,7 +450,7 @@ export async function sendReleaseAlertEmail({
                     <img src="cid:magnanium-logo" width="28" height="16" alt="Magnanium Logo" style="display: block; border: 0;" />
                   </td>
                   <td style="vertical-align: middle;">
-                    <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
+                    <span style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
                       Magnanium
                     </span>
                   </td>
@@ -296,7 +458,7 @@ export async function sendReleaseAlertEmail({
               </table>
             </td>
             <td align="right">
-              <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #f59e0b; background-color: #451a03; border: 1px solid #78350f; padding: 3px 9px; border-radius: 9999px;">
+              <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #f59e0b; background-color: #451a03; border: 1px solid #78350f; padding: 3px 8px; border-radius: 9999px;">
                 Release Alert
               </span>
             </td>
@@ -305,27 +467,17 @@ export async function sendReleaseAlertEmail({
       </td>
     </tr>
 
-    <!-- Body Content -->
+    <!-- Body Content / Releases -->
     <tr>
-      <td style="padding: 28px 32px 12px 32px;">
-        <h1 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #ffffff; letter-spacing: -0.02em;">
-          ${artistName}
-        </h1>
-        <p style="margin: 0 0 20px 0; font-size: 13px; color: #a1a1aa;">
-          Upcoming and newly scheduled releases matching your alert preferences:
-        </p>
+      <td style="padding: 28px 28px 20px 28px;">
+        ${releasesHtml}
 
-        <!-- Releases List -->
-        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-          ${releasesHtml}
-        </table>
-
-        <!-- View Feed Button -->
+        <!-- View on Magnanium Button -->
         <table border="0" cellpadding="0" cellspacing="0" width="100%">
           <tr>
-            <td align="center" style="padding: 24px 0 12px 0;">
-              <a href="${artistUrl}" target="_blank" style="display: inline-block; background-color: #ffffff; color: #09090b; font-size: 13px; font-weight: 600; text-decoration: none; padding: 11px 24px; border-radius: 10px;">
-                View ${artistName} on Magnanium →
+            <td align="center" style="padding: 28px 0 12px 0;">
+              <a href="${artistUrl}" target="_blank" style="display: inline-block; background-color: #ffffff; color: #09090b; font-size: 13px; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);">
+                View ${escapeHtml(artistName)} on Magnanium &rarr;
               </a>
             </td>
           </tr>
@@ -335,9 +487,9 @@ export async function sendReleaseAlertEmail({
 
     <!-- Footer -->
     <tr>
-      <td style="padding: 20px 32px; background-color: #121214; border-top: 1px solid #27272a; text-align: center;">
-        <p style="margin: 0 0 8px 0; font-size: 11px; color: #71717a;">
-          You received this email because you subscribed to alerts for <strong>${artistName}</strong>.
+      <td style="padding: 20px 28px; background-color: #121214; border-top: 1px solid #27272a; text-align: center;">
+        <p style="margin: 0 0 8px 0; font-size: 11px; color: #71717a; line-height: 1.4;">
+          You received this email because you subscribed to alerts for <strong style="color: #a1a1aa;">${escapeHtml(artistName)}</strong>.
         </p>
         <p style="margin: 0; font-size: 11px; color: #52525b;">
           <a href="${manageUrl}" style="color: #a1a1aa; text-decoration: underline;">Manage Alerts</a>

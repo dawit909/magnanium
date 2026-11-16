@@ -184,6 +184,7 @@ export async function GET(request: NextRequest) {
             artistUrl,
             manageUrl,
             unsubscribeUrl,
+            artistProfilePath: countryData?.profilePath || subInfo?.profilePath,
           });
 
           if (result.success) {
