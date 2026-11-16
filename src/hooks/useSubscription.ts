@@ -290,6 +290,27 @@ export function useSubscription() {
     [state.isAuthenticated]
   );
 
+  const sendTestAlert = useCallback(
+    async (personId?: number, personName?: string) => {
+      if (!state.isAuthenticated) {
+        throw new Error("Please sign in first to test alerts.");
+      }
+
+      const res = await fetch("/api/test/send-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personId, personName }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send test alert");
+      }
+      return data;
+    },
+    [state.isAuthenticated]
+  );
+
   const logout = useCallback(async () => {
     try {
       await fetch("/api/auth/session", { method: "POST" });
@@ -313,6 +334,7 @@ export function useSubscription() {
     updateArtistAlert,
     updateArtistOptions,
     sendMagicLink,
+    sendTestAlert,
     logout,
     refreshSession,
   };
