@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, memo } from "react";
-import { Rss, Copy, Check, ExternalLink, Mail, Loader2 } from "lucide-react";
+import { useState, useMemo, memo } from "react";
+import { Rss, Copy, Check, ExternalLink, Mail, Loader2, RefreshCw } from "lucide-react";
 import { TMDBPersonSearchResult, AlertTimingWindow } from "@/types/tmdb";
 import { useSubscription } from "@/hooks/useSubscription";
+import { DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
 import EmailAlertModal from "./EmailAlertModal";
 
 interface FeedUrlCardProps {
@@ -41,7 +42,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
   const [copied, setCopied] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isQuickSubscribing, setIsQuickSubscribing] = useState(false);
-  const [isUpdatingAlert, setIsUpdatingAlert] = useState(false);
+  const [isUpdatingOptions, setIsUpdatingOptions] = useState(false);
   const [isUnfollowing, setIsUnfollowing] = useState(false);
 
   const {
@@ -50,7 +51,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
     getArtistSub,
     followArtist,
     unfollowArtist,
-    updateArtistAlert,
+    updateArtistOptions,
   } = useSubscription();
 
   const following = person ? isFollowing(person.id) : false;
@@ -58,6 +59,83 @@ const FeedUrlCard = memo(function FeedUrlCard({
   const activeAlertLabel = existingSub
     ? ALERT_LABELS[existingSub.alert] || existingSub.alert
     : ALERT_LABELS[alert] || alert;
+
+  const hasOptionsChanged = useMemo(() => {
+    if (!existingSub) return false;
+
+    const subRoles = existingSub.roles || DEFAULT_FEED_OPTIONS.roles;
+    const pageRoles = roles || DEFAULT_FEED_OPTIONS.roles;
+    const rolesChanged =
+      subRoles.length !== pageRoles.length ||
+      !subRoles.every((r) => pageRoles.includes(r));
+
+    const subTypesRaw = existingSub.types || DEFAULT_FEED_OPTIONS.types;
+    const subTypes =
+      subTypesRaw.includes("earliest") && subTypesRaw.length > 1
+        ? ["earliest"]
+        : subTypesRaw;
+    const pageTypesRaw = types || DEFAULT_FEED_OPTIONS.types;
+    const pageTypes =
+      pageTypesRaw.includes("earliest") && pageTypesRaw.length > 1
+        ? ["earliest"]
+        : pageTypesRaw;
+    const typesChanged =
+      subTypes.length !== pageTypes.length ||
+      !subTypes.every((t) => pageTypes.includes(t));
+
+    const subCountry = (existingSub.country || "US").toUpperCase();
+    const pageCountry = (country || "US").toUpperCase();
+    const countryChanged = subCountry !== pageCountry;
+
+    const alertChanged = (existingSub.alert || "announced") !== (alert || "announced");
+
+    const subExcludeShorts =
+      existingSub.excludeShorts !== undefined
+        ? existingSub.excludeShorts
+        : DEFAULT_FEED_OPTIONS.excludeShorts;
+    const pageExcludeShorts =
+      excludeShorts !== undefined ? excludeShorts : DEFAULT_FEED_OPTIONS.excludeShorts;
+    const shortsChanged = subExcludeShorts !== pageExcludeShorts;
+
+    const subExcludeReReleases =
+      existingSub.excludeReReleases !== undefined
+        ? existingSub.excludeReReleases
+        : DEFAULT_FEED_OPTIONS.excludeReReleases;
+    const pageExcludeReReleases =
+      excludeReReleases !== undefined
+        ? excludeReReleases
+        : DEFAULT_FEED_OPTIONS.excludeReReleases;
+    const reReleasesChanged = subExcludeReReleases !== pageExcludeReReleases;
+
+    const subExcludeUncredited =
+      existingSub.excludeUncredited !== undefined
+        ? existingSub.excludeUncredited
+        : DEFAULT_FEED_OPTIONS.excludeUncredited;
+    const pageExcludeUncredited =
+      excludeUncredited !== undefined
+        ? excludeUncredited
+        : DEFAULT_FEED_OPTIONS.excludeUncredited;
+    const uncreditedChanged = subExcludeUncredited !== pageExcludeUncredited;
+
+    return (
+      rolesChanged ||
+      typesChanged ||
+      countryChanged ||
+      alertChanged ||
+      shortsChanged ||
+      reReleasesChanged ||
+      uncreditedChanged
+    );
+  }, [
+    existingSub,
+    roles,
+    types,
+    country,
+    alert,
+    excludeShorts,
+    excludeReReleases,
+    excludeUncredited,
+  ]);
 
   const resolvedFeedProtocol =
     feedProtocolUrl || (feedUrl ? feedUrl.replace(/^https?:\/\//, "feed://") : "");
@@ -111,13 +189,21 @@ const FeedUrlCard = memo(function FeedUrlCard({
     }
   };
 
-  const handleUpdateAlertToCurrent = async () => {
+  const handleUpdateEmailFeed = async () => {
     if (!person) return;
-    setIsUpdatingAlert(true);
+    setIsUpdatingOptions(true);
     try {
-      await updateArtistAlert(person.id, alert);
+      await updateArtistOptions(person.id, {
+        alert,
+        country,
+        roles,
+        types,
+        excludeShorts,
+        excludeReReleases,
+        excludeUncredited,
+      });
     } finally {
-      setIsUpdatingAlert(false);
+      setIsUpdatingOptions(false);
     }
   };
 
@@ -197,17 +283,23 @@ const FeedUrlCard = memo(function FeedUrlCard({
           <div className="flex items-center gap-2">
             {following ? (
               <>
-                {existingSub && existingSub.alert !== alert && (
+                {hasOptionsChanged && (
                   <button
                     type="button"
-                    onClick={handleUpdateAlertToCurrent}
-                    disabled={isUpdatingAlert}
+                    onClick={handleUpdateEmailFeed}
+                    disabled={isUpdatingOptions}
                     className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    {isUpdatingAlert ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    {isUpdatingOptions ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Updating...</span>
+                      </>
                     ) : (
-                      `Update to ${ALERT_LABELS[alert]}`
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Update email feed</span>
+                      </>
                     )}
                   </button>
                 )}
