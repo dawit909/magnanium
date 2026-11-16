@@ -221,6 +221,11 @@ export default function FeedApp({
             person={selectedPerson}
             alert={alert}
             country={country}
+            roles={roles}
+            types={types}
+            excludeShorts={excludeShorts}
+            excludeReReleases={excludeReReleases}
+            excludeUncredited={excludeUncredited}
           />
 
           <ReleaseList

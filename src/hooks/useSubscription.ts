@@ -89,6 +89,11 @@ export function useSubscription() {
         profilePath: string | null;
         alert: AlertTimingWindow;
         country: string;
+        roles?: string[];
+        types?: string[];
+        excludeShorts?: boolean;
+        excludeReReleases?: boolean;
+        excludeUncredited?: boolean;
       }
     ) => {
       const res = await fetch("/api/auth/magic-link", {
@@ -109,7 +114,14 @@ export function useSubscription() {
     async (
       person: { id: number; name: string; profile_path: string | null },
       alert: AlertTimingWindow,
-      country: string
+      country: string,
+      options?: {
+        roles?: string[];
+        types?: string[];
+        excludeShorts?: boolean;
+        excludeReReleases?: boolean;
+        excludeUncredited?: boolean;
+      }
     ) => {
       if (!state.isAuthenticated) return false;
 
@@ -124,6 +136,11 @@ export function useSubscription() {
             profilePath: person.profile_path,
             alert,
             country,
+            ...(options?.roles ? { roles: options.roles } : {}),
+            ...(options?.types ? { types: options.types } : {}),
+            ...(options?.excludeShorts !== undefined ? { excludeShorts: options.excludeShorts } : {}),
+            ...(options?.excludeReReleases !== undefined ? { excludeReReleases: options.excludeReReleases } : {}),
+            ...(options?.excludeUncredited !== undefined ? { excludeUncredited: options.excludeUncredited } : {}),
           }),
         });
 

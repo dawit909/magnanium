@@ -8,10 +8,11 @@ import {
 } from "@/lib/subscriptions";
 import { getPersonReleases } from "@/lib/tmdb";
 import { sendReleaseAlertEmail } from "@/lib/email";
-import { getDateWindowBoundaries } from "@/lib/feed-filter";
+import { getDateWindowBoundaries, filterReleases } from "@/lib/feed-filter";
+import { DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
 import { kv } from "@/lib/kv";
 import { createPersonSlug } from "@/lib/slug";
-import { FormattedRelease } from "@/types/tmdb";
+import { FormattedRelease, AlertTimingWindow } from "@/types/tmdb";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // 60s timeout for cron on Vercel
@@ -49,21 +50,12 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // Fetch upcoming releases for this artist
-      const { personName, releases } = await getPersonReleases({
-        personId,
-        window: "all",
-      });
+      // Cache raw releases per country for this artist during this cron run
+      const countryReleasesCache = new Map<
+        string,
+        { personName: string; releases: FormattedRelease[]; profilePath?: string | null }
+      >();
 
-      if (!releases || releases.length === 0) {
-        continue;
-      }
-
-      const slug = createPersonSlug(personId, personName);
-      const artistUrl = `${siteUrl}/${slug}`;
-      const manageUrl = `${siteUrl}/feeds`;
-
-      // Group per subscriber
       for (const email of subscriberEmails) {
         const user = await getUser(email);
         if (!user || !user.artists[String(personId)]) {
@@ -71,19 +63,84 @@ export async function GET(request: NextRequest) {
         }
 
         const subInfo = user.artists[String(personId)];
-        const alertTiming = subInfo.alert || "announced";
+        const country = (subInfo.country || "US").toUpperCase();
 
-        // Filter releases matching the subscriber's timing window
+        let countryData = countryReleasesCache.get(country);
+        if (!countryData) {
+          const fetched = await getPersonReleases({
+            personId,
+            country,
+            roles: ["all"],
+            types: ["cinema", "home", "tv", "premiere"],
+            excludeShorts: false,
+            excludeReReleases: false,
+            excludeUncredited: false,
+            window: "all",
+            alert: "announced",
+          });
+          countryData = {
+            personName: fetched.personName,
+            releases: fetched.releases,
+            profilePath: fetched.profilePath,
+          };
+          countryReleasesCache.set(country, countryData);
+        }
+
+        const { personName, releases } = countryData;
+        if (!releases || releases.length === 0) {
+          continue;
+        }
+
+        const slug = createPersonSlug(personId, personName);
+        const artistUrl = `${siteUrl}/${slug}`;
+        const manageUrl = `${siteUrl}/feeds`;
+
+        // Apply all subscriber RSS filtering options:
+        // - roles: actor, director, writer, producer, crew
+        // - types: cinema, home, tv, premiere, earliest
+        // - country: already fetched per country above
+        // - excludeShorts: exclude short films
+        // - excludeReReleases: exclude re-releases / remasters
+        // - excludeUncredited: exclude uncredited / cameo appearances
+        const subscriberFilterOptions = {
+          roles:
+            subInfo.roles && subInfo.roles.length > 0
+              ? subInfo.roles
+              : DEFAULT_FEED_OPTIONS.roles,
+          types:
+            subInfo.types && subInfo.types.length > 0
+              ? subInfo.types
+              : DEFAULT_FEED_OPTIONS.types,
+          country,
+          alert: "announced" as AlertTimingWindow, // keep valid date window for fine-grained timing checks below
+          window: "all" as const,
+          excludeShorts:
+            subInfo.excludeShorts !== undefined
+              ? subInfo.excludeShorts
+              : DEFAULT_FEED_OPTIONS.excludeShorts,
+          excludeReReleases:
+            subInfo.excludeReReleases !== undefined
+              ? subInfo.excludeReReleases
+              : DEFAULT_FEED_OPTIONS.excludeReReleases,
+          excludeUncredited:
+            subInfo.excludeUncredited !== undefined
+              ? subInfo.excludeUncredited
+              : DEFAULT_FEED_OPTIONS.excludeUncredited,
+        };
+
+        const filteredCandidateReleases = filterReleases(releases, subscriberFilterOptions);
+
+        const alertTiming = subInfo.alert || "announced";
         const matchingReleases: FormattedRelease[] = [];
 
-        for (const rel of releases) {
+        for (const rel of filteredCandidateReleases) {
           const d = rel.releaseDate;
           if (!d) continue;
 
           let matchesTiming = false;
 
           if (alertTiming === "when_released") {
-            // Released within the past 48 hours or today
+            // Released within the past year or recently (past releases)
             matchesTiming = d <= nowStr && d >= boundaries.oneYearAgoStr;
           } else if (alertTiming === "week_before") {
             // Releasing within next 7 days
@@ -107,6 +164,14 @@ export async function GET(request: NextRequest) {
         }
 
         if (matchingReleases.length > 0) {
+          // Sort releases: for upcoming alerts, soonest release first; for when_released, most recent first
+          matchingReleases.sort((a, b) => {
+            if (alertTiming === "when_released") {
+              return b.releaseDate > a.releaseDate ? 1 : -1;
+            }
+            return a.releaseDate > b.releaseDate ? 1 : -1;
+          });
+
           // Limit to max 5 items in a single digest email to keep it clean
           const alertBatch = matchingReleases.slice(0, 5);
           const unsubscribeToken = createUnsubscribeToken(email, personId);

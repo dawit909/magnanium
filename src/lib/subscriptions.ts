@@ -32,6 +32,11 @@ export interface MagicTokenPayload {
     profilePath: string | null;
     alert: AlertTimingWindow;
     country: string;
+    roles?: string[];
+    types?: string[];
+    excludeShorts?: boolean;
+    excludeReReleases?: boolean;
+    excludeUncredited?: boolean;
   };
   expiresAt: number;
 }

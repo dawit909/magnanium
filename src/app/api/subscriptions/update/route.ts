@@ -34,13 +34,28 @@ export async function POST(request: NextRequest) {
   let updatedUser = null;
 
   if (action === "subscribe") {
-    const { personName, profilePath, alert, country } = body;
+    const {
+      personName,
+      profilePath,
+      alert,
+      country,
+      roles,
+      types,
+      excludeShorts,
+      excludeReReleases,
+      excludeUncredited,
+    } = body;
     updatedUser = await subscribeArtist(session.email, {
       personId,
       personName: String(personName || "Artist"),
       profilePath: profilePath ? String(profilePath) : null,
       alert: (alert as AlertTimingWindow) || "announced",
       country: String(country || "US"),
+      ...(Array.isArray(roles) ? { roles } : {}),
+      ...(Array.isArray(types) ? { types } : {}),
+      ...(typeof excludeShorts === "boolean" ? { excludeShorts } : {}),
+      ...(typeof excludeReReleases === "boolean" ? { excludeReReleases } : {}),
+      ...(typeof excludeUncredited === "boolean" ? { excludeUncredited } : {}),
     });
   } else if (action === "unsubscribe") {
     updatedUser = await unsubscribeArtist(session.email, personId);

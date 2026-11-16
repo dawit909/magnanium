@@ -34,6 +34,17 @@ export async function POST(request: NextRequest) {
           profilePath: body.artist.profilePath ? String(body.artist.profilePath) : null,
           alert: body.artist.alert || "announced",
           country: body.artist.country || "US",
+          ...(Array.isArray(body.artist.roles) ? { roles: body.artist.roles } : {}),
+          ...(Array.isArray(body.artist.types) ? { types: body.artist.types } : {}),
+          ...(typeof body.artist.excludeShorts === "boolean"
+            ? { excludeShorts: body.artist.excludeShorts }
+            : {}),
+          ...(typeof body.artist.excludeReReleases === "boolean"
+            ? { excludeReReleases: body.artist.excludeReReleases }
+            : {}),
+          ...(typeof body.artist.excludeUncredited === "boolean"
+            ? { excludeUncredited: body.artist.excludeUncredited }
+            : {}),
         }
       : undefined;
 

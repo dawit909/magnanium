@@ -12,6 +12,11 @@ interface EmailAlertModalProps {
   person: TMDBPersonSearchResult;
   currentAlert: AlertTimingWindow;
   currentCountry: string;
+  roles?: string[];
+  types?: string[];
+  excludeShorts?: boolean;
+  excludeReReleases?: boolean;
+  excludeUncredited?: boolean;
 }
 
 const ALERT_LABELS: Record<AlertTimingWindow, string> = {
@@ -27,6 +32,11 @@ export default function EmailAlertModal({
   person,
   currentAlert,
   currentCountry,
+  roles,
+  types,
+  excludeShorts,
+  excludeReReleases,
+  excludeUncredited,
 }: EmailAlertModalProps) {
   const {
     isAuthenticated,
@@ -81,6 +91,11 @@ export default function EmailAlertModal({
         profilePath: person.profile_path,
         alert: currentAlert,
         country: currentCountry,
+        roles,
+        types,
+        excludeShorts,
+        excludeReReleases,
+        excludeUncredited,
       });
 
       setSuccessMessage(
@@ -102,7 +117,14 @@ export default function EmailAlertModal({
       const ok = await followArtist(
         { id: person.id, name: person.name, profile_path: person.profile_path },
         currentAlert,
-        currentCountry
+        currentCountry,
+        {
+          roles,
+          types,
+          excludeShorts,
+          excludeReReleases,
+          excludeUncredited,
+        }
       );
       if (ok) {
         onClose();

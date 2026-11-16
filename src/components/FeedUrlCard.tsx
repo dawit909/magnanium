@@ -12,6 +12,11 @@ interface FeedUrlCardProps {
   person?: TMDBPersonSearchResult | null;
   alert?: AlertTimingWindow;
   country?: string;
+  roles?: string[];
+  types?: string[];
+  excludeShorts?: boolean;
+  excludeReReleases?: boolean;
+  excludeUncredited?: boolean;
 }
 
 const ALERT_LABELS: Record<AlertTimingWindow, string> = {
@@ -27,6 +32,11 @@ const FeedUrlCard = memo(function FeedUrlCard({
   person,
   alert = "announced",
   country = "US",
+  roles,
+  types,
+  excludeShorts,
+  excludeReReleases,
+  excludeUncredited,
 }: FeedUrlCardProps) {
   const [copied, setCopied] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -87,7 +97,14 @@ const FeedUrlCard = memo(function FeedUrlCard({
       await followArtist(
         { id: person.id, name: person.name, profile_path: person.profile_path },
         alert,
-        country
+        country,
+        {
+          roles,
+          types,
+          excludeShorts,
+          excludeReReleases,
+          excludeUncredited,
+        }
       );
     } finally {
       setIsQuickSubscribing(false);
@@ -241,6 +258,11 @@ const FeedUrlCard = memo(function FeedUrlCard({
             person={person}
             currentAlert={alert}
             currentCountry={country}
+            roles={roles}
+            types={types}
+            excludeShorts={excludeShorts}
+            excludeReReleases={excludeReReleases}
+            excludeUncredited={excludeUncredited}
           />
         </div>
       )}
