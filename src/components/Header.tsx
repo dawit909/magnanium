@@ -8,7 +8,6 @@ import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
 import { useSubscription } from "@/hooks/useSubscription";
 import Logo from "./Logo";
-import MyAlertsDrawer from "./MyAlertsDrawer";
 import SignInModal from "./SignInModal";
 
 interface HeaderProps {
@@ -48,7 +47,6 @@ export default function Header({
   searchInputRef,
   onKeyDown,
 }: HeaderProps) {
-  const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -83,10 +81,8 @@ export default function Header({
   return (
     <>
       <header
-        className={`sticky top-0 ${
-        isSearchDropdownOpen ? "z-[70]" : "z-30"
-      } bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0`}
-    >
+        className="sticky top-0 z-[70] bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0"
+      >
       <div className="flex items-center justify-between gap-3">
         {/* Logo */}
         <button
@@ -287,14 +283,13 @@ export default function Header({
                   )}
 
                   <div className="p-1">
-                    <button
-                      type="button"
+                    <Link
+                      href="/my-feeds"
                       role="menuitem"
                       onClick={() => {
                         setIsUserMenuOpen(false);
-                        setIsAlertsOpen(true);
                       }}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center justify-between transition-colors cursor-pointer"
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center justify-between transition-colors no-underline cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
                         <Bell className="w-3.5 h-3.5 text-amber-500" />
@@ -305,7 +300,7 @@ export default function Header({
                           {alertCount}
                         </span>
                       )}
-                    </button>
+                    </Link>
                   </div>
 
                   <div className="p-1">
@@ -330,7 +325,6 @@ export default function Header({
       </div>
     </header>
 
-    <MyAlertsDrawer isOpen={isAlertsOpen} onClose={() => setIsAlertsOpen(false)} />
     <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
   </>
   );

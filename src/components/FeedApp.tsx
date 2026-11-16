@@ -15,11 +15,14 @@ import FeedFilters from "./FeedFilters";
 import FeedUrlCard from "./FeedUrlCard";
 import ReleaseList from "./ReleaseList";
 import SampleFeedPreview from "./SampleFeedPreview";
+import MyFeedsView from "./MyFeedsView";
 
 export default function FeedApp({
   initialPerson = null,
+  mode = "feed",
 }: {
   initialPerson?: TMDBPersonSearchResult | null;
+  mode?: "feed" | "my-feeds";
 }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -183,7 +186,9 @@ export default function FeedApp({
         </div>
       )}
 
-      {!selectedPerson ? (
+      {mode === "my-feeds" ? (
+        <MyFeedsView onSelectArtist={handleSelectPerson} />
+      ) : !selectedPerson ? (
         <div className="mt-6 space-y-6">
           <SampleFeedPreview onSelectSampleArtist={handleSelectPerson} />
         </div>
