@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
   }
 
   const siteUrl = getRequestSiteUrl(request);
+  const dryRun = request.nextUrl.searchParams.get("dryRun") === "true";
+  const force = request.nextUrl.searchParams.get("force") === "true";
 
   try {
     const artistIds = await getAllSubscribedArtistIds();
@@ -38,6 +40,14 @@ export async function GET(request: NextRequest) {
 
     let emailsSent = 0;
     let releasesNotified = 0;
+    const pendingDigests: Array<{
+      email: string;
+      artist: string;
+      frequency: string;
+      alertTiming: string;
+      releaseCount: number;
+      sampleTitles: string[];
+    }> = [];
 
     // Process artists with bounded concurrency of 6 to prevent serverless timeouts
     await mapConcurrent(artistIds, 6, async (personId) => {
@@ -63,18 +73,20 @@ export async function GET(request: NextRequest) {
             const subInfo = user.artists[String(personId)];
             const frequency = subInfo.frequency || "instant";
 
-            // For weekly / monthly frequency digests, verify sending window interval
-            if (frequency === "weekly") {
-              const weeklyKey = SUB_KEYS.digestSent("weekly", email, personId);
-              const alreadySentWeekly = await kv.get<number>(weeklyKey);
-              if (alreadySentWeekly) {
-                continue; // Wait until 7-day interval elapses
-              }
-            } else if (frequency === "monthly") {
-              const monthlyKey = SUB_KEYS.digestSent("monthly", email, personId);
-              const alreadySentMonthly = await kv.get<number>(monthlyKey);
-              if (alreadySentMonthly) {
-                continue; // Wait until 30-day interval elapses
+            // For weekly / monthly frequency digests, verify sending window interval (unless forced)
+            if (!force) {
+              if (frequency === "weekly") {
+                const weeklyKey = SUB_KEYS.digestSent("weekly", email, personId);
+                const alreadySentWeekly = await kv.get<number>(weeklyKey);
+                if (alreadySentWeekly) {
+                  continue; // Wait until 7-day interval elapses
+                }
+              } else if (frequency === "monthly") {
+                const monthlyKey = SUB_KEYS.digestSent("monthly", email, personId);
+                const alreadySentMonthly = await kv.get<number>(monthlyKey);
+                if (alreadySentMonthly) {
+                  continue; // Wait until 30-day interval elapses
+                }
               }
             }
 
@@ -145,8 +157,8 @@ export async function GET(request: NextRequest) {
 
               if (!matchesTiming) continue;
 
-              // For instant alerts, check per-release deduplication
-              if (frequency === "instant") {
+              // For instant alerts, check per-release deduplication (unless forced)
+              if (frequency === "instant" && !force) {
                 const dedupKey = SUB_KEYS.alertSent(email, rel.id, alertTiming);
                 const alreadySent = await kv.get<number>(dedupKey);
                 if (!alreadySent) {
@@ -172,33 +184,46 @@ export async function GET(request: NextRequest) {
               const unsubscribeToken = createUnsubscribeToken(email, personId);
               const unsubscribeUrl = `${siteUrl}/api/subscriptions/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`;
 
-              const result = await sendReleaseAlertEmail({
-                to: email,
-                artistName: personName,
-                releases: alertBatch,
-                artistUrl,
-                manageUrl,
-                unsubscribeUrl,
-                frequency,
-                artistProfilePath: countryData?.profilePath || subInfo?.profilePath,
-              });
-
-              if (result.success) {
+              if (dryRun) {
+                pendingDigests.push({
+                  email,
+                  artist: personName,
+                  frequency,
+                  alertTiming,
+                  releaseCount: alertBatch.length,
+                  sampleTitles: alertBatch.map((r) => r.movieTitle),
+                });
                 emailsSent++;
                 releasesNotified += alertBatch.length;
+              } else {
+                const result = await sendReleaseAlertEmail({
+                  to: email,
+                  artistName: personName,
+                  releases: alertBatch,
+                  artistUrl,
+                  manageUrl,
+                  unsubscribeUrl,
+                  frequency,
+                  artistProfilePath: countryData?.profilePath || subInfo?.profilePath,
+                });
 
-                if (frequency === "weekly") {
-                  const weeklyKey = SUB_KEYS.digestSent("weekly", email, personId);
-                  await kv.set(weeklyKey, 1, 7 * 86400);
-                } else if (frequency === "monthly") {
-                  const monthlyKey = SUB_KEYS.digestSent("monthly", email, personId);
-                  await kv.set(monthlyKey, 1, 30 * 86400);
-                }
+                if (result.success) {
+                  emailsSent++;
+                  releasesNotified += alertBatch.length;
 
-                // Mark deduplication keys with TTL
-                for (const rel of alertBatch) {
-                  const dedupKey = SUB_KEYS.alertSent(email, rel.id, alertTiming);
-                  await kv.set(dedupKey, 1, AUTH_CONFIG.ALERT_DEDUP_TTL_SECONDS);
+                  if (frequency === "weekly") {
+                    const weeklyKey = SUB_KEYS.digestSent("weekly", email, personId);
+                    await kv.set(weeklyKey, 1, 7 * 86400);
+                  } else if (frequency === "monthly") {
+                    const monthlyKey = SUB_KEYS.digestSent("monthly", email, personId);
+                    await kv.set(monthlyKey, 1, 30 * 86400);
+                  }
+
+                  // Mark deduplication keys with TTL
+                  for (const rel of alertBatch) {
+                    const dedupKey = SUB_KEYS.alertSent(email, rel.id, alertTiming);
+                    await kv.set(dedupKey, 1, AUTH_CONFIG.ALERT_DEDUP_TTL_SECONDS);
+                  }
                 }
               }
             }
@@ -213,9 +238,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      dryRun,
+      force,
       processedArtists: artistIds.length,
       emailsSent,
       releasesNotified,
+      pendingDigests: dryRun ? pendingDigests : undefined,
       durationMs: Date.now() - startTime,
     });
   } catch (err: any) {
