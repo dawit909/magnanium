@@ -213,6 +213,66 @@ export function useSubscription() {
     [state.isAuthenticated]
   );
 
+  const updateArtistOptions = useCallback(
+    async (
+      personId: number,
+      options: {
+        alert?: AlertTimingWindow;
+        country?: string;
+        roles?: string[];
+        types?: string[];
+        excludeShorts?: boolean;
+        excludeReReleases?: boolean;
+        excludeUncredited?: boolean;
+      }
+    ) => {
+      if (!state.isAuthenticated) return false;
+
+      // Optimistically update cachedState so the UI responds with zero delay
+      if (cachedState.artists[String(personId)]) {
+        cachedState = {
+          ...cachedState,
+          artists: {
+            ...cachedState.artists,
+            [String(personId)]: {
+              ...cachedState.artists[String(personId)],
+              ...options,
+            },
+          },
+        };
+        notifyListeners();
+      }
+
+      try {
+        const res = await fetch("/api/subscriptions/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "update_options",
+            personId,
+            ...options,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            cachedState = {
+              ...cachedState,
+              artists: data.user.artists || {},
+            };
+            notifyListeners();
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error("Error updating artist options:", err);
+      }
+      return false;
+    },
+    [state.isAuthenticated]
+  );
+
   const logout = useCallback(async () => {
     try {
       await fetch("/api/auth/session", { method: "POST" });
@@ -234,6 +294,7 @@ export function useSubscription() {
     followArtist,
     unfollowArtist,
     updateArtistAlert,
+    updateArtistOptions,
     sendMagicLink,
     logout,
     refreshSession,

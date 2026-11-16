@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   Bell,
   Trash2,
   Rss,
   Check,
-  Copy,
   Mail,
   Loader2,
   User,
@@ -17,8 +16,12 @@ import {
 } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { AlertTimingWindow, TMDBPersonSearchResult } from "@/types/tmdb";
+import { SubscribedArtist } from "@/lib/subscriptions";
+import { DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
+import { buildFeedUrls } from "@/lib/feed-params";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
+import FeedFilters from "./FeedFilters";
 
 const SUGGESTED_ARTISTS: { id: number; name: string; department: string; profile_path: string }[] = [
   { id: 525, name: "Christopher Nolan", department: "Directing", profile_path: "/xuAIuYSmsUzKlUMBFGVZaWsY3DZ.jpg" },
@@ -28,6 +31,276 @@ const SUGGESTED_ARTISTS: { id: number; name: string; department: string; profile
   { id: 138, name: "Quentin Tarantino", department: "Directing", profile_path: "/1gjcpAa99FAOWGnrUvHEXXsRs7o.jpg" },
   { id: 974169, name: "Jenna Ortega", department: "Acting", profile_path: "/cV4x7jNmsGLdKZn5I6xVF3Ltnmg.jpg" },
 ];
+
+interface FollowedPersonItemProps {
+  artist: SubscribedArtist;
+  onUnfollow: (personId: number) => void;
+  onUpdateOptions: (personId: number, options: Partial<SubscribedArtist>) => void;
+}
+
+function FollowedPersonItem({
+  artist,
+  onUnfollow,
+  onUpdateOptions,
+}: FollowedPersonItemProps) {
+  const [copied, setCopied] = useState(false);
+
+  // Fallbacks to default feed options if not customized
+  const currentRoles = artist.roles || DEFAULT_FEED_OPTIONS.roles;
+  const currentTypes = artist.types || DEFAULT_FEED_OPTIONS.types;
+  const currentCountry = artist.country || DEFAULT_FEED_OPTIONS.country;
+  const currentAlert = artist.alert || DEFAULT_FEED_OPTIONS.alert;
+  const currentExcludeShorts =
+    artist.excludeShorts !== undefined ? artist.excludeShorts : DEFAULT_FEED_OPTIONS.excludeShorts;
+  const currentExcludeReReleases =
+    artist.excludeReReleases !== undefined
+      ? artist.excludeReReleases
+      : DEFAULT_FEED_OPTIONS.excludeReReleases;
+  const currentExcludeUncredited =
+    artist.excludeUncredited !== undefined
+      ? artist.excludeUncredited
+      : DEFAULT_FEED_OPTIONS.excludeUncredited;
+
+  const isCustomized = useMemo(() => {
+    const rolesMatch =
+      currentRoles.length === DEFAULT_FEED_OPTIONS.roles.length &&
+      currentRoles.every((r) => DEFAULT_FEED_OPTIONS.roles.includes(r));
+    const typesMatch =
+      currentTypes.length === DEFAULT_FEED_OPTIONS.types.length &&
+      currentTypes.every((t) => DEFAULT_FEED_OPTIONS.types.includes(t));
+    const countryMatch = currentCountry === DEFAULT_FEED_OPTIONS.country;
+    const alertMatch = currentAlert === DEFAULT_FEED_OPTIONS.alert;
+    const shortsMatch = currentExcludeShorts === DEFAULT_FEED_OPTIONS.excludeShorts;
+    const reReleasesMatch = currentExcludeReReleases === DEFAULT_FEED_OPTIONS.excludeReReleases;
+    const uncreditedMatch = currentExcludeUncredited === DEFAULT_FEED_OPTIONS.excludeUncredited;
+
+    return !(
+      rolesMatch &&
+      typesMatch &&
+      countryMatch &&
+      alertMatch &&
+      shortsMatch &&
+      reReleasesMatch &&
+      uncreditedMatch
+    );
+  }, [
+    currentRoles,
+    currentTypes,
+    currentCountry,
+    currentAlert,
+    currentExcludeShorts,
+    currentExcludeReReleases,
+    currentExcludeUncredited,
+  ]);
+
+  const handleToggleRole = useCallback(
+    (roleId: string) => {
+      const nextRoles = currentRoles.includes(roleId)
+        ? currentRoles.filter((r) => r !== roleId)
+        : [...currentRoles, roleId];
+      if (nextRoles.length === 0) return;
+      onUpdateOptions(artist.personId, { roles: nextRoles });
+    },
+    [currentRoles, artist.personId, onUpdateOptions]
+  );
+
+  const handleToggleType = useCallback(
+    (typeId: string) => {
+      const nextTypes = currentTypes.includes(typeId)
+        ? currentTypes.filter((t) => t !== typeId)
+        : [...currentTypes, typeId];
+      if (nextTypes.length === 0) return;
+      onUpdateOptions(artist.personId, { types: nextTypes });
+    },
+    [currentTypes, artist.personId, onUpdateOptions]
+  );
+
+  const handleSetAlert = useCallback(
+    (newAlert: AlertTimingWindow) => {
+      onUpdateOptions(artist.personId, { alert: newAlert });
+    },
+    [artist.personId, onUpdateOptions]
+  );
+
+  const handleSetCountry = useCallback(
+    (newCountry: string) => {
+      onUpdateOptions(artist.personId, { country: newCountry });
+    },
+    [artist.personId, onUpdateOptions]
+  );
+
+  const handleSetExcludeShorts = useCallback(
+    (exclude: boolean) => {
+      onUpdateOptions(artist.personId, { excludeShorts: exclude });
+    },
+    [artist.personId, onUpdateOptions]
+  );
+
+  const handleSetExcludeReReleases = useCallback(
+    (exclude: boolean) => {
+      onUpdateOptions(artist.personId, { excludeReReleases: exclude });
+    },
+    [artist.personId, onUpdateOptions]
+  );
+
+  const handleSetExcludeUncredited = useCallback(
+    (exclude: boolean) => {
+      onUpdateOptions(artist.personId, { excludeUncredited: exclude });
+    },
+    [artist.personId, onUpdateOptions]
+  );
+
+  const handleResetOptions = useCallback(() => {
+    onUpdateOptions(artist.personId, {
+      roles: DEFAULT_FEED_OPTIONS.roles,
+      types: DEFAULT_FEED_OPTIONS.types,
+      country: DEFAULT_FEED_OPTIONS.country,
+      alert: DEFAULT_FEED_OPTIONS.alert,
+      excludeShorts: DEFAULT_FEED_OPTIONS.excludeShorts,
+      excludeReReleases: DEFAULT_FEED_OPTIONS.excludeReReleases,
+      excludeUncredited: DEFAULT_FEED_OPTIONS.excludeUncredited,
+    });
+  }, [artist.personId, onUpdateOptions]);
+
+  // Construct canonical feed URL reflecting this person's custom options
+  const { feedUrl } = useMemo(() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return buildFeedUrls({
+      origin,
+      personId: artist.personId,
+      options: {
+        roles: currentRoles,
+        types: currentTypes,
+        country: currentCountry,
+        alert: currentAlert,
+        excludeShorts: currentExcludeShorts,
+        excludeReReleases: currentExcludeReReleases,
+        excludeUncredited: currentExcludeUncredited,
+      },
+    });
+  }, [
+    artist.personId,
+    currentRoles,
+    currentTypes,
+    currentCountry,
+    currentAlert,
+    currentExcludeShorts,
+    currentExcludeReReleases,
+    currentExcludeUncredited,
+  ]);
+
+  const handleCopyFeed = async () => {
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+    }
+  };
+
+  const slug = createPersonSlug(artist.personId, artist.personName);
+
+  return (
+    <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm space-y-4 transition-colors hover:border-neutral-300 dark:hover:border-neutral-700">
+      {/* Person Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Link
+          href={`/${slug}`}
+          className="flex items-center gap-3.5 min-w-0 flex-1 hover:opacity-85 transition-opacity no-underline group"
+        >
+          <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 flex items-center justify-center text-neutral-400 border border-neutral-200 dark:border-neutral-800">
+            {artist.profilePath ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={getTmdbImageUrl(artist.profilePath, "w180_and_h180_face") || ""}
+                alt={artist.personName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-5 h-5" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-sm sm:text-base text-neutral-900 dark:text-neutral-100 truncate flex items-center gap-1.5">
+              <span>{artist.personName}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">
+              Following since{" "}
+              {new Date(artist.subscribedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </div>
+          </div>
+        </Link>
+
+        {/* Quick Action Buttons */}
+        <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+          <button
+            type="button"
+            onClick={handleCopyFeed}
+            title={copied ? "Feed URL Copied!" : "Copy RSS Feed URL"}
+            aria-label={`Copy RSS feed for ${artist.personName}`}
+            className={`h-8 px-3 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+              copied
+                ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400"
+                : "bg-neutral-50 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            }`}
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Copied</span>
+              </>
+            ) : (
+              <>
+                <Rss className="w-3.5 h-3.5 text-amber-500" />
+                <span>Copy Feed</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onUnfollow(artist.personId)}
+            title="Unfollow"
+            aria-label={`Unfollow ${artist.personName}`}
+            className="h-8 w-8 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:border-red-200 dark:hover:border-red-900/60 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Options UI - exactly matching the person's page, folded by default */}
+      <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800/80">
+        <FeedFilters
+          roles={currentRoles}
+          onToggleRole={handleToggleRole}
+          types={currentTypes}
+          onToggleType={handleToggleType}
+          alert={currentAlert}
+          onSetAlert={handleSetAlert}
+          country={currentCountry}
+          onSetCountry={handleSetCountry}
+          excludeShorts={currentExcludeShorts}
+          onSetExcludeShorts={handleSetExcludeShorts}
+          excludeReReleases={currentExcludeReReleases}
+          onSetExcludeReReleases={handleSetExcludeReReleases}
+          excludeUncredited={currentExcludeUncredited}
+          onSetExcludeUncredited={handleSetExcludeUncredited}
+          isCustomized={isCustomized}
+          onResetOptions={handleResetOptions}
+          defaultExpanded={false}
+          saveExpandedState={false}
+        />
+      </div>
+    </div>
+  );
+}
 
 interface MyFeedsViewProps {
   onSelectArtist?: (artist: TMDBPersonSearchResult) => void;
@@ -40,12 +313,11 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
     artists,
     isLoading,
     unfollowArtist,
-    updateArtistAlert,
+    updateArtistOptions,
     sendMagicLink,
     logout,
   } = useSubscription();
 
-  const [copiedFeedId, setCopiedFeedId] = useState<number | null>(null);
   const [emailInput, setEmailInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -54,18 +326,6 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
   const artistList = Object.values(artists).sort((a, b) =>
     a.personName.localeCompare(b.personName)
   );
-
-  const handleCopyFeed = async (personId: number) => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/feed/${personId}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedFeedId(personId);
-      setTimeout(() => setCopiedFeedId(null), 2000);
-    } catch {
-      // Fallback
-    }
-  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,15 +482,15 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
               <span>Popular Artists</span>
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {SUGGESTED_ARTISTS.map((artist) => {
-                const slug = createPersonSlug(artist.id, artist.name);
+              {SUGGESTED_ARTISTS.map((suggested) => {
+                const slug = createPersonSlug(suggested.id, suggested.name);
                 return (
                   <Link
-                    key={artist.id}
+                    key={suggested.id}
                     href={`/${slug}`}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-xs font-medium text-neutral-800 dark:text-neutral-200 transition-colors no-underline"
                   >
-                    <span>{artist.name}</span>
+                    <span>{suggested.name}</span>
                     <ChevronRight className="w-3 h-3 text-neutral-400" />
                   </Link>
                 );
@@ -239,103 +499,15 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {artistList.map((artist) => {
-            const slug = createPersonSlug(artist.personId, artist.personName);
-            const isCopied = copiedFeedId === artist.personId;
-
-            return (
-              <div
-                key={artist.personId}
-                className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 group transition-colors hover:border-neutral-300 dark:hover:border-neutral-700"
-              >
-                {/* Artist Info */}
-                <Link
-                  href={`/${slug}`}
-                  className="flex items-center gap-3.5 min-w-0 flex-1 hover:opacity-85 transition-opacity no-underline"
-                >
-                  <div className="relative w-11 h-11 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 flex items-center justify-center text-neutral-400 border border-neutral-200 dark:border-neutral-800">
-                    {artist.profilePath ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={getTmdbImageUrl(artist.profilePath, "w180_and_h180_face") || ""}
-                        alt={artist.personName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-sm text-neutral-900 dark:text-neutral-100 truncate flex items-center gap-1.5">
-                      <span>{artist.personName}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <div className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">
-                      Following since {new Date(artist.subscribedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Actions & Settings */}
-                <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-                  {/* Alert Timing Selector */}
-                  <select
-                    value={artist.alert}
-                    onChange={(e) =>
-                      updateArtistAlert(
-                        artist.personId,
-                        e.target.value as AlertTimingWindow
-                      )
-                    }
-                    aria-label={`Alert timing for ${artist.personName}`}
-                    className="text-xs font-medium py-1.5 px-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
-                  >
-                    <option value="announced">When Announced</option>
-                    <option value="when_released">When Released</option>
-                    <option value="month_before">1 Month Before</option>
-                    <option value="week_before">1 Week Before</option>
-                  </select>
-
-                  {/* Copy RSS Feed */}
-                  <button
-                    type="button"
-                    onClick={() => handleCopyFeed(artist.personId)}
-                    title={isCopied ? "Feed URL Copied!" : "Copy RSS Feed URL"}
-                    aria-label={`Copy RSS feed for ${artist.personName}`}
-                    className={`h-8 px-2.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
-                      isCopied
-                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400"
-                        : "bg-neutral-50 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                    }`}
-                  >
-                    {isCopied ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        <span className="hidden sm:inline">Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Rss className="w-3.5 h-3.5 text-amber-500" />
-                        <span className="hidden sm:inline">RSS</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Unfollow button */}
-                  <button
-                    type="button"
-                    onClick={() => unfollowArtist(artist.personId)}
-                    title="Unfollow"
-                    aria-label={`Unfollow ${artist.personName}`}
-                    className="h-8 w-8 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:border-red-200 dark:hover:border-red-900/60 flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+        <div className="space-y-4">
+          {artistList.map((artist) => (
+            <FollowedPersonItem
+              key={artist.personId}
+              artist={artist}
+              onUnfollow={unfollowArtist}
+              onUpdateOptions={updateArtistOptions}
+            />
+          ))}
         </div>
       )}
     </div>

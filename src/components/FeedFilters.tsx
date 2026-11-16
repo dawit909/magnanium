@@ -23,6 +23,8 @@ interface FeedFiltersProps {
   onSetExcludeUncredited: (exclude: boolean) => void;
   isCustomized?: boolean;
   onResetOptions?: () => void;
+  defaultExpanded?: boolean;
+  saveExpandedState?: boolean;
 }
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -143,11 +145,16 @@ const FeedFilters = memo(function FeedFilters({
   onSetExcludeUncredited,
   isCustomized = false,
   onResetOptions,
+  defaultExpanded,
+  saveExpandedState = true,
 }: FeedFiltersProps) {
-  const [isExpanded, setIsExpanded] = useState<boolean>(getInitialExpanded);
+  const [isExpanded, setIsExpanded] = useState<boolean>(() =>
+    defaultExpanded !== undefined ? defaultExpanded : getInitialExpanded()
+  );
 
   // Sync state from sessionStorage after initial hydration and on browser tab navigation (back/forward)
   useEffect(() => {
+    if (!saveExpandedState) return;
     hasHydrated = true;
     const syncFromStorage = () => {
       const saved = safeSessionStorage.getItem(STORAGE_KEY_OPTIONS_EXPANDED);
@@ -161,15 +168,17 @@ const FeedFilters = memo(function FeedFilters({
     return () => {
       window.removeEventListener("popstate", syncFromStorage);
     };
-  }, []);
+  }, [saveExpandedState]);
 
   const handleToggleExpanded = useCallback(() => {
     setIsExpanded((prev) => {
       const next = !prev;
-      safeSessionStorage.setItem(STORAGE_KEY_OPTIONS_EXPANDED, String(next));
+      if (saveExpandedState) {
+        safeSessionStorage.setItem(STORAGE_KEY_OPTIONS_EXPANDED, String(next));
+      }
       return next;
     });
-  }, []);
+  }, [saveExpandedState]);
 
   const countryOptions = useMemo(() => getCountryOptions(country), [country]);
 

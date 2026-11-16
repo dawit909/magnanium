@@ -10,6 +10,11 @@ export interface SubscribedArtist {
   alert: AlertTimingWindow;
   country: string;
   subscribedAt: number;
+  roles?: string[];
+  types?: string[];
+  excludeShorts?: boolean;
+  excludeReReleases?: boolean;
+  excludeUncredited?: boolean;
 }
 
 export interface EmailUser {
@@ -170,6 +175,11 @@ export async function subscribeArtist(
     profilePath: string | null;
     alert: AlertTimingWindow;
     country: string;
+    roles?: string[];
+    types?: string[];
+    excludeShorts?: boolean;
+    excludeReReleases?: boolean;
+    excludeUncredited?: boolean;
   }
 ): Promise<EmailUser> {
   const normalized = normalizeEmail(email);
@@ -191,6 +201,11 @@ export async function subscribeArtist(
     alert: artist.alert,
     country: artist.country,
     subscribedAt: Date.now(),
+    ...(artist.roles ? { roles: artist.roles } : {}),
+    ...(artist.types ? { types: artist.types } : {}),
+    ...(artist.excludeShorts !== undefined ? { excludeShorts: artist.excludeShorts } : {}),
+    ...(artist.excludeReReleases !== undefined ? { excludeReReleases: artist.excludeReReleases } : {}),
+    ...(artist.excludeUncredited !== undefined ? { excludeUncredited: artist.excludeUncredited } : {}),
   };
 
   await saveUser(user);
@@ -252,7 +267,15 @@ export async function unsubscribeArtist(
 export async function updateArtistSubscription(
   email: string,
   personId: number,
-  updates: { alert?: AlertTimingWindow; country?: string }
+  updates: {
+    alert?: AlertTimingWindow;
+    country?: string;
+    roles?: string[];
+    types?: string[];
+    excludeShorts?: boolean;
+    excludeReReleases?: boolean;
+    excludeUncredited?: boolean;
+  }
 ): Promise<EmailUser | null> {
   const normalized = normalizeEmail(email);
   const user = await getUser(normalized);
@@ -261,8 +284,13 @@ export async function updateArtistSubscription(
   const current = user.artists[String(personId)];
   user.artists[String(personId)] = {
     ...current,
-    ...(updates.alert ? { alert: updates.alert } : {}),
-    ...(updates.country ? { country: updates.country } : {}),
+    ...(updates.alert !== undefined ? { alert: updates.alert } : {}),
+    ...(updates.country !== undefined ? { country: updates.country } : {}),
+    ...(updates.roles !== undefined ? { roles: updates.roles } : {}),
+    ...(updates.types !== undefined ? { types: updates.types } : {}),
+    ...(updates.excludeShorts !== undefined ? { excludeShorts: updates.excludeShorts } : {}),
+    ...(updates.excludeReReleases !== undefined ? { excludeReReleases: updates.excludeReReleases } : {}),
+    ...(updates.excludeUncredited !== undefined ? { excludeUncredited: updates.excludeUncredited } : {}),
   };
 
   await saveUser(user);

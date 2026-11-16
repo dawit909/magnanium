@@ -44,11 +44,24 @@ export async function POST(request: NextRequest) {
     });
   } else if (action === "unsubscribe") {
     updatedUser = await unsubscribeArtist(session.email, personId);
-  } else if (action === "update_alert") {
-    const { alert, country } = body;
+  } else if (action === "update_options" || action === "update_alert") {
+    const {
+      alert,
+      country,
+      roles,
+      types,
+      excludeShorts,
+      excludeReReleases,
+      excludeUncredited,
+    } = body;
     updatedUser = await updateArtistSubscription(session.email, personId, {
       alert: alert as AlertTimingWindow,
       country,
+      roles,
+      types,
+      excludeShorts,
+      excludeReReleases,
+      excludeUncredited,
     });
   } else {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
