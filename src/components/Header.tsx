@@ -3,7 +3,7 @@
 import { RefObject, useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Search, Sun, Moon, User, Loader2, Bell, LogIn, LogOut, ChevronDown } from "lucide-react";
+import { Search, Sun, Moon, User, Loader2, LogIn, ChevronDown } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
@@ -340,10 +340,7 @@ export default function Header({
                         }}
                         className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center justify-between transition-colors no-underline cursor-pointer"
                       >
-                        <div className="flex items-center gap-2">
-                          <Bell className="w-3.5 h-3.5 text-amber-500" />
-                          <span>My Feeds</span>
-                        </div>
+                        <span>My Feeds</span>
                         {alertCount > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400">
                             {alertCount}
@@ -360,9 +357,8 @@ export default function Header({
                           setIsUserMenuOpen(false);
                           logout();
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 transition-colors cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
                       >
-                        <LogOut className="w-3.5 h-3.5" />
                         <span>Log out</span>
                       </button>
                     </div>
