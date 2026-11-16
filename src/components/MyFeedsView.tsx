@@ -26,13 +26,6 @@ import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
 import FeedFilters from "./FeedFilters";
 
-const ALERT_LABELS: Record<AlertTimingWindow, string> = {
-  announced: "When Announced",
-  when_released: "When Released",
-  month_before: "1 Mo Before",
-  week_before: "1 Wk Before",
-};
-
 interface FollowedPersonItemProps {
   artist: SubscribedArtist;
   onUnfollow: (personId: number) => void;
@@ -158,21 +151,13 @@ function FollowedPersonItem({
 
         {/* Content: Name row + Digest Frequency row */}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-1.5">
-            <Link
-              href={`/${slug}`}
-              className="font-semibold text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 truncate hover:text-amber-600 dark:hover:text-amber-400 transition-colors no-underline"
-              title={`${artist.personName} — ${subscribedDateLabel}`}
-            >
-              {artist.personName}
-            </Link>
-            <span
-              className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium px-1.5 py-0.2 rounded bg-neutral-100 dark:bg-neutral-800 flex-shrink-0"
-              title={`Alert trigger: ${ALERT_LABELS[artist.alert] || artist.alert}`}
-            >
-              {ALERT_LABELS[artist.alert] || artist.alert}
-            </span>
-          </div>
+          <Link
+            href={`/${slug}`}
+            className="block font-semibold text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 truncate hover:text-amber-600 dark:hover:text-amber-400 transition-colors no-underline"
+            title={`${artist.personName} — ${subscribedDateLabel}`}
+          >
+            {artist.personName}
+          </Link>
 
           <div className="flex items-center justify-between gap-1.5 mt-1">
             {/* Frequency 3-segment pill */}
