@@ -3,13 +3,14 @@
 import { RefObject, useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Search, Sun, Moon, User, Loader2, LogIn, ChevronDown } from "lucide-react";
+import { Search, Sun, Moon, User, Loader2, LogIn, ChevronDown, Mail, Check } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
 import { useSubscription } from "@/hooks/useSubscription";
 import Logo from "./Logo";
 import SignInModal from "./SignInModal";
+import EmailAlertModal from "./EmailAlertModal";
 
 interface HeaderProps {
   onHomeClick: () => void;
@@ -55,8 +56,47 @@ export default function Header({
   const userMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { isAuthenticated, userEmail, artists, logout } = useSubscription();
+  const {
+    isAuthenticated,
+    userEmail,
+    artists,
+    isFollowing,
+    followArtist,
+    unfollowArtist,
+    logout,
+  } = useSubscription();
   const alertCount = Object.keys(artists).length;
+  const [emailModalPerson, setEmailModalPerson] = useState<TMDBPersonSearchResult | null>(null);
+  const [subscribingId, setSubscribingId] = useState<number | null>(null);
+
+  const handleToggleEmailFeed = async (
+    e: React.MouseEvent,
+    person: TMDBPersonSearchResult
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      setEmailModalPerson(person);
+      return;
+    }
+
+    const following = isFollowing(person.id);
+    setSubscribingId(person.id);
+    try {
+      if (following) {
+        await unfollowArtist(person.id);
+      } else {
+        await followArtist(
+          { id: person.id, name: person.name, profile_path: person.profile_path },
+          "announced",
+          "US"
+        );
+      }
+    } finally {
+      setSubscribingId(null);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -188,17 +228,13 @@ export default function Header({
               {searchResults.slice(0, 6).map((person, index) => {
                 const isActive = activeIndex === index;
                 const slug = createPersonSlug(person.id, person.name);
+                const following = isFollowing(person.id);
+                const isPending = subscribingId === person.id;
+
                 return (
-                  <Link
+                  <div
                     key={person.id}
                     id={`search-result-${index}`}
-                    href={`/${slug}`}
-                    prefetch={false}
-                    onClick={(e) => {
-                      if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0) {
-                        onSelectPerson(person);
-                      }
-                    }}
                     onMouseEnter={() => {
                       onSetActiveIndex(index);
                       if (person.profile_path && typeof window !== "undefined") {
@@ -207,13 +243,22 @@ export default function Header({
                         if (heroUrl) hero.src = heroUrl;
                       }
                     }}
-                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400 no-underline cursor-pointer ${
+                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors ${
                       isActive
                         ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium ring-1 ring-inset ring-neutral-300 dark:ring-neutral-700"
                         : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200"
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <Link
+                      href={`/${slug}`}
+                      prefetch={false}
+                      onClick={(e) => {
+                        if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0) {
+                          onSelectPerson(person);
+                        }
+                      }}
+                      className="flex items-center gap-2 min-w-0 flex-1 mr-2 no-underline text-inherit cursor-pointer"
+                    >
                       {person.profile_path ? (
                         <div className="relative w-6 h-6 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm flex items-center justify-center text-neutral-400">
                           <User className="w-3 h-3 pointer-events-none" />
@@ -239,11 +284,45 @@ export default function Header({
                         </div>
                       )}
                       <span className="font-medium truncate text-xs">{person.name}</span>
-                    </div>
-                    <span className="text-neutral-500 dark:text-neutral-400 text-[10px] ml-2 flex-shrink-0">
-                      {person.known_for_department}
-                    </span>
-                  </Link>
+                      {person.known_for_department && (
+                        <span className="text-neutral-400 dark:text-neutral-500 text-[10px] ml-1 flex-shrink-0 hidden sm:inline">
+                          · {person.known_for_department}
+                        </span>
+                      )}
+                    </Link>
+
+                    {/* Simple button to add to email feed */}
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleEmailFeed(e, person)}
+                      disabled={isPending}
+                      title={
+                        following
+                          ? `Following ${person.name} via email feed (click to unfollow)`
+                          : `Add ${person.name} to email feed`
+                      }
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all flex-shrink-0 cursor-pointer disabled:opacity-50 group ${
+                        following
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/20"
+                          : "bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white border border-neutral-200 dark:border-neutral-700/80"
+                      }`}
+                    >
+                      {isPending ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-neutral-400" />
+                      ) : following ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-500 group-hover:hidden" />
+                          <span className="group-hover:hidden">Following</span>
+                          <span className="hidden group-hover:inline">Unfollow</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-3 h-3 text-amber-500" />
+                          <span>+ Email</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -372,6 +451,16 @@ export default function Header({
     </header>
 
     <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
+
+    {emailModalPerson && (
+      <EmailAlertModal
+        isOpen={Boolean(emailModalPerson)}
+        onClose={() => setEmailModalPerson(null)}
+        person={emailModalPerson}
+        currentAlert="announced"
+        currentCountry="US"
+      />
+    )}
   </>
   );
 }
