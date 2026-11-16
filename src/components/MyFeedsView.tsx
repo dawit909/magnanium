@@ -27,8 +27,8 @@ import { createPersonSlug } from "@/lib/slug";
 import FeedFilters from "./FeedFilters";
 
 const ALERT_LABELS: Record<AlertTimingWindow, string> = {
-  announced: "Announced",
-  when_released: "Released",
+  announced: "When Announced",
+  when_released: "When Released",
   month_before: "1 Mo Before",
   week_before: "1 Wk Before",
 };
@@ -168,7 +168,7 @@ function FollowedPersonItem({
             </Link>
             <span
               className="text-[10px] text-neutral-400 dark:text-neutral-500 font-medium px-1.5 py-0.2 rounded bg-neutral-100 dark:bg-neutral-800 flex-shrink-0"
-              title={`Alert window: ${artist.alert}`}
+              title={`Alert trigger: ${ALERT_LABELS[artist.alert] || artist.alert}`}
             >
               {ALERT_LABELS[artist.alert] || artist.alert}
             </span>
