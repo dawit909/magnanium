@@ -14,6 +14,16 @@ export function isEmailConfigured(): boolean {
   return Boolean(user && pass);
 }
 
+// 100x56 retina PNG of the Cinephile Dual-Lens Projector Mark (Teal & Orange)
+const LOGO_PNG_BASE64 =
+  "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";
+
+const LOGO_ATTACHMENT = {
+  filename: "logo.png",
+  content: Buffer.from(LOGO_PNG_BASE64, "base64"),
+  cid: "magnanium-logo",
+};
+
 function getTransporter(): Transporter | null {
   const { user, pass } = getEmailCredentials();
   if (!user || !pass) return null;
@@ -80,10 +90,19 @@ export async function sendMagicLinkEmail({
   <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 480px; margin: 0 auto; background-color: #18181b; border: 1px solid #27272a; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
     <!-- Header -->
     <tr>
-      <td style="padding: 28px 32px 20px 32px; border-bottom: 1px solid #27272a;">
-        <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
-          Magnanium
-        </span>
+      <td style="padding: 24px 32px 20px 32px; border-bottom: 1px solid #27272a;">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="vertical-align: middle; padding-right: 10px;">
+              <img src="cid:magnanium-logo" width="28" height="16" alt="Magnanium Logo" style="display: block; border: 0;" />
+            </td>
+            <td style="vertical-align: middle;">
+              <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
+                Magnanium
+              </span>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
 
@@ -138,6 +157,7 @@ export async function sendMagicLinkEmail({
       to,
       subject,
       html,
+      attachments: [LOGO_ATTACHMENT],
     });
     console.info(`[MAGNANIUM EMAIL] Magic link email successfully sent to ${to}! (id: ${info.messageId})`);
     return { success: true };
@@ -262,9 +282,18 @@ export async function sendReleaseAlertEmail({
         <table border="0" cellpadding="0" cellspacing="0" width="100%">
           <tr>
             <td>
-              <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
-                Magnanium
-              </span>
+              <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 10px;">
+                    <img src="cid:magnanium-logo" width="28" height="16" alt="Magnanium Logo" style="display: block; border: 0;" />
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
+                      Magnanium
+                    </span>
+                  </td>
+                </tr>
+              </table>
             </td>
             <td align="right">
               <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #f59e0b; background-color: #451a03; border: 1px solid #78350f; padding: 3px 9px; border-radius: 9999px;">
@@ -328,6 +357,7 @@ export async function sendReleaseAlertEmail({
       to,
       subject,
       html,
+      attachments: [LOGO_ATTACHMENT],
     });
     console.info(`[MAGNANIUM EMAIL] Release alert email successfully sent to ${to}! (id: ${info.messageId})`);
     return { success: true };
