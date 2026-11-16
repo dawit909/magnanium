@@ -15,6 +15,9 @@ export interface ClientFilterOptions {
 export interface DateWindowBoundaries {
   nowStr: string;
   oneYearAgoStr: string;
+  twoDaysAgoStr: string;
+  sevenDaysAgoStr: string;
+  thirtyDaysAgoStr: string;
   sevenDaysFromNowStr: string;
   thirtyDaysFromNowStr: string;
 }
@@ -26,6 +29,9 @@ export function getDateWindowBoundaries(nowMs: number = Date.now()): DateWindowB
   return {
     nowStr: new Date(nowMs).toISOString().split("T")[0],
     oneYearAgoStr: new Date(nowMs - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    twoDaysAgoStr: new Date(nowMs - 2 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    sevenDaysAgoStr: new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    thirtyDaysAgoStr: new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     sevenDaysFromNowStr: new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     thirtyDaysFromNowStr: new Date(nowMs + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   };

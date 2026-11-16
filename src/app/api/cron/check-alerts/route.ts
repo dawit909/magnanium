@@ -133,6 +133,11 @@ export async function GET(request: NextRequest) {
             const filteredCandidateReleases = filterReleases(releases, subscriberFilterOptions);
 
             const alertTiming = subInfo.alert || "announced";
+            // Date subscriber followed this artist. Never alert on past releases prior to subscription date.
+            const subscribedDateStr = subInfo.subscribedAt
+              ? new Date(subInfo.subscribedAt).toISOString().split("T")[0]
+              : boundaries.nowStr;
+
             const matchingReleases: FormattedRelease[] = [];
 
             for (const rel of filteredCandidateReleases) {
@@ -142,32 +147,42 @@ export async function GET(request: NextRequest) {
               let matchesTiming = false;
 
               if (alertTiming === "when_released") {
-                // Released within the past year or recently (past releases)
-                matchesTiming = d <= nowStr && d >= boundaries.oneYearAgoStr;
+                // Must be released recently within the frequency window (2 days for instant, 7 days for weekly, 30 days for monthly)
+                // and must NOT be older than when the user subscribed.
+                const recentWindowStart =
+                  frequency === "weekly"
+                    ? boundaries.sevenDaysAgoStr
+                    : frequency === "monthly"
+                    ? boundaries.thirtyDaysAgoStr
+                    : boundaries.twoDaysAgoStr;
+
+                const minAllowedDate =
+                  subscribedDateStr > recentWindowStart ? subscribedDateStr : recentWindowStart;
+
+                matchesTiming = d <= boundaries.nowStr && d >= minAllowedDate;
               } else if (alertTiming === "week_before") {
                 // Releasing within next 7 days
-                matchesTiming = d > nowStr && d <= sevenDaysFromNowStr;
+                matchesTiming = d > boundaries.nowStr && d <= boundaries.sevenDaysFromNowStr;
               } else if (alertTiming === "month_before") {
                 // Releasing within next 30 days
-                matchesTiming = d > nowStr && d <= thirtyDaysFromNowStr;
+                matchesTiming = d > boundaries.nowStr && d <= boundaries.thirtyDaysFromNowStr;
               } else {
                 // "announced": all upcoming releases
-                matchesTiming = d >= nowStr;
+                matchesTiming = d >= boundaries.nowStr;
               }
 
               if (!matchesTiming) continue;
 
-              // For instant alerts, check per-release deduplication (unless forced)
-              if (frequency === "instant" && !force) {
+              // Deduplication check: verify release hasn't already been notified to this subscriber (unless forced)
+              if (!force) {
                 const dedupKey = SUB_KEYS.alertSent(email, rel.id, alertTiming);
                 const alreadySent = await kv.get<number>(dedupKey);
-                if (!alreadySent) {
-                  matchingReleases.push(rel);
+                if (alreadySent) {
+                  continue;
                 }
-              } else {
-                // Weekly / Monthly digests include candidate releases for the period
-                matchingReleases.push(rel);
               }
+
+              matchingReleases.push(rel);
             }
 
             if (matchingReleases.length > 0) {

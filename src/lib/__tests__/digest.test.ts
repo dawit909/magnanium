@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SUB_KEYS } from "../subscriptions";
 import { sendReleaseAlertEmail } from "../email";
+import { getDateWindowBoundaries } from "../feed-filter";
 import { FormattedRelease } from "@/types/tmdb";
 
 describe("digest frequency and summary tests", () => {
@@ -94,6 +95,41 @@ describe("digest frequency and summary tests", () => {
 
       expect(res.success).toBe(true);
       expect(res.simulated).toBe(true);
+    });
+  });
+
+  describe("Subscriber Date Window Boundaries & New Subscriber Protection", () => {
+    it("provides 2-day, 7-day, and 30-day lookback boundaries", () => {
+      const now = new Date("2026-11-16T12:00:00Z").getTime();
+      const b = getDateWindowBoundaries(now);
+
+      expect(b.nowStr).toBe("2026-11-16");
+      expect(b.twoDaysAgoStr).toBe("2026-11-14");
+      expect(b.sevenDaysAgoStr).toBe("2026-11-09");
+      expect(b.thirtyDaysAgoStr).toBe("2026-10-17");
+      expect(b.sevenDaysFromNowStr).toBe("2026-11-23");
+      expect(b.thirtyDaysFromNowStr).toBe("2026-12-16");
+    });
+
+    it("ensures old releases released before subscription date are rejected", () => {
+      const nowMs = new Date("2026-11-16T12:00:00Z").getTime();
+      const boundaries = getDateWindowBoundaries(nowMs);
+      const subscribedAt = new Date("2026-11-16T10:00:00Z").getTime();
+      const subscribedDateStr = new Date(subscribedAt).toISOString().split("T")[0];
+
+      // Release that premiered 1 month earlier (e.g. Carrie: Season 1 on October 7, 2026)
+      const oldReleaseDate = "2026-10-07";
+
+      const frequency = "weekly";
+      const recentWindowStart = boundaries.sevenDaysAgoStr; // 2026-11-09
+      const minAllowedDate =
+        subscribedDateStr > recentWindowStart ? subscribedDateStr : recentWindowStart;
+
+      // 2026-10-07 is strictly before 2026-11-16
+      const matchesTiming =
+        oldReleaseDate <= boundaries.nowStr && oldReleaseDate >= minAllowedDate;
+
+      expect(matchesTiming).toBe(false);
     });
   });
 });
