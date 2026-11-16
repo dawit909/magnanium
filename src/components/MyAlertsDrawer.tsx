@@ -83,7 +83,7 @@ export default function MyAlertsDrawer({ isOpen, onClose }: MyAlertsDrawerProps)
               </div>
               <div>
                 <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                  {isAuthenticated ? `My Alerts (${artistList.length})` : "My Alerts"}
+                  {isAuthenticated ? `My Feeds (${artistList.length})` : "My Feeds"}
                 </h2>
                 {isAuthenticated && userEmail && (
                   <p className="text-[11px] font-mono text-neutral-400 dark:text-neutral-500 truncate max-w-[220px]">
@@ -111,7 +111,7 @@ export default function MyAlertsDrawer({ isOpen, onClose }: MyAlertsDrawerProps)
                     <Bell className="w-5 h-5" />
                   </div>
                   <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                    No artists followed yet
+                    No feeds followed yet
                   </h3>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-xs mx-auto">
                     Search for an actor, director, or writer and click &quot;Email Alerts&quot; to follow their upcoming releases.

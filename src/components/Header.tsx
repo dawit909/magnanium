@@ -1,14 +1,15 @@
 "use client";
 
-import { RefObject, useState } from "react";
+import { RefObject, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Search, Sun, Moon, User, Loader2, Bell } from "lucide-react";
+import { Search, Sun, Moon, User, Loader2, Bell, LogIn, LogOut, ChevronDown } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
 import { useSubscription } from "@/hooks/useSubscription";
 import Logo from "./Logo";
 import MyAlertsDrawer from "./MyAlertsDrawer";
+import SignInModal from "./SignInModal";
 
 interface HeaderProps {
   onHomeClick: () => void;
@@ -48,8 +49,33 @@ export default function Header({
   onKeyDown,
 }: HeaderProps) {
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
-  const { isAuthenticated, artists } = useSubscription();
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const { isAuthenticated, userEmail, artists, logout } = useSubscription();
   const alertCount = Object.keys(artists).length;
+
+  // Close user dropdown menu when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isUserMenuOpen]);
 
   const isSearchDropdownOpen =
     isOpen && (searchResults.length > 0 || (hasSearched && !isSearching));
@@ -191,34 +217,119 @@ export default function Header({
           )}
         </div>
 
-        {/* Alerts & Theme Actions */}
+        {/* Right Action Controls: Theme Toggle & Sign In / Account Menu */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => setIsAlertsOpen(true)}
-            aria-label={isAuthenticated ? `My Alerts (${alertCount})` : "My Alerts"}
-            className="h-8 px-2.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1.5 shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer"
-          >
-            <Bell className="w-3.5 h-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Alerts</span>
-            {isAuthenticated && alertCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-neutral-950 dark:text-neutral-950">
-                {alertCount}
-              </span>
-            )}
-          </button>
-
           {/* Theme Toggle Button */}
           <button
             onClick={onToggleTheme}
             aria-label="Toggle theme"
-            className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+            className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer"
           >
             {theme === "light" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
           </button>
+
+          {/* Sign In (when not logged in) OR Account Dropdown (when logged in) */}
+          {!isAuthenticated ? (
+            <button
+              type="button"
+              onClick={() => setIsSignInOpen(true)}
+              aria-label="Sign In"
+              className="h-8 px-3.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-neutral-100 dark:hover:bg-white dark:text-neutral-900 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          ) : (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                aria-expanded={isUserMenuOpen}
+                aria-haspopup="true"
+                aria-label="Account menu"
+                className="h-8 pl-1.5 pr-2.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5 shadow-sm transition-colors text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer"
+              >
+                <div className="w-5 h-5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                  {userEmail ? userEmail.charAt(0).toUpperCase() : <User className="w-3 h-3" />}
+                </div>
+                <span className="max-w-[100px] truncate hidden sm:inline text-neutral-700 dark:text-neutral-300">
+                  {userEmail ? userEmail.split("@")[0] : "Account"}
+                </span>
+                {alertCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-neutral-950 dark:text-neutral-950">
+                    {alertCount}
+                  </span>
+                )}
+                <ChevronDown
+                  className={`w-3 h-3 text-neutral-400 transition-transform ${
+                    isUserMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60 animate-in fade-in slide-in-from-top-1 duration-150"
+                  role="menu"
+                  aria-orientation="vertical"
+                >
+                  {userEmail && (
+                    <div className="px-3.5 py-2.5 bg-neutral-50/50 dark:bg-neutral-950/50">
+                      <p className="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 dark:text-neutral-500">
+                        Signed in as
+                      </p>
+                      <p className="text-xs font-mono font-medium text-neutral-900 dark:text-neutral-100 truncate mt-0.5">
+                        {userEmail}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="p-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setIsAlertsOpen(true);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-3.5 h-3.5 text-amber-500" />
+                        <span>My Feeds</span>
+                      </div>
+                      {alertCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                          {alertCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="p-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        logout();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Log out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       <MyAlertsDrawer isOpen={isAlertsOpen} onClose={() => setIsAlertsOpen(false)} />
+      <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
     </header>
   );
 }
