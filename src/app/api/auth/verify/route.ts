@@ -12,26 +12,16 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token");
 
-  const host =
-    request.headers.get("x-forwarded-host") ||
-    request.headers.get("host") ||
-    "magnanium.vercel.app";
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const protocol =
-    forwardedProto ||
-    (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || `${protocol}://${host}`;
-
   if (!token) {
-    return NextResponse.redirect(`${siteUrl}/?auth_error=invalid_token`);
+    return NextResponse.redirect(new URL("/?auth_error=invalid_token", request.url));
   }
 
   const payload = await verifyAndConsumeMagicToken(token);
   if (!payload) {
-    return NextResponse.redirect(`${siteUrl}/?auth_error=expired_token`);
+    return NextResponse.redirect(new URL("/?auth_error=expired_token", request.url));
   }
 
-  // If this magic link was initiated for an artist, subscribe them immediately
+  // If this verification was initiated for an artist, subscribe them immediately
   let redirectPath = "/?auth_success=true";
   if (payload.artist) {
     await subscribeArtist(payload.email, payload.artist);
@@ -42,12 +32,19 @@ export async function GET(request: NextRequest) {
   // Create persistent session
   const sessionToken = await createSession(payload.email);
 
-  const response = NextResponse.redirect(`${siteUrl}${redirectPath}`);
+  const redirectUrl = new URL(redirectPath, request.url);
+  const response = NextResponse.redirect(redirectUrl);
+
+  const isSecure =
+    request.nextUrl.protocol === "https:" ||
+    (process.env.NODE_ENV === "production" &&
+      !request.nextUrl.hostname.includes("localhost") &&
+      !request.nextUrl.hostname.includes("127.0.0.1"));
 
   // Set 30-day session cookie
   response.cookies.set("mg_session", sessionToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
     path: "/",
     maxAge: 30 * 24 * 60 * 60, // 30 days

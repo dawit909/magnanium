@@ -1,12 +1,18 @@
 import { TimedCache } from "./cache";
 
-const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL || "";
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || "";
+export function getUpstashConfig() {
+  const url = (process.env.UPSTASH_REDIS_REST_URL || "").replace(/^["']|["']$/g, "").trim();
+  const token = (process.env.UPSTASH_REDIS_REST_TOKEN || "").replace(/^["']|["']$/g, "").trim();
+  return { url, token, isConfigured: Boolean(url && token) };
+}
 
 // L1 In-Memory cache (holds up to 5,000 active entries with TTL)
 const l1Cache = new TimedCache<string, any>(24 * 60 * 60 * 1000, 5000);
 
-export const isRedisConfigured = Boolean(UPSTASH_URL && UPSTASH_TOKEN);
+export const isRedisConfigured = Boolean(
+  (process.env.UPSTASH_REDIS_REST_URL || "").trim() &&
+  (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim()
+);
 
 /**
  * Multi-tier Key-Value store:
@@ -26,14 +32,15 @@ export const kv = {
     }
 
     // 2. Check L2 Upstash Redis if configured
-    if (!isRedisConfigured) {
+    const { url, token, isConfigured } = getUpstashConfig();
+    if (!isConfigured) {
       return null;
     }
 
     try {
-      const res = await fetch(`${UPSTASH_URL}/get/${encodeURIComponent(key)}`, {
+      const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
         headers: {
-          Authorization: `Bearer ${UPSTASH_TOKEN}`,
+          Authorization: `Bearer ${token}`,
         },
         // Cache: no-store on the fetch call itself so we always query live Redis
         cache: "no-store",
@@ -77,7 +84,8 @@ export const kv = {
     l1Cache.set(key, value, memTtl);
 
     // 2. Set L2 Upstash Redis if configured
-    if (!isRedisConfigured) return;
+    const { url, token, isConfigured } = getUpstashConfig();
+    if (!isConfigured) return;
 
     try {
       const serialized = JSON.stringify(value);
@@ -87,10 +95,10 @@ export const kv = {
           : ["SET", key, serialized];
 
       // Use POST command array format to safely handle large JSON payloads
-      await fetch(UPSTASH_URL, {
+      await fetch(url, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${UPSTASH_TOKEN}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(command),
@@ -107,12 +115,13 @@ export const kv = {
    */
   async del(key: string): Promise<void> {
     l1Cache.delete(key);
-    if (!isRedisConfigured) return;
+    const { url, token, isConfigured } = getUpstashConfig();
+    if (!isConfigured) return;
 
     try {
-      await fetch(`${UPSTASH_URL}/del/${encodeURIComponent(key)}`, {
+      await fetch(`${url}/del/${encodeURIComponent(key)}`, {
         headers: {
-          Authorization: `Bearer ${UPSTASH_TOKEN}`,
+          Authorization: `Bearer ${token}`,
         },
         cache: "no-store",
       });

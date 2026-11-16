@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Allow direct browser navigations for auth verification and unsubscribe routes
+  if (
+    pathname.startsWith("/api/auth/verify") ||
+    pathname.startsWith("/api/subscriptions/unsubscribe")
+  ) {
+    return NextResponse.next();
+  }
+
   // Check if request is a direct browser navigation (user typing in address bar, clicking link, etc.)
   const secFetchDest = request.headers.get("sec-fetch-dest");
   const secFetchMode = request.headers.get("sec-fetch-mode");

@@ -7,6 +7,7 @@ import { createPersonSlug } from "@/lib/slug";
 import { useTheme } from "@/hooks/useTheme";
 import { useSearch } from "@/hooks/useSearch";
 import { useFeedState } from "@/hooks/useFeedState";
+import { useSubscription } from "@/hooks/useSubscription";
 import { CheckCircle2, AlertCircle, X } from "lucide-react";
 import Header from "./Header";
 import ArtistHero from "./ArtistHero";
@@ -80,6 +81,8 @@ export default function FeedApp({
     feedProtocolUrl,
   } = useFeedState(selectedPerson);
 
+  const { refreshSession } = useSubscription();
+
   const [notification, setNotification] = useState<{
     type: "success" | "error";
     message: string;
@@ -90,6 +93,7 @@ export default function FeedApp({
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("alert_subscribed") === "true") {
+      refreshSession();
       setNotification({
         type: "success",
         message: "Email alerts activated! You'll receive updates when new releases are announced or scheduled.",
@@ -98,6 +102,7 @@ export default function FeedApp({
       const newQuery = params.toString();
       window.history.replaceState({}, "", window.location.pathname + (newQuery ? `?${newQuery}` : ""));
     } else if (params.get("auth_success") === "true") {
+      refreshSession();
       setNotification({
         type: "success",
         message: "Successfully signed in!",
@@ -118,7 +123,7 @@ export default function FeedApp({
       const newQuery = params.toString();
       window.history.replaceState({}, "", window.location.pathname + (newQuery ? `?${newQuery}` : ""));
     }
-  }, []);
+  }, [refreshSession]);
 
   // Sync state whenever initialPerson changes (navigation)
   useEffect(() => {
