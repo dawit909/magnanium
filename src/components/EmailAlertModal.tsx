@@ -175,7 +175,7 @@ export default function EmailAlertModal({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl relative space-y-4 my-auto"
+        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-2xl relative space-y-4 my-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="email-modal-title"
@@ -184,7 +184,7 @@ export default function EmailAlertModal({
         <button
           onClick={onClose}
           aria-label="Close modal"
-          className="absolute right-4 top-4 p-1.5 rounded-full text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+          className="absolute right-4 top-4 p-1.5 rounded-xl text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -196,10 +196,10 @@ export default function EmailAlertModal({
           </div>
           <div>
             <h2 id="email-modal-title" className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-              {following ? `Alerts for ${person.name}` : `Get Email Alerts`}
+              {following ? `Follow Options` : `Follow ${person.name}`}
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 leading-relaxed">
-              Receive updates for <strong>{person.name}</strong> ({alertLabel}).
+              Follow <strong>{person.name}</strong> to receive release updates ({alertLabel}).
             </p>
           </div>
         </div>
@@ -207,7 +207,7 @@ export default function EmailAlertModal({
         {/* Content depending on Auth & Following state */}
         {isAuthenticated ? (
           <div className="space-y-4 pt-1">
-            <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-950 px-3.5 py-2.5 rounded-xl border border-neutral-200/80 dark:border-neutral-800">
+            <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-950 px-3.5 py-2.5 rounded-xl">
               <span>Sending alerts to:</span>
               <span className="font-mono text-neutral-800 dark:text-neutral-200 font-medium truncate max-w-[170px]">
                 {userEmail}
@@ -232,7 +232,7 @@ export default function EmailAlertModal({
                       key={freq.value}
                       type="button"
                       onClick={() => handleFrequencyChange(freq.value)}
-                      className={`py-1.5 px-2 rounded-lg font-medium text-[11px] transition-all cursor-pointer ${
+                      className={`py-1.5 px-2 rounded-xl font-medium text-[11px] transition-all cursor-pointer ${
                         isSelected
                           ? "bg-white dark:bg-neutral-900 text-neutral-950 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10"
                           : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
@@ -263,7 +263,7 @@ export default function EmailAlertModal({
                     type="button"
                     onClick={handleUnfollow}
                     disabled={isSubmitting}
-                    className="px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-medium transition-colors cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium transition-colors cursor-pointer"
                   >
                     {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Unfollow"}
                   </button>
@@ -289,7 +289,7 @@ export default function EmailAlertModal({
           </div>
         ) : successMessage ? (
           <div className="space-y-4 pt-1">
-            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs space-y-2">
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs space-y-2">
               <div className="font-semibold flex items-center gap-1.5 text-sm">
                 <Check className="w-4 h-4 text-emerald-500" />
                 Check Your Inbox
@@ -326,7 +326,7 @@ export default function EmailAlertModal({
                 />
               </div>
               <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
-                We&apos;ll send a confirmation link to activate your subscription.
+                We&apos;ll send a confirmation link to follow {person.name}.
               </p>
             </div>
 
@@ -348,7 +348,7 @@ export default function EmailAlertModal({
                       key={freq.value}
                       type="button"
                       onClick={() => setSelectedFrequency(freq.value)}
-                      className={`py-1.5 px-2 rounded-lg font-medium text-[11px] transition-all cursor-pointer ${
+                      className={`py-1.5 px-2 rounded-xl font-medium text-[11px] transition-all cursor-pointer ${
                         isSelected
                           ? "bg-white dark:bg-neutral-900 text-neutral-950 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10"
                           : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"

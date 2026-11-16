@@ -147,7 +147,7 @@ const FeedFilters = memo(function FeedFilters({
       {/* 1-Line Active Summary Chips Row */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500 mr-0.5">
-          Filters:
+          Options:
         </span>
 
         {/* 1. Country Chip */}
@@ -213,7 +213,7 @@ const FeedFilters = memo(function FeedFilters({
           {activePopover === "roles" && (
             <div className="absolute left-0 sm:left-auto top-full mt-1.5 z-50 w-72 p-3 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/90 dark:border-neutral-800 shadow-xl space-y-2.5 animate-in fade-in zoom-in-95 duration-100">
               <div className="flex items-center justify-between text-xs font-semibold text-neutral-900 dark:text-neutral-100 pb-1.5 border-b border-neutral-100 dark:border-neutral-800">
-                <span>Filter by Role</span>
+                <span>Roles</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -361,7 +361,7 @@ const FeedFilters = memo(function FeedFilters({
                 ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
                 : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-xs"
             }`}
-            title="Filter exclusions"
+            title="Exclusion options"
           >
             <span>Exclusions ({exclusionsCount})</span>
             <ChevronDown className="w-3 h-3 text-neutral-400" />
@@ -370,7 +370,7 @@ const FeedFilters = memo(function FeedFilters({
           {activePopover === "exclusions" && (
             <div className="absolute right-0 top-full mt-1.5 z-50 w-72 p-3 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/90 dark:border-neutral-800 shadow-xl space-y-2.5 animate-in fade-in zoom-in-95 duration-100">
               <div className="flex items-center justify-between text-xs font-semibold text-neutral-900 dark:text-neutral-100 pb-1.5 border-b border-neutral-100 dark:border-neutral-800">
-                <span>Filter Exclusions</span>
+                <span>Exclusions</span>
               </div>
               <div className="flex flex-col gap-2 pt-1 text-xs">
                 <label className="flex items-center gap-2 cursor-pointer text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-neutral-100 select-none">
@@ -410,7 +410,7 @@ const FeedFilters = memo(function FeedFilters({
           <button
             type="button"
             onClick={onResetOptions}
-            title="Reset all filters to default settings"
+            title="Reset options to defaults"
             className="px-2 py-1 rounded-xl text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-1 text-xs cursor-pointer ml-auto"
           >
             <RotateCcw className="w-3 h-3" />

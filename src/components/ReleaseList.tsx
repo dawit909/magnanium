@@ -27,7 +27,7 @@ const ReleaseItemCard = memo(function ReleaseItemCard({
     <div className="py-3 flex items-start justify-between gap-3 group">
       <div className="flex items-start gap-3 min-w-0">
         {/* Poster Thumbnail */}
-        <div className="w-10 h-14 rounded-lg bg-neutral-100 dark:bg-neutral-800 overflow-hidden border border-neutral-200/80 dark:border-neutral-700 flex-shrink-0 shadow-sm">
+        <div className="w-10 h-14 rounded-xl bg-neutral-100 dark:bg-neutral-800 overflow-hidden border border-neutral-200/80 dark:border-neutral-700 flex-shrink-0 shadow-xs">
           {posterSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -114,7 +114,7 @@ const ReleaseItemCard = memo(function ReleaseItemCard({
       {/* Date & Format Tag */}
       <div className="text-right flex-shrink-0 space-y-1 pt-0.5">
         <span
-          className="inline-block max-w-[260px] sm:max-w-[340px] truncate align-middle px-2 py-0.5 rounded-full text-[10px] font-medium border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 shadow-sm"
+          className="inline-block max-w-[260px] sm:max-w-[340px] truncate align-middle px-2 py-0.5 rounded-xl text-[10px] font-medium border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 shadow-xs"
           title={informativeNote ? `${item.releaseTypeLabel} (${informativeNote})` : item.releaseTypeLabel}
         >
           {item.releaseTypeLabel}
@@ -142,7 +142,7 @@ const ReleaseList = memo(function ReleaseList({
             Releases
           </span>
           <span
-            className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
+            className="px-2 py-0.5 rounded-xl text-[11px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
             title={
               isFiltered
                 ? `${releases.length} releases shown of ${totalCount} unfiltered`

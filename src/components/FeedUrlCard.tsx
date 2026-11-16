@@ -169,7 +169,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
           <a
             href={resolvedFeedProtocol || "#"}
             aria-label="Open directly in default RSS Reader application"
-            className="p-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-950 dark:hover:bg-neutral-800 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white flex items-center justify-center transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+            className="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 flex items-center justify-center transition-colors shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
             title="Open in default RSS Reader (NetNewsWire, Feedly, Reeder)"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -185,7 +185,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
           </button>
         </div>
 
-        {/* Right Action: Email Alerts */}
+        {/* Right Action: Follow via Email */}
         {person && (
           <div className="flex items-center gap-1.5 flex-1 sm:flex-initial justify-end">
             {following ? (
@@ -196,7 +196,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
                     onClick={handleUpdateEmailFeed}
                     disabled={isUpdatingOptions}
                     className="px-2.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                    title="Sync page filters to your email feed"
+                    title="Sync options to your email feed"
                   >
                     {isUpdatingOptions ? (
                       <>
@@ -206,7 +206,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
                     ) : (
                       <>
                         <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Sync filters</span>
+                        <span>Sync options</span>
                       </>
                     )}
                   </button>
@@ -216,10 +216,10 @@ const FeedUrlCard = memo(function FeedUrlCard({
                   type="button"
                   onClick={() => setIsEmailModalOpen(true)}
                   className="px-3 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                  title="Email alerts active (click to change frequency or unsubscribe)"
+                  title={`Following: ${frequencyTitle} (click to adjust options or unfollow)`}
                 >
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Email Alerts: {frequencyTitle}</span>
+                  <span>Following: {frequencyTitle}</span>
                   <ChevronDown className="w-3 h-3 text-emerald-600/70 dark:text-emerald-400/70" />
                 </button>
               </>
@@ -235,7 +235,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
                 ) : (
                   <>
                     <Mail className="w-3.5 h-3.5" />
-                    <span>Get Email Alerts</span>
+                    <span>Follow</span>
                   </>
                 )}
               </button>
@@ -246,7 +246,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
                 className="px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-neutral-100 dark:hover:bg-white dark:text-neutral-900 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
               >
                 <Mail className="w-3.5 h-3.5" />
-                <span>Get Email Alerts</span>
+                <span>Follow</span>
               </button>
             )}
           </div>

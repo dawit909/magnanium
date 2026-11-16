@@ -121,7 +121,7 @@ function FollowedPersonItem({
           title={`${artist.personName} (${subscribedDateLabel})`}
           className="flex-shrink-0 group"
         >
-          <div className="w-9 h-9 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 border border-neutral-200/80 dark:border-neutral-800 group-hover:ring-2 group-hover:ring-amber-500/30 transition-all">
+          <div className="w-9 h-9 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 group-hover:ring-2 group-hover:ring-amber-500/30 transition-all">
             {artist.profilePath ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -147,7 +147,7 @@ function FollowedPersonItem({
 
           <div className="flex items-center justify-between gap-1.5 mt-1">
             {/* Frequency 3-segment pill */}
-            <div className="inline-flex rounded-lg bg-neutral-100 dark:bg-neutral-800/80 p-0.5 text-[10px]">
+            <div className="inline-flex rounded-xl bg-neutral-100 dark:bg-neutral-800/80 p-0.5 text-[10px]">
               {DIGEST_FREQUENCIES.map((freq) => {
                 const isSelected = (artist.frequency || "instant") === freq.value;
                 return (
@@ -159,7 +159,7 @@ function FollowedPersonItem({
                       e.stopPropagation();
                       onUpdateFrequency(artist.personId, freq.value);
                     }}
-                    className={`px-1.5 py-0.5 rounded-md font-medium transition-all cursor-pointer ${
+                    className={`px-1.5 py-0.5 rounded-lg font-medium transition-all cursor-pointer ${
                       isSelected
                         ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-sm"
                         : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
@@ -172,22 +172,22 @@ function FollowedPersonItem({
               })}
             </div>
 
-            {/* Actions: Customize options button + Unfollow */}
+            {/* Actions: Options button + Unfollow */}
             <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => onSelectForEdit(artist.personId)}
                 title={
                   isEditing
-                    ? "Currently editing options (click to close)"
+                    ? "Options (click to close)"
                     : isCustomized
-                    ? "Options customized (click to edit)"
-                    : "Customize options"
+                    ? "Options (customized)"
+                    : "Options"
                 }
-                aria-label={`Customize options for ${artist.personName}`}
-                className={`h-6 px-2 rounded-lg border text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer relative ${
+                aria-label={`Options for ${artist.personName}`}
+                className={`h-6 px-2.5 rounded-xl border text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer relative ${
                   isEditing
-                    ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                    ? "bg-amber-500 text-white border-amber-500 shadow-xs"
                     : isCustomized
                     ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
                     : "bg-neutral-50 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -202,7 +202,7 @@ function FollowedPersonItem({
                 onClick={() => onUnfollow(artist.personId)}
                 title="Unfollow"
                 aria-label={`Unfollow ${artist.personName}`}
-                className="h-6 w-6 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:border-red-200 dark:hover:border-red-900/60 flex items-center justify-center transition-colors cursor-pointer"
+                className="h-6 w-6 rounded-xl bg-neutral-100 hover:bg-red-50 dark:bg-neutral-800 dark:hover:bg-red-950/40 text-neutral-400 hover:text-red-500 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -523,12 +523,12 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
             My Feeds
           </h1>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
-            Sign in to view, customize, and manage all your followed artist alerts in one place.
+            Sign in to view and manage your followed feeds and options in one place.
           </p>
         </div>
 
         {successMessage ? (
-          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs space-y-1.5">
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs space-y-1.5">
             <div className="font-semibold flex items-center gap-1.5 text-sm">
               <Check className="w-4 h-4 text-emerald-500" />
               Check Your Email
@@ -584,8 +584,8 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
           <h1 className="text-sm sm:text-base font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
             My Feeds
           </h1>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-            {artistList.length} {artistList.length === 1 ? "artist" : "artists"}
+          <span className="px-2 py-0.5 rounded-xl text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            {artistList.length} followed
           </span>
         </div>
 
@@ -621,7 +621,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
         </div>
       </div>
 
-      {/* New Search Bar: Add to Email Feeds directly and easily */}
+      {/* Search Bar: Follow people directly */}
       <div ref={addSearchContainerRef} className="relative z-30">
         <div className="relative flex items-center">
           <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -634,7 +634,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
               setIsAddOpen(true);
             }}
             onFocus={() => setIsAddOpen(true)}
-            placeholder="Search actor, director, or writer to add to email alerts..."
+            placeholder="Search actor, director, or writer to follow..."
             className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/90 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
           />
           {isAddSearching && (
@@ -675,7 +675,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                 <>
                   <div className="px-3.5 py-1.5 bg-neutral-50 dark:bg-neutral-950/60 text-[11px] font-medium text-neutral-500 dark:text-neutral-400 flex items-center justify-between">
                     <span>Search Results ({addResults.length})</span>
-                    <span className="text-[10px] text-neutral-400">Click &ldquo;+ Add to Email&rdquo; to subscribe directly</span>
+                    <span className="text-[10px] text-neutral-400">Click &ldquo;+ Follow&rdquo; to subscribe directly</span>
                   </div>
                   {addResults.map((person) => {
                     const following = isFollowing(person.id);
@@ -688,7 +688,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                         className="px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="w-8 h-8 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0 border border-neutral-200/80 dark:border-neutral-800">
+                          <div className="w-8 h-8 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
                             {person.profile_path ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -706,7 +706,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                                 {person.name}
                               </span>
                               {person.known_for_department && (
-                                <span className="text-[10px] text-neutral-400 dark:text-neutral-500 px-1.5 py-0.2 rounded bg-neutral-100 dark:bg-neutral-800">
+                                <span className="text-[10px] text-neutral-400 dark:text-neutral-500 px-1.5 py-0.2 rounded-md bg-neutral-100 dark:bg-neutral-800">
                                   {person.known_for_department}
                                 </span>
                               )}
@@ -723,7 +723,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             <div className="px-2.5 py-1 rounded-xl text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
                               <Check className="w-3.5 h-3.5" />
-                              <span>In Feeds</span>
+                              <span>Following</span>
                             </div>
                             <button
                               type="button"
@@ -732,7 +732,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                                 handleStartEditing(person.id);
                               }}
                               className="px-2 py-1 rounded-xl text-[11px] font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-1 cursor-pointer"
-                              title="Customize options for this artist"
+                              title="Options for this artist"
                             >
                               <SlidersHorizontal className="w-3 h-3" />
                               <span className="hidden sm:inline">Options</span>
@@ -748,17 +748,17 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                             {isSubmittingThis ? (
                               <>
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                <span>Adding...</span>
+                                <span>Following...</span>
                               </>
                             ) : wasJustAdded ? (
                               <>
                                 <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Added!</span>
+                                <span>Followed!</span>
                               </>
                             ) : (
                               <>
-                                <Mail className="w-3.5 h-3.5 text-amber-400 dark:text-amber-600" />
-                                <span>+ Add to Email</span>
+                                <Plus className="w-3.5 h-3.5 text-amber-500" />
+                                <span>+ Follow</span>
                               </>
                             )}
                           </button>
@@ -786,7 +786,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                         className="px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2.5 hover:bg-white dark:hover:bg-neutral-800/60 transition-colors"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-7 h-7 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0 border border-neutral-200/60 dark:border-neutral-800">
+                          <div className="w-7 h-7 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
                             {person.profile_path ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -809,16 +809,16 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                         </div>
 
                         {following ? (
-                          <div className="px-2 py-0.5 rounded-lg text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
+                          <div className="px-2 py-0.5 rounded-xl text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
                             <Check className="w-3 h-3" />
-                            <span>In Feeds</span>
+                            <span>Following</span>
                           </div>
                         ) : (
                           <button
                             type="button"
                             onClick={() => handleAddArtist(person)}
                             disabled={isSubmittingThis}
-                            className="px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-800 dark:text-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1 rounded-xl text-xs font-medium text-neutral-800 dark:text-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
                           >
                             {isSubmittingThis ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -827,7 +827,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                             ) : (
                               <Plus className="w-3 h-3 text-amber-500" />
                             )}
-                            <span>{wasJustAdded ? "Added!" : "Add"}</span>
+                            <span>{wasJustAdded ? "Followed!" : "Follow"}</span>
                           </button>
                         )}
                       </div>
@@ -850,7 +850,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
           {/* Header */}
           <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-neutral-100 dark:border-neutral-800">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 border border-neutral-200/80 dark:border-neutral-800 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 flex items-center justify-center">
                 {editingArtist.profilePath ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -867,7 +867,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                   {editingArtist.personName}
                 </h2>
                 <p className="text-[10px] text-neutral-400 dark:text-neutral-500">
-                  Configure release feed &amp; alert filters
+                  Release alerts &amp; options
                 </p>
               </div>
             </div>
@@ -920,7 +920,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
               No feeds followed yet
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
-              Use the search bar above to add your favorite directors, actors, and writers directly to your email alerts.
+              Use the search bar above to follow your favorite directors, actors, and writers.
             </p>
           </div>
           <div className="pt-1 flex items-center justify-center gap-1.5 flex-wrap max-w-md mx-auto">
@@ -951,7 +951,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                   ) : (
                     <Plus className="w-3 h-3 text-amber-500" />
                   )}
-                  <span>{wasJustAdded ? "Added!" : p.name}</span>
+                  <span>{wasJustAdded ? "Followed!" : p.name}</span>
                 </button>
               );
             })}

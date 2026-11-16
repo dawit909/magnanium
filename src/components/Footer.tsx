@@ -21,11 +21,11 @@ export default function Footer() {
           onClick={handleCopy}
           title={copied ? "Copied to clipboard!" : "Click to copy email address"}
           aria-label={copied ? "Email copied to clipboard" : "Copy feedback email address"}
-          className="group inline-flex items-center gap-1 font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 transition-colors cursor-pointer py-0.5 px-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800/80"
+          className="group inline-flex items-center gap-1 font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 transition-colors cursor-pointer py-0.5 px-1.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800/80"
         >
           <span className="underline underline-offset-2">{email}</span>
           {copied ? (
-            <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20 animate-in fade-in duration-150">
+            <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] bg-emerald-500/10 px-1.5 py-0.5 rounded-xl border border-emerald-500/20 animate-in fade-in duration-150">
               <Check className="w-3 h-3 text-emerald-500" />
               <span>Copied!</span>
             </span>

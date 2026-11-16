@@ -70,7 +70,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl relative space-y-4 my-auto"
+        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-2xl relative space-y-4 my-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="signin-modal-title"
@@ -79,7 +79,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
         <button
           onClick={onClose}
           aria-label="Close modal"
-          className="absolute right-4 top-4 p-1.5 rounded-full text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+          className="absolute right-4 top-4 p-1.5 rounded-xl text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -102,7 +102,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
         {/* Content */}
         {successMessage ? (
           <div className="space-y-4 pt-1">
-            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs space-y-2">
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs space-y-2">
               <div className="font-semibold flex items-center gap-1.5 text-sm">
                 <Check className="w-4 h-4 text-emerald-500" />
                 Check Your Inbox

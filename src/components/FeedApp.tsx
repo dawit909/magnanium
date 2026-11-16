@@ -178,7 +178,7 @@ export default function FeedApp({
           </div>
           <button
             onClick={() => setNotification(null)}
-            className="p-1 rounded-lg hover:opacity-75 transition-opacity cursor-pointer"
+            className="p-1 rounded-xl hover:opacity-75 transition-opacity cursor-pointer"
             aria-label="Dismiss notification"
           >
             <X className="w-3.5 h-3.5" />
