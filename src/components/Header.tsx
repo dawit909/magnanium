@@ -1,6 +1,7 @@
 "use client";
 
-import { RefObject, useState, useRef, useEffect } from "react";
+import { RefObject, useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Search, Sun, Moon, User, Loader2, Bell, LogIn, LogOut, ChevronDown } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
@@ -47,18 +48,57 @@ export default function Header({
   searchInputRef,
   onKeyDown,
 }: HeaderProps) {
+  const [mounted, setMounted] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { isAuthenticated, userEmail, artists, logout } = useSubscription();
   const alertCount = Object.keys(artists).length;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    if (userMenuRef.current) {
+      const rect = userMenuRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        right: Math.max(16, window.innerWidth - rect.right),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+    updateMenuPosition();
+
+    const handleScrollOrResize = () => {
+      updateMenuPosition();
+    };
+
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
+    };
+  }, [isUserMenuOpen, updateMenuPosition]);
 
   // Close user dropdown menu when clicking outside or pressing Escape
   useEffect(() => {
     if (!isUserMenuOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         setIsUserMenuOpen(false);
       }
     };
@@ -81,7 +121,9 @@ export default function Header({
   return (
     <>
       <header
-        className="sticky top-0 z-[70] bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0"
+        className={`sticky top-0 ${
+          isSearchDropdownOpen ? "z-[70]" : "z-30"
+        } bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0`}
       >
       <div className="flex items-center justify-between gap-3">
         {/* Logo */}
@@ -264,61 +306,69 @@ export default function Header({
                 />
               </button>
 
-              {/* Dropdown Menu */}
-              {isUserMenuOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-50 divide-y divide-neutral-100 dark:divide-neutral-800/60 animate-in fade-in slide-in-from-top-1 duration-150"
-                  role="menu"
-                  aria-orientation="vertical"
-                >
-                  {userEmail && (
-                    <div className="px-3.5 py-2.5 bg-neutral-50/50 dark:bg-neutral-950/50">
-                      <p className="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 dark:text-neutral-500">
-                        Signed in as
-                      </p>
-                      <p className="text-xs font-mono font-medium text-neutral-900 dark:text-neutral-100 truncate mt-0.5">
-                        {userEmail}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="p-1">
-                    <Link
-                      href="/feeds"
-                      role="menuitem"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center justify-between transition-colors no-underline cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Bell className="w-3.5 h-3.5 text-amber-500" />
-                        <span>My Feeds</span>
+              {/* Dropdown Menu Portaled to document.body (floats above mock window at z-[75]) */}
+              {isUserMenuOpen && mounted && menuPosition &&
+                createPortal(
+                  <div
+                    ref={dropdownRef}
+                    style={{
+                      position: "fixed",
+                      top: menuPosition.top,
+                      right: menuPosition.right,
+                    }}
+                    className="w-52 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden z-[75] divide-y divide-neutral-100 dark:divide-neutral-800/60 animate-in fade-in slide-in-from-top-1 duration-150"
+                    role="menu"
+                    aria-orientation="vertical"
+                  >
+                    {userEmail && (
+                      <div className="px-3.5 py-2.5 bg-neutral-50/50 dark:bg-neutral-950/50">
+                        <p className="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 dark:text-neutral-500">
+                          Signed in as
+                        </p>
+                        <p className="text-xs font-mono font-medium text-neutral-900 dark:text-neutral-100 truncate mt-0.5">
+                          {userEmail}
+                        </p>
                       </div>
-                      {alertCount > 0 && (
-                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                          {alertCount}
-                        </span>
-                      )}
-                    </Link>
-                  </div>
+                    )}
 
-                  <div className="p-1">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        logout();
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Log out</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+                    <div className="p-1">
+                      <Link
+                        href="/feeds"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center justify-between transition-colors no-underline cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Bell className="w-3.5 h-3.5 text-amber-500" />
+                          <span>My Feeds</span>
+                        </div>
+                        {alertCount > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            {alertCount}
+                          </span>
+                        )}
+                      </Link>
+                    </div>
+
+                    <div className="p-1">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          logout();
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 transition-colors cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Log out</span>
+                      </button>
+                    </div>
+                  </div>,
+                  document.body
+                )}
             </div>
           )}
         </div>
