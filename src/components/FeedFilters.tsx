@@ -25,6 +25,7 @@ interface FeedFiltersProps {
   onResetOptions?: () => void;
   defaultExpanded?: boolean;
   saveExpandedState?: boolean;
+  hideToggle?: boolean;
 }
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -49,7 +50,7 @@ function FilterPill({
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1 rounded-full border text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer select-none ${
+      className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border text-[11px] sm:text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer select-none ${
         active
           ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 shadow-sm font-medium"
           : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
@@ -147,6 +148,7 @@ const FeedFilters = memo(function FeedFilters({
   onResetOptions,
   defaultExpanded,
   saveExpandedState = true,
+  hideToggle = false,
 }: FeedFiltersProps) {
   const [isExpanded, setIsExpanded] = useState<boolean>(() =>
     defaultExpanded !== undefined ? defaultExpanded : getInitialExpanded()
@@ -185,45 +187,62 @@ const FeedFilters = memo(function FeedFilters({
   return (
     <div className="space-y-3 text-xs">
       {/* Collapsible Options Trigger & Reset */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={handleToggleExpanded}
-          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors py-1 group focus:outline-none cursor-pointer select-none"
-          aria-expanded={isExpanded}
-        >
-          <Settings2 className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
-          <span className="font-medium">
-            {isExpanded ? "Hide options" : "Show options"}
-          </span>
-          <ChevronRight
-            className={`w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-transform duration-200 ${
-              isExpanded ? "rotate-90" : ""
-            }`}
-          />
-        </button>
+      {!hideToggle && (
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleToggleExpanded}
+            className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors py-1 group focus:outline-none cursor-pointer select-none"
+            aria-expanded={isExpanded}
+          >
+            <Settings2 className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors" />
+            <span className="font-medium">
+              {isExpanded ? "Hide options" : "Show options"}
+            </span>
+            <ChevronRight
+              className={`w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-transform duration-200 ${
+                isExpanded ? "rotate-90" : ""
+              }`}
+            />
+          </button>
 
-        {(isCustomized || isExpanded) && onResetOptions && (
+          {(isCustomized || isExpanded) && onResetOptions && (
+            <button
+              type="button"
+              onClick={onResetOptions}
+              disabled={!isCustomized}
+              className={`flex items-center gap-1.5 text-xs transition-colors py-1 select-none focus:outline-none ${
+                isCustomized
+                  ? "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 cursor-pointer"
+                  : "text-neutral-300 dark:text-neutral-600 cursor-default opacity-50"
+              }`}
+              title={isCustomized ? "Reset all options to default settings" : "Options are already at default"}
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset options</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* When hideToggle is true, show clean reset button at top right if customized */}
+      {hideToggle && isCustomized && onResetOptions && (
+        <div className="flex items-center justify-end pb-1">
           <button
             type="button"
             onClick={onResetOptions}
-            disabled={!isCustomized}
-            className={`flex items-center gap-1.5 text-xs transition-colors py-1 select-none focus:outline-none ${
-              isCustomized
-                ? "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 cursor-pointer"
-                : "text-neutral-300 dark:text-neutral-600 cursor-default opacity-50"
-            }`}
-            title={isCustomized ? "Reset all options to default settings" : "Options are already at default"}
+            className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 hover:underline select-none cursor-pointer"
+            title="Reset options to default"
           >
             <RotateCcw className="w-3 h-3" />
             <span>Reset options</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* All Options Panel */}
-      {isExpanded && (
-        <div className="pt-2 pl-0.5 space-y-3.5 border-t border-neutral-100 dark:border-neutral-800 animate-in fade-in-50 duration-150">
+      {(hideToggle || isExpanded) && (
+        <div className={`space-y-3 ${hideToggle ? "" : "pt-2 pl-0.5 border-t border-neutral-100 dark:border-neutral-800 animate-in fade-in-50 duration-150"}`}>
           {/* Role */}
           <FilterRow label="Role">
             {ROLE_OPTIONS.map((r) => (

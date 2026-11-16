@@ -132,7 +132,7 @@ function FollowedPersonItem({
   return (
     <div
       className={`p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm transition-all hover:border-neutral-300 dark:hover:border-neutral-700 flex flex-col justify-between ${
-        isExpanded ? "sm:col-span-2 ring-1 ring-amber-500/20" : ""
+        isExpanded ? "ring-1 ring-amber-500/30 border-amber-500/30" : ""
       }`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
@@ -258,6 +258,7 @@ function FollowedPersonItem({
             onResetOptions={handleResetOptions}
             defaultExpanded={true}
             saveExpandedState={false}
+            hideToggle={true}
           />
         </div>
       )}
@@ -452,7 +453,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
           No artists match &ldquo;{filterQuery}&rdquo;
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 items-start">
           {filteredArtists.map((artist) => (
             <FollowedPersonItem
               key={artist.personId}
