@@ -635,7 +635,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                     <>
                       <div className="px-3.5 py-1.5 bg-neutral-50 dark:bg-neutral-950/60 text-[11px] font-medium text-neutral-500 dark:text-neutral-400 flex items-center justify-between">
                         <span>Search Results ({addResults.length})</span>
-                        <span className="text-[10px] text-neutral-400">Click &ldquo;+ Follow&rdquo; to subscribe directly</span>
+                        <span className="text-[10px] text-neutral-400">Click a person to follow</span>
                       </div>
                       {addResults.map((person) => {
                         const following = isFollowing(person.id);
@@ -645,7 +645,16 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                         return (
                           <div
                             key={person.id}
-                            className="px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors"
+                            onClick={() => {
+                              if (!following && !isSubmittingThis) {
+                                handleAddArtist(person);
+                              }
+                            }}
+                            className={`px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors ${
+                              following
+                                ? "bg-neutral-50/50 dark:bg-neutral-900/50 cursor-default"
+                                : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer"
+                            }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <div className="w-8 h-8 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
@@ -679,50 +688,36 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                               </div>
                             </div>
 
-                            {following ? (
-                              <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <div className="px-2.5 py-1 rounded-xl text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>Following</span>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isSubmittingThis ? (
+                                <Loader2 className="w-4 h-4 text-neutral-400 animate-spin" />
+                              ) : wasJustAdded ? (
+                                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span>Followed!</span>
+                                </span>
+                              ) : following ? (
+                                <div className="flex items-center gap-1.5">
+                                  <div className="px-2.5 py-1 rounded-xl text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Following</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsAddOpen(false);
+                                      handleStartEditing(person.id);
+                                    }}
+                                    className="px-2 py-1 rounded-xl text-[11px] font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-1 cursor-pointer"
+                                    title="Options for this artist"
+                                  >
+                                    <SlidersHorizontal className="w-3 h-3" />
+                                    <span className="hidden sm:inline">Options</span>
+                                  </button>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsAddOpen(false);
-                                    handleStartEditing(person.id);
-                                  }}
-                                  className="px-2 py-1 rounded-xl text-[11px] font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-1 cursor-pointer"
-                                  title="Options for this artist"
-                                >
-                                  <SlidersHorizontal className="w-3 h-3" />
-                                  <span className="hidden sm:inline">Options</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleAddArtist(person)}
-                                disabled={isSubmittingThis}
-                                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white dark:text-neutral-900 shadow-xs transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50"
-                              >
-                                {isSubmittingThis ? (
-                                  <>
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    <span>Following...</span>
-                                  </>
-                                ) : wasJustAdded ? (
-                                  <>
-                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                    <span>Followed!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Plus className="w-3.5 h-3.5 text-amber-500" />
-                                    <span>+ Follow</span>
-                                  </>
-                                )}
-                              </button>
-                            )}
+                              ) : null}
+                            </div>
                           </div>
                         );
                       })}
@@ -732,7 +727,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                   <div className="p-3 bg-neutral-50/50 dark:bg-neutral-950/40">
                     <div className="px-1 pb-2 flex items-center justify-between text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
                       <span>Popular creators to follow</span>
-                      <span className="text-[10px] text-neutral-400">Type above to search anyone</span>
+                      <span className="text-[10px] text-neutral-400">Click to follow</span>
                     </div>
                     <div className="space-y-1">
                       {SUGGESTED_ARTISTS.map((person) => {
@@ -743,7 +738,16 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                         return (
                           <div
                             key={person.id}
-                            className="px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2.5 hover:bg-white dark:hover:bg-neutral-800/60 transition-colors"
+                            onClick={() => {
+                              if (!following && !isSubmittingThis) {
+                                handleAddArtist(person);
+                              }
+                            }}
+                            className={`px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2.5 transition-colors ${
+                              following
+                                ? "opacity-80 cursor-default"
+                                : "hover:bg-white dark:hover:bg-neutral-800/60 cursor-pointer"
+                            }`}
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="w-7 h-7 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
@@ -768,28 +772,21 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                               </div>
                             </div>
 
-                            {following ? (
-                              <div className="px-2 py-0.5 rounded-xl text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
-                                <Check className="w-3 h-3" />
-                                <span>Following</span>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleAddArtist(person)}
-                                disabled={isSubmittingThis}
-                                className="px-2.5 py-1 rounded-xl text-xs font-medium text-neutral-800 dark:text-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                              >
-                                {isSubmittingThis ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : wasJustAdded ? (
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isSubmittingThis ? (
+                                <Loader2 className="w-3 h-3 text-neutral-400 animate-spin" />
+                              ) : wasJustAdded ? (
+                                <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                                   <Check className="w-3 h-3 text-emerald-500" />
-                                ) : (
-                                  <Plus className="w-3 h-3 text-amber-500" />
-                                )}
-                                <span>{wasJustAdded ? "Followed!" : "Follow"}</span>
-                              </button>
-                            )}
+                                  <span>Followed!</span>
+                                </span>
+                              ) : following ? (
+                                <div className="px-2 py-0.5 rounded-xl text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
+                                  <Check className="w-3 h-3" />
+                                  <span>Following</span>
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
                         );
                       })}
