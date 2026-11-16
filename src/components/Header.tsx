@@ -8,9 +8,9 @@ import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
 import { useSubscription } from "@/hooks/useSubscription";
+import { DEFAULT_FEED_OPTIONS, getSavedFeedOptions } from "@/lib/feed-options";
 import Logo from "./Logo";
 import SignInModal from "./SignInModal";
-import EmailAlertModal from "./EmailAlertModal";
 
 interface HeaderProps {
   onHomeClick: () => void;
@@ -66,7 +66,6 @@ export default function Header({
     logout,
   } = useSubscription();
   const alertCount = Object.keys(artists).length;
-  const [emailModalPerson, setEmailModalPerson] = useState<TMDBPersonSearchResult | null>(null);
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
 
   const handleToggleEmailFeed = async (
@@ -76,10 +75,7 @@ export default function Header({
     e.preventDefault();
     e.stopPropagation();
 
-    if (!isAuthenticated) {
-      setEmailModalPerson(person);
-      return;
-    }
+    if (!isAuthenticated) return;
 
     const following = isFollowing(person.id);
     setSubscribingId(person.id);
@@ -87,10 +83,27 @@ export default function Header({
       if (following) {
         await unfollowArtist(person.id);
       } else {
+        const defaults = getSavedFeedOptions();
         await followArtist(
           { id: person.id, name: person.name, profile_path: person.profile_path },
-          "announced",
-          "US"
+          defaults.alert || DEFAULT_FEED_OPTIONS.alert,
+          defaults.country || DEFAULT_FEED_OPTIONS.country,
+          {
+            roles: defaults.roles || DEFAULT_FEED_OPTIONS.roles,
+            types: defaults.types || DEFAULT_FEED_OPTIONS.types,
+            excludeShorts:
+              defaults.excludeShorts !== undefined
+                ? defaults.excludeShorts
+                : DEFAULT_FEED_OPTIONS.excludeShorts,
+            excludeReReleases:
+              defaults.excludeReReleases !== undefined
+                ? defaults.excludeReReleases
+                : DEFAULT_FEED_OPTIONS.excludeReReleases,
+            excludeUncredited:
+              defaults.excludeUncredited !== undefined
+                ? defaults.excludeUncredited
+                : DEFAULT_FEED_OPTIONS.excludeUncredited,
+          }
         );
       }
     } finally {
@@ -285,43 +298,49 @@ export default function Header({
                       )}
                       <span className="font-medium truncate text-xs">{person.name}</span>
                       {person.known_for_department && (
-                        <span className="text-neutral-400 dark:text-neutral-500 text-[10px] ml-1 flex-shrink-0 hidden sm:inline">
-                          · {person.known_for_department}
+                        <span
+                          className={`text-neutral-400 dark:text-neutral-500 text-[10px] ml-1 flex-shrink-0 ${
+                            isAuthenticated ? "hidden sm:inline" : ""
+                          }`}
+                        >
+                          {isAuthenticated ? `· ${person.known_for_department}` : person.known_for_department}
                         </span>
                       )}
                     </Link>
 
-                    {/* Simple button to add to email feed */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleEmailFeed(e, person)}
-                      disabled={isPending}
-                      title={
-                        following
-                          ? `Following ${person.name} via email feed (click to unfollow)`
-                          : `Add ${person.name} to email feed`
-                      }
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all flex-shrink-0 cursor-pointer disabled:opacity-50 group ${
-                        following
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/20"
-                          : "bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white border border-neutral-200 dark:border-neutral-700/80"
-                      }`}
-                    >
-                      {isPending ? (
-                        <Loader2 className="w-3 h-3 animate-spin text-neutral-400" />
-                      ) : following ? (
-                        <>
-                          <Check className="w-3 h-3 text-emerald-500 group-hover:hidden" />
-                          <span className="group-hover:hidden">Following</span>
-                          <span className="hidden group-hover:inline">Unfollow</span>
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="w-3 h-3 text-amber-500" />
-                          <span>+ Email</span>
-                        </>
-                      )}
-                    </button>
+                    {/* Simple button to add to email feed (only appears when user is logged in) */}
+                    {isAuthenticated && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleEmailFeed(e, person)}
+                        disabled={isPending}
+                        title={
+                          following
+                            ? `Following ${person.name} via email feed (click to unfollow)`
+                            : `Add ${person.name} to email feed`
+                        }
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all flex-shrink-0 cursor-pointer disabled:opacity-50 group ${
+                          following
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/20"
+                            : "bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white border border-neutral-200 dark:border-neutral-700/80"
+                        }`}
+                      >
+                        {isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin text-neutral-400" />
+                        ) : following ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-500 group-hover:hidden" />
+                            <span className="group-hover:hidden">Following</span>
+                            <span className="hidden group-hover:inline">Unfollow</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-3 h-3 text-amber-500" />
+                            <span>+ Email</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -451,16 +470,6 @@ export default function Header({
     </header>
 
     <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
-
-    {emailModalPerson && (
-      <EmailAlertModal
-        isOpen={Boolean(emailModalPerson)}
-        onClose={() => setEmailModalPerson(null)}
-        person={emailModalPerson}
-        currentAlert="announced"
-        currentCountry="US"
-      />
-    )}
   </>
   );
 }
