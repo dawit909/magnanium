@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Mail, Check, Loader2, X, Bell } from "lucide-react";
 import { AlertTimingWindow, TMDBPersonSearchResult } from "@/types/tmdb";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -38,10 +39,15 @@ export default function EmailAlertModal({
 
   const following = isFollowing(person.id);
 
+  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (userEmail) {
@@ -56,7 +62,7 @@ export default function EmailAlertModal({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,10 +128,10 @@ export default function EmailAlertModal({
 
   const alertLabel = ALERT_LABELS[currentAlert] || currentAlert;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl relative space-y-4"
+        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl relative space-y-4 my-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="email-modal-title"
@@ -263,13 +269,14 @@ export default function EmailAlertModal({
               ) : (
                 <>
                   <Mail className="w-4 h-4" />
-                  <span>Send Confirmation Link</span>
+                  <span>Send Verification Link</span>
                 </>
               )}
             </button>
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -100,7 +100,7 @@ export default function FeedApp({
     } else if (params.get("auth_success") === "true") {
       setNotification({
         type: "success",
-        message: "Successfully signed in with magic link!",
+        message: "Successfully signed in!",
       });
       params.delete("auth_success");
       const newQuery = params.toString();

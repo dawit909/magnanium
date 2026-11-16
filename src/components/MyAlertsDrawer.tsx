@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   X,
@@ -34,12 +35,17 @@ export default function MyAlertsDrawer({ isOpen, onClose }: MyAlertsDrawerProps)
     logout,
   } = useSubscription();
 
+  const [mounted, setMounted] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const artistList = Object.values(artists).sort((a, b) =>
     a.personName.localeCompare(b.personName)
@@ -59,18 +65,18 @@ export default function MyAlertsDrawer({ isOpen, onClose }: MyAlertsDrawerProps)
       const res = await sendMagicLink(emailInput.trim());
       setSuccessMessage(
         res.simulated
-          ? `[Dev Mode] Magic link logged to server console for ${emailInput}.`
-          : `We sent a magic sign-in link to ${emailInput}. Check your inbox!`
+          ? `[Dev Mode] Verification link logged to server console for ${emailInput}.`
+          : `We sent a verification link to ${emailInput}. Check your inbox!`
       );
     } catch (err: any) {
-      setErrorMessage(err?.message || "Failed to send magic link.");
+      setErrorMessage(err?.message || "Failed to send verification link.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] overflow-hidden bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
@@ -194,10 +200,10 @@ export default function MyAlertsDrawer({ isOpen, onClose }: MyAlertsDrawerProps)
                     <Mail className="w-6 h-6" />
                   </div>
                   <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                    Sign in with Magic Link
+                    Sign In
                   </h3>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-xs mx-auto leading-relaxed">
-                    Enter your email address to receive a secure sign-in link and manage all your followed artist alerts in one place.
+                    Enter your email address to receive a verification link and manage all your followed artist alerts in one place.
                   </p>
                 </div>
 
@@ -239,7 +245,7 @@ export default function MyAlertsDrawer({ isOpen, onClose }: MyAlertsDrawerProps)
                       ) : (
                         <>
                           <Mail className="w-4 h-4" />
-                          <span>Send Sign-In Link</span>
+                          <span>Send Verification Link</span>
                         </>
                       )}
                     </button>
@@ -264,6 +270,7 @@ export default function MyAlertsDrawer({ isOpen, onClose }: MyAlertsDrawerProps)
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

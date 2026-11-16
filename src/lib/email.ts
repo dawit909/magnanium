@@ -104,7 +104,7 @@ export async function sendMagicLinkEmail({
     <tr>
       <td style="padding: 32px;">
         <h1 style="margin: 0 0 12px 0; font-size: 21px; font-weight: 600; color: #ffffff; letter-spacing: -0.02em;">
-          ${artistName ? `Activate alerts for ${artistName}` : "Sign in with Magic Link"}
+          ${artistName ? `Activate alerts for ${artistName}` : "Sign in to Magnanium"}
         </h1>
         <p style="margin: 0 0 28px 0; font-size: 14px; line-height: 1.6; color: #a1a1aa;">
           ${

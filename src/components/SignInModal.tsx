@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Mail, Loader2, Check, X } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 
@@ -12,10 +13,15 @@ interface SignInModalProps {
 export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const { sendMagicLink } = useSubscription();
 
+  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -35,7 +41,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,20 +57,20 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
       const res = await sendMagicLink(email.trim());
       setSuccessMessage(
         res.simulated
-          ? `[Dev Mode] Magic link logged to server console for ${email.trim()}.`
-          : `We've sent a magic sign-in link to ${email.trim()}. Check your inbox!`
+          ? `[Dev Mode] Verification link logged to server console for ${email.trim()}.`
+          : `We've sent a verification link to ${email.trim()}. Check your inbox!`
       );
     } catch (err: any) {
-      setErrorMessage(err?.message || "Failed to send sign-in link. Please try again.");
+      setErrorMessage(err?.message || "Failed to send verification link. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl relative space-y-4"
+        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl relative space-y-4 my-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="signin-modal-title"
@@ -88,7 +94,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
               Sign In
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 leading-relaxed">
-              Passwordless login. Enter your email to receive a magic sign-in link.
+              Enter your email to receive a sign-in link.
             </p>
           </div>
         </div>
@@ -148,13 +154,14 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
               ) : (
                 <>
                   <Mail className="w-4 h-4" />
-                  <span>Send Magic Link</span>
+                  <span>Send Verification Link</span>
                 </>
               )}
             </button>
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

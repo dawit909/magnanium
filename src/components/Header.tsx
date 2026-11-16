@@ -81,8 +81,9 @@ export default function Header({
     isOpen && (searchResults.length > 0 || (hasSearched && !isSearching));
 
   return (
-    <header
-      className={`sticky top-0 ${
+    <>
+      <header
+        className={`sticky top-0 ${
         isSearchDropdownOpen ? "z-[70]" : "z-30"
       } bg-neutral-50/90 dark:bg-[#09090b]/90 backdrop-blur-md pt-5 pb-4 border-b border-neutral-200/80 dark:border-neutral-800/80 -mx-4 px-4 sm:mx-0 sm:px-0`}
     >
@@ -327,9 +328,10 @@ export default function Header({
           )}
         </div>
       </div>
-
-      <MyAlertsDrawer isOpen={isAlertsOpen} onClose={() => setIsAlertsOpen(false)} />
-      <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
     </header>
+
+    <MyAlertsDrawer isOpen={isAlertsOpen} onClose={() => setIsAlertsOpen(false)} />
+    <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
+  </>
   );
 }
