@@ -22,7 +22,7 @@ export default function FeedApp({
   mode = "feed",
 }: {
   initialPerson?: TMDBPersonSearchResult | null;
-  mode?: "feed" | "my-feeds";
+  mode?: "feed" | "feeds";
 }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -186,7 +186,7 @@ export default function FeedApp({
         </div>
       )}
 
-      {mode === "my-feeds" ? (
+      {mode === "feeds" ? (
         <MyFeedsView onSelectArtist={handleSelectPerson} />
       ) : !selectedPerson ? (
         <div className="mt-6 space-y-6">

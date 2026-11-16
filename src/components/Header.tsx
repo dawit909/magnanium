@@ -284,7 +284,7 @@ export default function Header({
 
                   <div className="p-1">
                     <Link
-                      href="/my-feeds"
+                      href="/feeds"
                       role="menuitem"
                       onClick={() => {
                         setIsUserMenuOpen(false);

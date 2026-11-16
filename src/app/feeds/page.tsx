@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: "Manage your followed artist release feeds and alert preferences.",
 };
 
-export default function MyFeedsPage() {
-  return <FeedApp mode="my-feeds" />;
+export default function FeedsPage() {
+  return <FeedApp mode="feeds" />;
 }

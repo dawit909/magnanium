@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 
       const slug = createPersonSlug(personId, personName);
       const artistUrl = `${siteUrl}/${slug}`;
-      const manageUrl = `${siteUrl}/`;
+      const manageUrl = `${siteUrl}/feeds`;
 
       // Group per subscriber
       for (const email of subscriberEmails) {
