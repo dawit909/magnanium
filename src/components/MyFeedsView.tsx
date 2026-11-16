@@ -242,6 +242,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
   const [addResults, setAddResults] = useState<TMDBPersonSearchResult[]>([]);
   const [isAddSearching, setIsAddSearching] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [activeAddIndex, setActiveAddIndex] = useState(-1);
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
 
@@ -252,6 +253,8 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
   // Debounced search for adding artists to email feed
   useEffect(() => {
     const trimmed = addQuery.trim();
+    setActiveAddIndex(-1);
+
     if (trimmed.length < 2) {
       setAddResults([]);
       setIsAddSearching(false);
@@ -275,15 +278,25 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
         });
         if (!res.ok) return;
         const data = await res.json();
-        const results: TMDBPersonSearchResult[] = (data.results || []).slice(0, 8);
-        addSearchCache.set(cacheKey, results);
-        setAddResults(results);
+        const rawResults: TMDBPersonSearchResult[] = data.results || [];
+        const uniqueResults = rawResults
+          .filter((p, i, arr) => i === arr.findIndex((x) => x.id === p.id))
+          .slice(0, 8);
+        addSearchCache.set(cacheKey, uniqueResults);
+        if (!controller.signal.aborted) {
+          setAddResults(uniqueResults);
+        }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name !== "AbortError") {
-          console.error("Search error:", err);
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        if (err instanceof Error) {
+          console.error("Search error:", err.message);
         }
       } finally {
-        setIsAddSearching(false);
+        if (!controller.signal.aborted) {
+          setIsAddSearching(false);
+        }
       }
     }, 280);
 
@@ -295,16 +308,21 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
 
   // Click outside to close add search dropdown
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (
         addSearchContainerRef.current &&
         !addSearchContainerRef.current.contains(e.target as Node)
       ) {
         setIsAddOpen(false);
+        setActiveAddIndex(-1);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   // Escape key to dismiss add search
@@ -312,6 +330,7 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isAddOpen) {
         setIsAddOpen(false);
+        setActiveAddIndex(-1);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -342,6 +361,44 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
       }
     },
     [followArtist, subscribingId]
+  );
+
+  const currentDisplayList = useMemo(() => {
+    return addQuery.trim().length >= 2 ? addResults : SUGGESTED_ARTISTS;
+  }, [addQuery, addResults]);
+
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (!isAddOpen) {
+          setIsAddOpen(true);
+          setActiveAddIndex(0);
+        } else if (currentDisplayList.length > 0) {
+          setActiveAddIndex((prev) => (prev + 1) % currentDisplayList.length);
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (isAddOpen && currentDisplayList.length > 0) {
+          setActiveAddIndex((prev) => (prev <= 0 ? currentDisplayList.length - 1 : prev - 1));
+        }
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (isAddOpen && currentDisplayList.length > 0) {
+          const target =
+            activeAddIndex >= 0 && activeAddIndex < currentDisplayList.length
+              ? currentDisplayList[activeAddIndex]
+              : currentDisplayList[0];
+          if (target && !isFollowing(target.id) && subscribingId !== target.id) {
+            handleAddArtist(target);
+          }
+        }
+      } else if (e.key === "Escape") {
+        setIsAddOpen(false);
+        setActiveAddIndex(-1);
+      }
+    },
+    [isAddOpen, currentDisplayList, activeAddIndex, isFollowing, subscribingId, handleAddArtist]
   );
 
   const artistList = useMemo(() => {
@@ -589,12 +646,21 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
             <input
               ref={addSearchInputRef}
               type="text"
+              role="combobox"
+              aria-expanded={isAddOpen}
+              aria-haspopup="listbox"
+              aria-autocomplete="list"
+              aria-label="Search actor, director, or writer to follow"
+              aria-controls="feeds-search-dropdown-listbox"
+              aria-activedescendant={activeAddIndex >= 0 ? `add-artist-${activeAddIndex}` : undefined}
               value={addQuery}
               onChange={(e) => {
                 setAddQuery(e.target.value);
                 setIsAddOpen(true);
+                setActiveAddIndex(-1);
               }}
               onFocus={() => setIsAddOpen(true)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search to follow..."
               title="Search actor, director, or writer to follow"
               className="w-full pl-8 pr-6 py-1 text-xs rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400"
@@ -609,9 +675,12 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                 onClick={() => {
                   setAddQuery("");
                   setAddResults([]);
+                  setActiveAddIndex(-1);
+                  addSearchInputRef.current?.focus();
                 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
                 title="Clear search"
+                aria-label="Clear search"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -619,7 +688,12 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
 
             {/* Search Results / Quick Suggestions Dropdown */}
             {isAddOpen && (
-              <div className="absolute right-0 top-full mt-2 z-50 w-[300px] sm:w-[380px] max-w-[calc(100vw-32px)] rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden divide-y divide-neutral-100 dark:divide-neutral-800/60 max-h-[420px] overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+              <div
+                id="feeds-search-dropdown-listbox"
+                role="listbox"
+                aria-label="Creator suggestions"
+                className="absolute right-0 top-full mt-2 z-50 w-[300px] sm:w-[380px] max-w-[calc(100vw-32px)] rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden divide-y divide-neutral-100 dark:divide-neutral-800/60 max-h-[420px] overflow-y-auto animate-in fade-in zoom-in-95 duration-100"
+              >
                 {addQuery.trim().length >= 2 ? (
                   isAddSearching && addResults.length === 0 ? (
                     <div className="p-4 text-center text-xs text-neutral-400 flex items-center justify-center gap-2">
@@ -637,21 +711,28 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                         <span>Search Results ({addResults.length})</span>
                         <span className="text-[10px] text-neutral-400">Click a person to follow</span>
                       </div>
-                      {addResults.map((person) => {
+                      {addResults.map((person, index) => {
                         const following = isFollowing(person.id);
                         const isSubmittingThis = subscribingId === person.id;
                         const wasJustAdded = justAddedId === person.id;
+                        const isActive = activeAddIndex === index;
 
                         return (
                           <div
                             key={person.id}
+                            id={`add-artist-${index}`}
+                            role="option"
+                            aria-selected={isActive}
+                            onMouseEnter={() => setActiveAddIndex(index)}
                             onClick={() => {
                               if (!following && !isSubmittingThis) {
                                 handleAddArtist(person);
                               }
                             }}
                             className={`px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors ${
-                              following
+                              isActive
+                                ? "bg-amber-500/10 dark:bg-amber-500/15 cursor-pointer"
+                                : following
                                 ? "bg-neutral-50/50 dark:bg-neutral-900/50 cursor-default"
                                 : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer"
                             }`}
@@ -697,24 +778,9 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                                   <span>Followed!</span>
                                 </span>
                               ) : following ? (
-                                <div className="flex items-center gap-1.5">
-                                  <div className="px-2.5 py-1 rounded-xl text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
-                                    <Check className="w-3.5 h-3.5" />
-                                    <span>Following</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setIsAddOpen(false);
-                                      handleStartEditing(person.id);
-                                    }}
-                                    className="px-2 py-1 rounded-xl text-[11px] font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-1 cursor-pointer"
-                                    title="Options for this artist"
-                                  >
-                                    <SlidersHorizontal className="w-3 h-3" />
-                                    <span className="hidden sm:inline">Options</span>
-                                  </button>
+                                <div className="px-2.5 py-1 rounded-xl text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Following</span>
                                 </div>
                               ) : null}
                             </div>
@@ -727,24 +793,33 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                   <div className="p-3 bg-neutral-50/50 dark:bg-neutral-950/40">
                     <div className="px-1 pb-2 flex items-center justify-between text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
                       <span>Popular creators to follow</span>
-                      <span className="text-[10px] text-neutral-400">Click to follow</span>
+                      <span className="text-[10px] text-neutral-400">
+                        {addQuery.trim().length === 1 ? "Type 1 more character..." : "Click to follow"}
+                      </span>
                     </div>
                     <div className="space-y-1">
-                      {SUGGESTED_ARTISTS.map((person) => {
+                      {SUGGESTED_ARTISTS.map((person, index) => {
                         const following = isFollowing(person.id);
                         const isSubmittingThis = subscribingId === person.id;
                         const wasJustAdded = justAddedId === person.id;
+                        const isActive = activeAddIndex === index;
 
                         return (
                           <div
                             key={person.id}
+                            id={`add-popular-${index}`}
+                            role="option"
+                            aria-selected={isActive}
+                            onMouseEnter={() => setActiveAddIndex(index)}
                             onClick={() => {
                               if (!following && !isSubmittingThis) {
                                 handleAddArtist(person);
                               }
                             }}
                             className={`px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2.5 transition-colors ${
-                              following
+                              isActive
+                                ? "bg-amber-500/10 dark:bg-amber-500/15 cursor-pointer"
+                                : following
                                 ? "opacity-80 cursor-default"
                                 : "hover:bg-white dark:hover:bg-neutral-800/60 cursor-pointer"
                             }`}
