@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, memo } from "react";
-import { Rss, Copy, Check, ExternalLink, Mail, Bell, Loader2 } from "lucide-react";
+import { Rss, Copy, Check, ExternalLink, Mail, Loader2 } from "lucide-react";
 import { TMDBPersonSearchResult, AlertTimingWindow } from "@/types/tmdb";
 import { useSubscription } from "@/hooks/useSubscription";
 import EmailAlertModal from "./EmailAlertModal";
@@ -31,12 +31,16 @@ const FeedUrlCard = memo(function FeedUrlCard({
   const [copied, setCopied] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isQuickSubscribing, setIsQuickSubscribing] = useState(false);
+  const [isUpdatingAlert, setIsUpdatingAlert] = useState(false);
+  const [isUnfollowing, setIsUnfollowing] = useState(false);
 
   const {
     isAuthenticated,
     isFollowing,
     getArtistSub,
     followArtist,
+    unfollowArtist,
+    updateArtistAlert,
   } = useSubscription();
 
   const following = person ? isFollowing(person.id) : false;
@@ -90,6 +94,26 @@ const FeedUrlCard = memo(function FeedUrlCard({
     }
   };
 
+  const handleUpdateAlertToCurrent = async () => {
+    if (!person) return;
+    setIsUpdatingAlert(true);
+    try {
+      await updateArtistAlert(person.id, alert);
+    } finally {
+      setIsUpdatingAlert(false);
+    }
+  };
+
+  const handleUnfollowArtist = async () => {
+    if (!person) return;
+    setIsUnfollowing(true);
+    try {
+      await unfollowArtist(person.id);
+    } finally {
+      setIsUnfollowing(false);
+    }
+  };
+
   return (
     <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/90 dark:border-neutral-800 shadow-sm space-y-3">
       {/* Top Section: RSS Feed URL */}
@@ -134,7 +158,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
         </div>
       </div>
 
-      {/* Bottom Section: Email Alerts Integration */}
+      {/* Bottom Section: Email Feed Integration */}
       {person && (
         <div className="pt-2.5 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-xs">
@@ -147,23 +171,42 @@ const FeedUrlCard = memo(function FeedUrlCard({
                 </span>
               </span>
             ) : (
-              <span className="text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-amber-500" />
-                <span>Prefer email? Get alerts delivered directly to your inbox.</span>
+              <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                Email Feed
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
             {following ? (
-              <button
-                type="button"
-                onClick={() => setIsEmailModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Bell className="w-3.5 h-3.5 text-amber-500" />
-                <span>Manage Alert</span>
-              </button>
+              <>
+                {existingSub && existingSub.alert !== alert && (
+                  <button
+                    type="button"
+                    onClick={handleUpdateAlertToCurrent}
+                    disabled={isUpdatingAlert}
+                    className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {isUpdatingAlert ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      `Update to ${ALERT_LABELS[alert]}`
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleUnfollowArtist}
+                  disabled={isUnfollowing}
+                  className="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 text-neutral-600 dark:text-neutral-400 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {isUnfollowing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    "Unfollow"
+                  )}
+                </button>
+              </>
             ) : isAuthenticated ? (
               <button
                 type="button"

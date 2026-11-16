@@ -13,6 +13,13 @@ interface EmailAlertModalProps {
   currentCountry: string;
 }
 
+const ALERT_LABELS: Record<AlertTimingWindow, string> = {
+  announced: "When Announced",
+  when_released: "When Released",
+  month_before: "Month Before",
+  week_before: "Week Before",
+};
+
 export default function EmailAlertModal({
   isOpen,
   onClose,
@@ -24,31 +31,17 @@ export default function EmailAlertModal({
     isAuthenticated,
     userEmail,
     isFollowing,
-    getArtistSub,
     followArtist,
     unfollowArtist,
-    updateArtistAlert,
     sendMagicLink,
   } = useSubscription();
 
   const following = isFollowing(person.id);
-  const existingSub = getArtistSub(person.id);
 
   const [email, setEmail] = useState("");
-  const [selectedAlert, setSelectedAlert] = useState<AlertTimingWindow>(
-    existingSub?.alert || currentAlert || "announced"
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (existingSub) {
-      setSelectedAlert(existingSub.alert);
-    } else {
-      setSelectedAlert(currentAlert || "announced");
-    }
-  }, [existingSub, currentAlert]);
 
   useEffect(() => {
     if (userEmail) {
@@ -80,7 +73,7 @@ export default function EmailAlertModal({
         personId: person.id,
         personName: person.name,
         profilePath: person.profile_path,
-        alert: selectedAlert,
+        alert: currentAlert,
         country: currentCountry,
       });
 
@@ -102,7 +95,7 @@ export default function EmailAlertModal({
     try {
       const ok = await followArtist(
         { id: person.id, name: person.name, profile_path: person.profile_path },
-        selectedAlert,
+        currentAlert,
         currentCountry
       );
       if (ok) {
@@ -111,15 +104,6 @@ export default function EmailAlertModal({
         setErrorMessage("Failed to update subscription. Please try again.");
       }
     } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateAlert = async (newAlert: AlertTimingWindow) => {
-    setSelectedAlert(newAlert);
-    if (following) {
-      setIsSubmitting(true);
-      await updateArtistAlert(person.id, newAlert);
       setIsSubmitting(false);
     }
   };
@@ -136,10 +120,12 @@ export default function EmailAlertModal({
     }
   };
 
+  const alertLabel = ALERT_LABELS[currentAlert] || currentAlert;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl relative space-y-5"
+        className="w-full max-w-sm bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl relative space-y-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="email-modal-title"
@@ -160,48 +146,20 @@ export default function EmailAlertModal({
           </div>
           <div>
             <h2 id="email-modal-title" className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-              {following ? `Alerts for ${person.name}` : `Email Alerts for ${person.name}`}
+              {following ? `Alerts for ${person.name}` : `Get Email Alerts`}
             </h2>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Get notified directly in your inbox when new releases are announced or scheduled.
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 leading-relaxed">
+              Receive updates for <strong>{person.name}</strong> ({alertLabel}).
             </p>
-          </div>
-        </div>
-
-        {/* Alert Timing Selection */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-            Notify me:
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { id: "announced", label: "When Announced" },
-              { id: "when_released", label: "When Released" },
-              { id: "month_before", label: "Month Before" },
-              { id: "week_before", label: "Week Before" },
-            ].map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => handleUpdateAlert(opt.id as AlertTimingWindow)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium border text-left transition-all cursor-pointer ${
-                  selectedAlert === opt.id
-                    ? "border-amber-500/80 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold"
-                    : "border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
           </div>
         </div>
 
         {/* Content depending on Auth & Following state */}
         {isAuthenticated ? (
-          <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800/80 space-y-4">
+          <div className="space-y-4 pt-1">
             <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-950 px-3.5 py-2.5 rounded-xl border border-neutral-200/80 dark:border-neutral-800">
               <span>Sending alerts to:</span>
-              <span className="font-mono text-neutral-800 dark:text-neutral-200 font-medium">
+              <span className="font-mono text-neutral-800 dark:text-neutral-200 font-medium truncate max-w-[170px]">
                 {userEmail}
               </span>
             </div>
@@ -249,7 +207,7 @@ export default function EmailAlertModal({
             </div>
           </div>
         ) : successMessage ? (
-          <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800/80 space-y-4">
+          <div className="space-y-4 pt-1">
             <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs space-y-2">
               <div className="font-semibold flex items-center gap-1.5 text-sm">
                 <Check className="w-4 h-4 text-emerald-500" />
@@ -266,19 +224,20 @@ export default function EmailAlertModal({
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSendMagicLink} className="pt-2 border-t border-neutral-100 dark:border-neutral-800/80 space-y-4">
+          <form onSubmit={handleSendMagicLink} className="space-y-4 pt-1">
             <div className="space-y-1.5">
-              <label htmlFor="email-input" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                Your Email:
+              <label htmlFor="modal-email-input" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                Email Address
               </label>
               <div className="relative">
                 <div className="absolute left-3 inset-y-0 flex items-center pointer-events-none text-neutral-400">
                   <Mail className="w-3.5 h-3.5" />
                 </div>
                 <input
-                  id="email-input"
+                  id="modal-email-input"
                   type="email"
                   required
+                  autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
@@ -286,7 +245,7 @@ export default function EmailAlertModal({
                 />
               </div>
               <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
-                Passwordless login. We'll send a 1-click magic link to confirm.
+                We&apos;ll send a confirmation link to activate your subscription.
               </p>
             </div>
 

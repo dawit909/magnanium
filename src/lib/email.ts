@@ -3,27 +3,36 @@ import type { Transporter } from "nodemailer";
 import { FormattedRelease } from "@/types/tmdb";
 import { getTmdbImageUrl } from "./media";
 
-const GMAIL_USER = process.env.GMAIL_USER || "";
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || "";
+export function getEmailCredentials() {
+  const user = (process.env.GMAIL_USER || "").replace(/^["']|["']$/g, "").trim();
+  const pass = (process.env.GMAIL_APP_PASSWORD || "").replace(/^["']|["']$/g, "").replace(/\s+/g, "");
+  return { user, pass };
+}
 
-export const isEmailConfigured = Boolean(GMAIL_USER && GMAIL_APP_PASSWORD);
-
-let cachedTransporter: Transporter | null = null;
+export function isEmailConfigured(): boolean {
+  const { user, pass } = getEmailCredentials();
+  return Boolean(user && pass);
+}
 
 function getTransporter(): Transporter | null {
-  if (!isEmailConfigured) return null;
-  if (!cachedTransporter) {
-    cachedTransporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: GMAIL_USER,
-        pass: GMAIL_APP_PASSWORD,
-      },
-    });
+  const { user, pass } = getEmailCredentials();
+  if (!user || !pass) return null;
+
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user,
+      pass,
+    },
+  });
+}
+
+function formatEmailError(err: any): string {
+  const msg = err?.message || String(err || "Failed to send email");
+  if (msg.includes("535") || msg.includes("BadCredentials") || msg.includes("Username and Password not accepted")) {
+    return "Gmail SMTP login failed (535 Bad Credentials). Note: Google requires a 16-character App Password (generated at myaccount.google.com/apppasswords), not your standard Google account password.";
   }
-  return cachedTransporter;
+  return msg;
 }
 
 export interface SendMagicLinkOptions {
@@ -40,7 +49,9 @@ export async function sendMagicLinkEmail({
   verifyUrl,
   artistName,
 }: SendMagicLinkOptions): Promise<{ success: boolean; simulated?: boolean; error?: string }> {
-  if (!isEmailConfigured) {
+  const { user } = getEmailCredentials();
+
+  if (!isEmailConfigured()) {
     console.info(
       `\n[MAGNANIUM EMAIL - DEV SIMULATION]\n` +
       `To: ${to}\n` +
@@ -142,16 +153,17 @@ export async function sendMagicLinkEmail({
   `;
 
   try {
-    await transporter.sendMail({
-      from: `"Magnanium Alerts" <${GMAIL_USER}>`,
+    const info = await transporter.sendMail({
+      from: `"Magnanium Alerts" <${user}>`,
       to,
       subject,
       html,
     });
+    console.info(`[MAGNANIUM EMAIL] Magic link email successfully sent to ${to}! (id: ${info.messageId})`);
     return { success: true };
   } catch (err: any) {
     console.error("Failed to send magic link email:", err);
-    return { success: false, error: err?.message || "Failed to send email" };
+    return { success: false, error: formatEmailError(err) };
   }
 }
 
@@ -175,7 +187,9 @@ export async function sendReleaseAlertEmail({
   manageUrl,
   unsubscribeUrl,
 }: SendReleaseAlertOptions): Promise<{ success: boolean; simulated?: boolean; error?: string }> {
-  if (!isEmailConfigured) {
+  const { user } = getEmailCredentials();
+
+  if (!isEmailConfigured()) {
     console.info(
       `\n[MAGNANIUM EMAIL - DEV SIMULATION]\n` +
       `To: ${to}\n` +
@@ -329,15 +343,16 @@ export async function sendReleaseAlertEmail({
   `;
 
   try {
-    await transporter.sendMail({
-      from: `"Magnanium Alerts" <${GMAIL_USER}>`,
+    const info = await transporter.sendMail({
+      from: `"Magnanium Alerts" <${user}>`,
       to,
       subject,
       html,
     });
+    console.info(`[MAGNANIUM EMAIL] Release alert email successfully sent to ${to}! (id: ${info.messageId})`);
     return { success: true };
   } catch (err: any) {
     console.error("Failed to send release alert email:", err);
-    return { success: false, error: err?.message || "Failed to send alert email" };
+    return { success: false, error: formatEmailError(err) };
   }
 }
