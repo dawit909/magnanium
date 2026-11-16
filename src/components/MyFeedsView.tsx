@@ -480,16 +480,9 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                 )}
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate">
-                    {editingArtist.personName}
-                  </h2>
-                  {isEditingCustomized && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                      Customized
-                    </span>
-                  )}
-                </div>
+                <h2 className="text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate">
+                  {editingArtist.personName}
+                </h2>
                 <p className="text-[10px] text-neutral-400 dark:text-neutral-500">
                   Configure release feed &amp; alert filters
                 </p>
