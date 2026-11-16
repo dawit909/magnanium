@@ -139,9 +139,6 @@ function FollowedPersonItem({
               >
                 <SlidersHorizontal className="w-3 h-3" />
                 <span>Options</span>
-                {isCustomized && !isEditing && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                )}
               </button>
 
               <button
