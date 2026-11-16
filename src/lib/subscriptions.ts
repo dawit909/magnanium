@@ -1,0 +1,321 @@
+import crypto from "crypto";
+import { kv } from "./kv";
+import { AlertTimingWindow } from "@/types/tmdb";
+import { TIME_SECONDS } from "./constants";
+
+export interface SubscribedArtist {
+  personId: number;
+  personName: string;
+  profilePath: string | null;
+  alert: AlertTimingWindow;
+  country: string;
+  subscribedAt: number;
+}
+
+export interface EmailUser {
+  email: string;
+  verified: boolean;
+  createdAt: number;
+  artists: Record<string, SubscribedArtist>; // Keyed by personId string
+}
+
+export interface MagicTokenPayload {
+  email: string;
+  artist?: {
+    personId: number;
+    personName: string;
+    profilePath: string | null;
+    alert: AlertTimingWindow;
+    country: string;
+  };
+  expiresAt: number;
+}
+
+export interface SessionPayload {
+  email: string;
+  expiresAt: number;
+}
+
+const MAGIC_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutes
+const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+const SIGNING_SECRET = process.env.CRON_SECRET || process.env.UPSTASH_REDIS_REST_TOKEN || "magnanium-default-secret-salt";
+
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/**
+ * Generate a cryptographically secure random token (hex string).
+ */
+export function generateSecureToken(bytes: number = 24): string {
+  return crypto.randomBytes(bytes).toString("hex");
+}
+
+/**
+ * Key generators for Upstash Redis
+ */
+export const SUB_KEYS = {
+  user: (email: string) => `sub:user:${normalizeEmail(email)}`,
+  magicToken: (token: string) => `sub:magic:${token}`,
+  session: (token: string) => `sub:session:${token}`,
+  artistSubscribers: (personId: number) => `sub:artist:${personId}:subscribers`,
+  allArtists: "sub:all_artists",
+  alertSent: (email: string, releaseId: string, alert: string) =>
+    `sub:sent:${normalizeEmail(email)}:${releaseId}:${alert}`,
+};
+
+/**
+ * Create a magic link token for email confirmation / login.
+ */
+export async function createMagicToken(
+  email: string,
+  artist?: MagicTokenPayload["artist"]
+): Promise<string> {
+  const token = generateSecureToken(32);
+  const normalized = normalizeEmail(email);
+  const payload: MagicTokenPayload = {
+    email: normalized,
+    artist,
+    expiresAt: Date.now() + MAGIC_TOKEN_TTL_SECONDS * 1000,
+  };
+
+  await kv.set(SUB_KEYS.magicToken(token), payload, MAGIC_TOKEN_TTL_SECONDS);
+  return token;
+}
+
+/**
+ * Verify and consume a magic link token.
+ */
+export async function verifyAndConsumeMagicToken(
+  token: string
+): Promise<MagicTokenPayload | null> {
+  const key = SUB_KEYS.magicToken(token);
+  const payload = await kv.get<MagicTokenPayload>(key);
+  if (!payload) return null;
+
+  if (Date.now() > payload.expiresAt) {
+    await kv.del(key);
+    return null;
+  }
+
+  // Single-use token: consume immediately
+  await kv.del(key);
+  return payload;
+}
+
+/**
+ * Fetch a user's subscription profile.
+ */
+export async function getUser(email: string): Promise<EmailUser | null> {
+  const key = SUB_KEYS.user(email);
+  return kv.get<EmailUser>(key);
+}
+
+/**
+ * Save user subscription profile.
+ */
+export async function saveUser(user: EmailUser): Promise<void> {
+  const key = SUB_KEYS.user(user.email);
+  // Persist permanently (0 TTL)
+  await kv.set(key, user, 0);
+}
+
+/**
+ * Create a new 30-day session token.
+ */
+export async function createSession(email: string): Promise<string> {
+  const token = generateSecureToken(32);
+  const normalized = normalizeEmail(email);
+  const payload: SessionPayload = {
+    email: normalized,
+    expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000,
+  };
+
+  await kv.set(SUB_KEYS.session(token), payload, SESSION_TTL_SECONDS);
+  return token;
+}
+
+/**
+ * Validate an active session.
+ */
+export async function getSession(token: string): Promise<SessionPayload | null> {
+  if (!token) return null;
+  const payload = await kv.get<SessionPayload>(SUB_KEYS.session(token));
+  if (!payload) return null;
+
+  if (Date.now() > payload.expiresAt) {
+    await kv.del(SUB_KEYS.session(token));
+    return null;
+  }
+
+  return payload;
+}
+
+/**
+ * Invalidate a session (logout).
+ */
+export async function deleteSession(token: string): Promise<void> {
+  if (!token) return;
+  await kv.del(SUB_KEYS.session(token));
+}
+
+/**
+ * Add or update an artist subscription for a user.
+ */
+export async function subscribeArtist(
+  email: string,
+  artist: {
+    personId: number;
+    personName: string;
+    profilePath: string | null;
+    alert: AlertTimingWindow;
+    country: string;
+  }
+): Promise<EmailUser> {
+  const normalized = normalizeEmail(email);
+  let user = await getUser(normalized);
+
+  if (!user) {
+    user = {
+      email: normalized,
+      verified: true,
+      createdAt: Date.now(),
+      artists: {},
+    };
+  }
+
+  user.artists[String(artist.personId)] = {
+    personId: artist.personId,
+    personName: artist.personName,
+    profilePath: artist.profilePath,
+    alert: artist.alert,
+    country: artist.country,
+    subscribedAt: Date.now(),
+  };
+
+  await saveUser(user);
+
+  // Update reverse index: artist -> subscriber emails
+  const artistSubscribersKey = SUB_KEYS.artistSubscribers(artist.personId);
+  const existingSubscribers = (await kv.get<string[]>(artistSubscribersKey)) || [];
+  if (!existingSubscribers.includes(normalized)) {
+    existingSubscribers.push(normalized);
+    await kv.set(artistSubscribersKey, existingSubscribers, 0);
+  }
+
+  // Update global tracked artist IDs list
+  const allArtists = (await kv.get<number[]>(SUB_KEYS.allArtists)) || [];
+  if (!allArtists.includes(artist.personId)) {
+    allArtists.push(artist.personId);
+    await kv.set(SUB_KEYS.allArtists, allArtists, 0);
+  }
+
+  return user;
+}
+
+/**
+ * Remove an artist subscription for a user.
+ */
+export async function unsubscribeArtist(
+  email: string,
+  personId: number
+): Promise<EmailUser | null> {
+  const normalized = normalizeEmail(email);
+  const user = await getUser(normalized);
+  if (!user) return null;
+
+  delete user.artists[String(personId)];
+  await saveUser(user);
+
+  // Update reverse index
+  const artistSubscribersKey = SUB_KEYS.artistSubscribers(personId);
+  const existingSubscribers = (await kv.get<string[]>(artistSubscribersKey)) || [];
+  const updatedSubscribers = existingSubscribers.filter((e) => e !== normalized);
+
+  if (updatedSubscribers.length > 0) {
+    await kv.set(artistSubscribersKey, updatedSubscribers, 0);
+  } else {
+    await kv.del(artistSubscribersKey);
+
+    // Remove from global tracked artist IDs list if no subscribers remain
+    const allArtists = (await kv.get<number[]>(SUB_KEYS.allArtists)) || [];
+    const updatedAllArtists = allArtists.filter((id) => id !== personId);
+    await kv.set(SUB_KEYS.allArtists, updatedAllArtists, 0);
+  }
+
+  return user;
+}
+
+/**
+ * Update alert timing or country for an existing subscription.
+ */
+export async function updateArtistSubscription(
+  email: string,
+  personId: number,
+  updates: { alert?: AlertTimingWindow; country?: string }
+): Promise<EmailUser | null> {
+  const normalized = normalizeEmail(email);
+  const user = await getUser(normalized);
+  if (!user || !user.artists[String(personId)]) return null;
+
+  const current = user.artists[String(personId)];
+  user.artists[String(personId)] = {
+    ...current,
+    ...(updates.alert ? { alert: updates.alert } : {}),
+    ...(updates.country ? { country: updates.country } : {}),
+  };
+
+  await saveUser(user);
+  return user;
+}
+
+/**
+ * Get all subscriber emails for a specific artist.
+ */
+export async function getArtistSubscribers(personId: number): Promise<string[]> {
+  const key = SUB_KEYS.artistSubscribers(personId);
+  return (await kv.get<string[]>(key)) || [];
+}
+
+/**
+ * Get all artist IDs currently tracked across all subscribers.
+ */
+export async function getAllSubscribedArtistIds(): Promise<number[]> {
+  return (await kv.get<number[]>(SUB_KEYS.allArtists)) || [];
+}
+
+/**
+ * Create a secure HMAC signature for 1-click unsubscribe links in emails.
+ */
+export function createUnsubscribeToken(email: string, personId: number): string {
+  const normalized = normalizeEmail(email);
+  const data = `${normalized}:${personId}`;
+  const hmac = crypto.createHmac("sha256", SIGNING_SECRET).update(data).digest("hex").slice(0, 32);
+  const payload = Buffer.from(JSON.stringify({ e: normalized, p: personId, s: hmac })).toString("base64url");
+  return payload;
+}
+
+/**
+ * Verify a 1-click unsubscribe token.
+ */
+export function verifyUnsubscribeToken(
+  token: string
+): { email: string; personId: number } | null {
+  try {
+    const raw = Buffer.from(token, "base64url").toString("utf-8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.e || !parsed.p || !parsed.s) return null;
+
+    const expectedHmac = crypto
+      .createHmac("sha256", SIGNING_SECRET)
+      .update(`${parsed.e}:${parsed.p}`)
+      .digest("hex")
+      .slice(0, 32);
+
+    if (parsed.s !== expectedHmac) return null;
+
+    return { email: parsed.e, personId: Number(parsed.p) };
+  } catch {
+    return null;
+  }
+}

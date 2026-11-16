@@ -1,12 +1,14 @@
 "use client";
 
-import { RefObject } from "react";
+import { RefObject, useState } from "react";
 import Link from "next/link";
-import { Search, Sun, Moon, User, Loader2 } from "lucide-react";
+import { Search, Sun, Moon, User, Loader2, Bell } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
+import { useSubscription } from "@/hooks/useSubscription";
 import Logo from "./Logo";
+import MyAlertsDrawer from "./MyAlertsDrawer";
 
 interface HeaderProps {
   onHomeClick: () => void;
@@ -45,6 +47,10 @@ export default function Header({
   searchInputRef,
   onKeyDown,
 }: HeaderProps) {
+  const [isAlertsOpen, setIsAlertsOpen] = useState(false);
+  const { isAuthenticated, artists } = useSubscription();
+  const alertCount = Object.keys(artists).length;
+
   const isSearchDropdownOpen =
     isOpen && (searchResults.length > 0 || (hasSearched && !isSearching));
 
@@ -185,15 +191,34 @@ export default function Header({
           )}
         </div>
 
-        {/* Theme Toggle Button */}
-        <button
-          onClick={onToggleTheme}
-          aria-label="Toggle theme"
-          className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
-        >
-          {theme === "light" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
-        </button>
+        {/* Alerts & Theme Actions */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setIsAlertsOpen(true)}
+            aria-label={isAuthenticated ? `My Alerts (${alertCount})` : "My Alerts"}
+            className="h-8 px-2.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1.5 shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 cursor-pointer"
+          >
+            <Bell className="w-3.5 h-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Alerts</span>
+            {isAuthenticated && alertCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-neutral-950 dark:text-neutral-950">
+                {alertCount}
+              </span>
+            )}
+          </button>
+
+          {/* Theme Toggle Button */}
+          <button
+            onClick={onToggleTheme}
+            aria-label="Toggle theme"
+            className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+          >
+            {theme === "light" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+          </button>
+        </div>
       </div>
+
+      <MyAlertsDrawer isOpen={isAlertsOpen} onClose={() => setIsAlertsOpen(false)} />
     </header>
   );
 }

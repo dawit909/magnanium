@@ -68,17 +68,24 @@ export const kv = {
   },
 
   /**
-   * Store a value in L1 memory and L2 Redis with TTL (in seconds)
+   * Store a value in L1 memory and L2 Redis with TTL (in seconds).
+   * Pass ttlSeconds = 0 or negative for persistent keys without expiration.
    */
   async set<T>(key: string, value: T, ttlSeconds: number = 86400): Promise<void> {
     // 1. Always set L1 in-memory cache
-    l1Cache.set(key, value, ttlSeconds * 1000);
+    const memTtl = ttlSeconds > 0 ? ttlSeconds * 1000 : 365 * 24 * 60 * 60 * 1000;
+    l1Cache.set(key, value, memTtl);
 
     // 2. Set L2 Upstash Redis if configured
     if (!isRedisConfigured) return;
 
     try {
       const serialized = JSON.stringify(value);
+      const command =
+        ttlSeconds > 0
+          ? ["SET", key, serialized, "EX", ttlSeconds]
+          : ["SET", key, serialized];
+
       // Use POST command array format to safely handle large JSON payloads
       await fetch(UPSTASH_URL, {
         method: "POST",
@@ -86,7 +93,7 @@ export const kv = {
           Authorization: `Bearer ${UPSTASH_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(["SET", key, serialized, "EX", ttlSeconds]),
+        body: JSON.stringify(command),
         cache: "no-store",
         signal: AbortSignal.timeout(3000),
       });
