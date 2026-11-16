@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   Trash2,
@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   Search,
   X,
+  Plus,
 } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { AlertTimingWindow, DigestFrequency, TMDBPersonSearchResult } from "@/types/tmdb";
@@ -20,11 +21,66 @@ import {
   isDefaultFeedOptions,
   DEFAULT_FEED_OPTIONS,
   DIGEST_FREQUENCIES,
+  getSavedFeedOptions,
 } from "@/lib/feed-options";
 import { formatSubscribedDate } from "@/lib/date";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
+import { BoundedMap } from "@/lib/cache";
 import FeedFilters from "./FeedFilters";
+
+const addSearchCache = new BoundedMap<string, TMDBPersonSearchResult[]>(50);
+
+const SUGGESTED_ARTISTS: TMDBPersonSearchResult[] = [
+  {
+    id: 525,
+    name: "Christopher Nolan",
+    original_name: "Christopher Nolan",
+    known_for_department: "Directing",
+    profile_path: "/xuAIuYSmsUzKlUMBFGVZaWsY3DZ.jpg",
+    popularity: 7.3,
+  },
+  {
+    id: 137427,
+    name: "Denis Villeneuve",
+    original_name: "Denis Villeneuve",
+    known_for_department: "Directing",
+    profile_path: "/xzQYqb4nR8xT7Zdw5itbEL9K3fd.jpg",
+    popularity: 4.0,
+  },
+  {
+    id: 45400,
+    name: "Greta Gerwig",
+    original_name: "Greta Gerwig",
+    known_for_department: "Directing",
+    profile_path: "/dxKAhpkz4XNwmRzMG5QOpXjPZ1N.jpg",
+    popularity: 2.4,
+  },
+  {
+    id: 1190668,
+    name: "Timothée Chalamet",
+    original_name: "Timothée Chalamet",
+    known_for_department: "Acting",
+    profile_path: "/dFxpwRpmzpVfP1zjluH68DeQhyj.jpg",
+    popularity: 9.5,
+  },
+  {
+    id: 2037,
+    name: "Cillian Murphy",
+    original_name: "Cillian Murphy",
+    known_for_department: "Acting",
+    profile_path: "/2lKs67r7FI4bPu0AXxMUJZxmUXn.jpg",
+    popularity: 5.9,
+  },
+  {
+    id: 138,
+    name: "Quentin Tarantino",
+    original_name: "Quentin Tarantino",
+    known_for_department: "Directing",
+    profile_path: "/1gjcpAa99FAOWGnrUvHEXXsRs7o.jpg",
+    popularity: 7.9,
+  },
+];
 
 interface FollowedPersonItemProps {
   artist: SubscribedArtist;
@@ -168,6 +224,8 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
     userEmail,
     artists,
     isLoading,
+    isFollowing,
+    followArtist,
     unfollowArtist,
     updateArtistOptions,
     sendMagicLink,
@@ -180,7 +238,112 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // New Search Bar for directly adding artists to email feeds
+  const [addQuery, setAddQuery] = useState("");
+  const [addResults, setAddResults] = useState<TMDBPersonSearchResult[]>([]);
+  const [isAddSearching, setIsAddSearching] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [subscribingId, setSubscribingId] = useState<number | null>(null);
+  const [justAddedId, setJustAddedId] = useState<number | null>(null);
+
+  const addSearchContainerRef = useRef<HTMLDivElement | null>(null);
+  const addSearchInputRef = useRef<HTMLInputElement | null>(null);
   const editingSectionRef = useRef<HTMLElement | null>(null);
+
+  // Debounced search for adding artists to email feed
+  useEffect(() => {
+    const trimmed = addQuery.trim();
+    if (trimmed.length < 2) {
+      setAddResults([]);
+      setIsAddSearching(false);
+      return;
+    }
+
+    const cacheKey = trimmed.toLowerCase();
+    if (addSearchCache.has(cacheKey)) {
+      setAddResults(addSearchCache.get(cacheKey) || []);
+      setIsAddSearching(false);
+      return;
+    }
+
+    setIsAddSearching(true);
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const results: TMDBPersonSearchResult[] = (data.results || []).slice(0, 8);
+        addSearchCache.set(cacheKey, results);
+        setAddResults(results);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== "AbortError") {
+          console.error("Search error:", err);
+        }
+      } finally {
+        setIsAddSearching(false);
+      }
+    }, 280);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [addQuery]);
+
+  // Click outside to close add search dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        addSearchContainerRef.current &&
+        !addSearchContainerRef.current.contains(e.target as Node)
+      ) {
+        setIsAddOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Escape key to dismiss add search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isAddOpen) {
+        setIsAddOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isAddOpen]);
+
+  // Direct add to email feeds handler
+  const handleAddArtist = useCallback(
+    async (person: TMDBPersonSearchResult) => {
+      if (subscribingId === person.id) return;
+      setSubscribingId(person.id);
+      try {
+        const defaults = getSavedFeedOptions();
+        const ok = await followArtist(
+          { id: person.id, name: person.name, profile_path: person.profile_path },
+          defaults.alert,
+          defaults.country,
+          defaults
+        );
+        if (ok) {
+          setJustAddedId(person.id);
+          setTimeout(() => {
+            setJustAddedId((prev) => (prev === person.id ? null : prev));
+          }, 2500);
+        }
+      } finally {
+        setSubscribingId(null);
+      }
+    },
+    [followArtist, subscribingId]
+  );
 
   const artistList = useMemo(() => {
     return Object.values(artists).sort((a, b) =>
@@ -434,7 +597,8 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
                 type="text"
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                placeholder="Filter feeds..."
+                placeholder="Filter list..."
+                title="Filter followed artists in your list"
                 className="w-full pl-8 pr-6 py-1 text-xs rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400"
               />
               {filterQuery && (
@@ -455,6 +619,225 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
             </p>
           )}
         </div>
+      </div>
+
+      {/* New Search Bar: Add to Email Feeds directly and easily */}
+      <div ref={addSearchContainerRef} className="relative z-30">
+        <div className="relative flex items-center">
+          <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            ref={addSearchInputRef}
+            type="text"
+            value={addQuery}
+            onChange={(e) => {
+              setAddQuery(e.target.value);
+              setIsAddOpen(true);
+            }}
+            onFocus={() => setIsAddOpen(true)}
+            placeholder="Search actor, director, or writer to add to email alerts..."
+            className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/90 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
+          />
+          {isAddSearching && (
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+              <Loader2 className="w-3.5 h-3.5 text-neutral-400 animate-spin" />
+            </div>
+          )}
+          {!isAddSearching && addQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setAddQuery("");
+                setAddResults([]);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Search Results / Quick Suggestions Dropdown */}
+        {isAddOpen && (
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-40 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden divide-y divide-neutral-100 dark:divide-neutral-800/60 max-h-[420px] overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+            {addQuery.trim().length >= 2 ? (
+              isAddSearching && addResults.length === 0 ? (
+                <div className="p-4 text-center text-xs text-neutral-400 flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-neutral-400" />
+                  <span>Searching for &ldquo;{addQuery}&rdquo;...</span>
+                </div>
+              ) : addResults.length === 0 ? (
+                <div className="p-5 text-center text-xs text-neutral-400 space-y-1">
+                  <p className="font-medium text-neutral-600 dark:text-neutral-300">No matching artists found</p>
+                  <p>Check the spelling or try searching for another artist.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="px-3.5 py-1.5 bg-neutral-50 dark:bg-neutral-950/60 text-[11px] font-medium text-neutral-500 dark:text-neutral-400 flex items-center justify-between">
+                    <span>Search Results ({addResults.length})</span>
+                    <span className="text-[10px] text-neutral-400">Click &ldquo;+ Add to Email&rdquo; to subscribe directly</span>
+                  </div>
+                  {addResults.map((person) => {
+                    const following = isFollowing(person.id);
+                    const isSubmittingThis = subscribingId === person.id;
+                    const wasJustAdded = justAddedId === person.id;
+
+                    return (
+                      <div
+                        key={person.id}
+                        className="px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="w-8 h-8 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0 border border-neutral-200/80 dark:border-neutral-800">
+                            {person.profile_path ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={getTmdbImageUrl(person.profile_path, "w180_and_h180_face") || ""}
+                                alt={person.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <User className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 truncate">
+                                {person.name}
+                              </span>
+                              {person.known_for_department && (
+                                <span className="text-[10px] text-neutral-400 dark:text-neutral-500 px-1.5 py-0.2 rounded bg-neutral-100 dark:bg-neutral-800">
+                                  {person.known_for_department}
+                                </span>
+                              )}
+                            </div>
+                            {person.known_for && person.known_for.length > 0 && (
+                              <p className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate mt-0.5">
+                                Known for: {person.known_for.map((k: any) => k.title || k.name).filter(Boolean).slice(0, 3).join(", ")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {following ? (
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="px-2.5 py-1 rounded-xl text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
+                              <Check className="w-3.5 h-3.5" />
+                              <span>In Feeds</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAddOpen(false);
+                                handleStartEditing(person.id);
+                              }}
+                              className="px-2 py-1 rounded-xl text-[11px] font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-1 cursor-pointer"
+                              title="Customize options for this artist"
+                            >
+                              <SlidersHorizontal className="w-3 h-3" />
+                              <span className="hidden sm:inline">Options</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleAddArtist(person)}
+                            disabled={isSubmittingThis}
+                            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white dark:text-neutral-900 shadow-xs transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50"
+                          >
+                            {isSubmittingThis ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Adding...</span>
+                              </>
+                            ) : wasJustAdded ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Added!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="w-3.5 h-3.5 text-amber-400 dark:text-amber-600" />
+                                <span>+ Add to Email</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )
+            ) : (
+              <div className="p-3 bg-neutral-50/50 dark:bg-neutral-950/40">
+                <div className="px-1 pb-2 flex items-center justify-between text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
+                  <span>Popular creators to follow</span>
+                  <span className="text-[10px] text-neutral-400">Type above to search anyone</span>
+                </div>
+                <div className="space-y-1">
+                  {SUGGESTED_ARTISTS.map((person) => {
+                    const following = isFollowing(person.id);
+                    const isSubmittingThis = subscribingId === person.id;
+                    const wasJustAdded = justAddedId === person.id;
+
+                    return (
+                      <div
+                        key={person.id}
+                        className="px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2.5 hover:bg-white dark:hover:bg-neutral-800/60 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0 border border-neutral-200/60 dark:border-neutral-800">
+                            {person.profile_path ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={getTmdbImageUrl(person.profile_path, "w180_and_h180_face") || ""}
+                                alt={person.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <User className="w-3.5 h-3.5" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-medium text-xs text-neutral-900 dark:text-neutral-100 truncate block">
+                              {person.name}
+                            </span>
+                            <span className="text-[10px] text-neutral-400 dark:text-neutral-500 block">
+                              {person.known_for_department}
+                            </span>
+                          </div>
+                        </div>
+
+                        {following ? (
+                          <div className="px-2 py-0.5 rounded-lg text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 select-none">
+                            <Check className="w-3 h-3" />
+                            <span>In Feeds</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleAddArtist(person)}
+                            disabled={isSubmittingThis}
+                            className="px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-800 dark:text-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            {isSubmittingThis ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : wasJustAdded ? (
+                              <Check className="w-3 h-3 text-emerald-500" />
+                            ) : (
+                              <Plus className="w-3 h-3 text-amber-500" />
+                            )}
+                            <span>{wasJustAdded ? "Added!" : "Add"}</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Dedicated Options Section (appears when an artist is selected for editing) */}
@@ -528,13 +911,51 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
 
       {/* Artists Grid (100% stable, completely uniform cards that never expand) */}
       {artistList.length === 0 ? (
-        <div className="p-8 sm:p-10 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 text-center space-y-2">
-          <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            No feeds followed yet
-          </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
-            Search for an actor, director, or writer in the search bar above to follow their releases.
-          </p>
+        <div className="p-8 sm:p-10 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 text-center space-y-3">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+            <Mail className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              No feeds followed yet
+            </h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
+              Use the search bar above to add your favorite directors, actors, and writers directly to your email alerts.
+            </p>
+          </div>
+          <div className="pt-1 flex items-center justify-center gap-1.5 flex-wrap max-w-md mx-auto">
+            <span className="text-[11px] text-neutral-400 dark:text-neutral-500 w-full sm:w-auto">Quick add:</span>
+            {SUGGESTED_ARTISTS.slice(0, 4).map((p) => {
+              const following = isFollowing(p.id);
+              const isSubmittingThis = subscribingId === p.id;
+              const wasJustAdded = justAddedId === p.id;
+
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleAddArtist(p)}
+                  disabled={isSubmittingThis || following}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
+                    following
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                      : "bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700"
+                  }`}
+                >
+                  {following ? (
+                    <Check className="w-3 h-3 text-emerald-500" />
+                  ) : isSubmittingThis ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : wasJustAdded ? (
+                    <Check className="w-3 h-3 text-emerald-500" />
+                  ) : (
+                    <Plus className="w-3 h-3 text-amber-500" />
+                  )}
+                  <span>{wasJustAdded ? "Added!" : p.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       ) : filteredArtists.length === 0 ? (
         <div className="p-6 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 text-center text-xs text-neutral-400">

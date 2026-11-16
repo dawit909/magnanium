@@ -4,12 +4,11 @@ import { RefObject, useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Sun, Moon, User, Loader2, LogIn, ChevronDown, Check } from "lucide-react";
+import { Search, Sun, Moon, User, Loader2, LogIn, ChevronDown } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
 import { useSubscription } from "@/hooks/useSubscription";
-import { getSavedFeedOptions } from "@/lib/feed-options";
 import Logo from "./Logo";
 import SignInModal from "./SignInModal";
 
@@ -62,14 +61,10 @@ export default function Header({
     isAuthenticated,
     userEmail,
     artists,
-    isFollowing,
-    followArtist,
-    unfollowArtist,
     deleteAccount,
     logout,
   } = useSubscription();
   const alertCount = Object.keys(artists).length;
-  const [subscribingId, setSubscribingId] = useState<number | null>(null);
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
@@ -82,34 +77,6 @@ export default function Header({
       if (typeof window !== "undefined" && window.location.pathname.startsWith("/feeds")) {
         router.push("/");
       }
-    }
-  };
-
-  const handleToggleEmailFeed = async (
-    e: React.MouseEvent,
-    person: TMDBPersonSearchResult
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isAuthenticated) return;
-
-    const following = isFollowing(person.id);
-    setSubscribingId(person.id);
-    try {
-      if (following) {
-        await unfollowArtist(person.id);
-      } else {
-        const defaults = getSavedFeedOptions();
-        await followArtist(
-          { id: person.id, name: person.name, profile_path: person.profile_path },
-          defaults.alert,
-          defaults.country,
-          defaults
-        );
-      }
-    } finally {
-      setSubscribingId(null);
     }
   };
 
@@ -243,13 +210,18 @@ export default function Header({
               {searchResults.slice(0, 6).map((person, index) => {
                 const isActive = activeIndex === index;
                 const slug = createPersonSlug(person.id, person.name);
-                const following = isFollowing(person.id);
-                const isPending = subscribingId === person.id;
 
                 return (
-                  <div
+                  <Link
                     key={person.id}
                     id={`search-result-${index}`}
+                    href={`/${slug}`}
+                    prefetch={false}
+                    onClick={(e) => {
+                      if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0) {
+                        onSelectPerson(person);
+                      }
+                    }}
                     onMouseEnter={() => {
                       onSetActiveIndex(index);
                       if (person.profile_path && typeof window !== "undefined") {
@@ -258,89 +230,43 @@ export default function Header({
                         if (heroUrl) hero.src = heroUrl;
                       }
                     }}
-                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs transition-colors ${
+                    className={`w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-xs transition-colors no-underline cursor-pointer ${
                       isActive
                         ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium ring-1 ring-inset ring-neutral-300 dark:ring-neutral-700"
                         : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200"
                     }`}
                   >
-                    <Link
-                      href={`/${slug}`}
-                      prefetch={false}
-                      onClick={(e) => {
-                        if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0) {
-                          onSelectPerson(person);
-                        }
-                      }}
-                      className="flex items-center gap-2 min-w-0 flex-1 mr-2 no-underline text-inherit cursor-pointer"
-                    >
-                      {person.profile_path ? (
-                        <div className="relative w-6 h-6 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-sm flex items-center justify-center text-neutral-400">
-                          <User className="w-3 h-3 pointer-events-none" />
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={getTmdbImageUrl(person.profile_path, "w180_and_h180_face") || ""}
-                            alt={person.name}
-                            loading="eager"
-                            decoding="async"
-                            fetchPriority="high"
-                            onError={(e) => {
-                              const fallback = getTmdbImageUrl(person.profile_path, "w92");
-                              if (fallback) {
-                                (e.currentTarget as HTMLImageElement).src = fallback;
-                              }
-                            }}
-                            className="absolute inset-0 w-full h-full object-cover object-[center_20%] text-transparent select-none"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
-                          <User className="w-3 h-3" />
-                        </div>
-                      )}
-                      <span className="font-medium truncate text-xs">{person.name}</span>
-                      {person.known_for_department && (
-                        <span
-                          className={`text-neutral-400 dark:text-neutral-500 text-[10px] ml-1 flex-shrink-0 ${
-                            isAuthenticated ? "hidden sm:inline" : ""
-                          }`}
-                        >
-                          {isAuthenticated ? `· ${person.known_for_department}` : person.known_for_department}
-                        </span>
-                      )}
-                    </Link>
-
-                    {/* Simple button to add to email feed (only appears when user is logged in) */}
-                    {isAuthenticated && (
-                      <button
-                        type="button"
-                        onClick={(e) => handleToggleEmailFeed(e, person)}
-                        disabled={isPending}
-                        title={
-                          following
-                            ? `Following ${person.name} via email feed (click to unfollow)`
-                            : `Add ${person.name} to email feed`
-                        }
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all flex-shrink-0 cursor-pointer disabled:opacity-50 group ${
-                          following
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/20"
-                            : "bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white border border-neutral-200 dark:border-neutral-700/80"
-                        }`}
-                      >
-                        {isPending ? (
-                          <Loader2 className="w-3 h-3 animate-spin text-neutral-400" />
-                        ) : following ? (
-                          <>
-                            <Check className="w-3 h-3 text-emerald-500 group-hover:hidden" />
-                            <span className="group-hover:hidden">Following</span>
-                            <span className="hidden group-hover:inline">Unfollow</span>
-                          </>
-                        ) : (
-                          <span>+ Email</span>
-                        )}
-                      </button>
+                    {person.profile_path ? (
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex-shrink-0 shadow-xs flex items-center justify-center text-neutral-400">
+                        <User className="w-3 h-3 pointer-events-none" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getTmdbImageUrl(person.profile_path, "w180_and_h180_face") || ""}
+                          alt={person.name}
+                          loading="eager"
+                          decoding="async"
+                          fetchPriority="high"
+                          onError={(e) => {
+                            const fallback = getTmdbImageUrl(person.profile_path, "w92");
+                            if (fallback) {
+                              (e.currentTarget as HTMLImageElement).src = fallback;
+                            }
+                          }}
+                          className="absolute inset-0 w-full h-full object-cover object-[center_20%] text-transparent select-none"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                        <User className="w-3 h-3" />
+                      </div>
                     )}
-                  </div>
+                    <span className="font-medium truncate text-xs">{person.name}</span>
+                    {person.known_for_department && (
+                      <span className="text-neutral-400 dark:text-neutral-500 text-[10px] ml-1 flex-shrink-0">
+                        · {person.known_for_department}
+                      </span>
+                    )}
+                  </Link>
                 );
               })}
             </div>
