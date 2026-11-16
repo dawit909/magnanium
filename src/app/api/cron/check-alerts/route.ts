@@ -15,6 +15,11 @@ import { AUTH_CONFIG } from "@/lib/constants";
 import { mapConcurrent } from "@/lib/async";
 import { kv } from "@/lib/kv";
 import { createPersonSlug } from "@/lib/slug";
+import {
+  isUtcSaturday,
+  isUtcFirstSaturdayOfMonth,
+  getUtcYearMonth,
+} from "@/lib/date";
 import { FormattedRelease, AlertTimingWindow } from "@/types/tmdb";
 
 export const runtime = "nodejs";
@@ -34,6 +39,8 @@ export async function GET(request: NextRequest) {
   const force = request.nextUrl.searchParams.get("force") === "true";
 
   try {
+    const cronDate = new Date();
+    const currentMonthKey = getUtcYearMonth(cronDate);
     const artistIds = await getAllSubscribedArtistIds();
     const boundaries = getDateWindowBoundaries();
     const { nowStr, sevenDaysFromNowStr, thirtyDaysFromNowStr } = boundaries;
@@ -73,19 +80,28 @@ export async function GET(request: NextRequest) {
             const subInfo = user.artists[String(personId)];
             const frequency = subInfo.frequency || "instant";
 
-            // For weekly / monthly frequency digests, verify sending window interval (unless forced)
+            // For weekly / monthly frequency digests, verify sending window schedule (unless forced)
             if (!force) {
               if (frequency === "weekly") {
+                // Weekly digests are delivered on Saturdays (08:00 UTC)
+                if (!isUtcSaturday(cronDate)) {
+                  continue;
+                }
                 const weeklyKey = SUB_KEYS.digestSent("weekly", email, personId);
                 const alreadySentWeekly = await kv.get<number>(weeklyKey);
                 if (alreadySentWeekly) {
-                  continue; // Wait until 7-day interval elapses
+                  continue; // Already dispatched this Saturday
                 }
               } else if (frequency === "monthly") {
-                const monthlyKey = SUB_KEYS.digestSent("monthly", email, personId);
+                // Monthly digests are delivered on the first Saturday of the month (08:00 UTC)
+                // Anchored to calendar month so schedule never slips or drifts over time
+                if (!isUtcFirstSaturdayOfMonth(cronDate)) {
+                  continue;
+                }
+                const monthlyKey = SUB_KEYS.digestSent(`monthly:${currentMonthKey}`, email, personId);
                 const alreadySentMonthly = await kv.get<number>(monthlyKey);
                 if (alreadySentMonthly) {
-                  continue; // Wait until 30-day interval elapses
+                  continue; // Already dispatched for this calendar month
                 }
               }
             }
@@ -228,10 +244,10 @@ export async function GET(request: NextRequest) {
 
                   if (frequency === "weekly") {
                     const weeklyKey = SUB_KEYS.digestSent("weekly", email, personId);
-                    await kv.set(weeklyKey, 1, 7 * 86400);
+                    await kv.set(weeklyKey, 1, 6 * 86400);
                   } else if (frequency === "monthly") {
-                    const monthlyKey = SUB_KEYS.digestSent("monthly", email, personId);
-                    await kv.set(monthlyKey, 1, 30 * 86400);
+                    const monthlyKey = SUB_KEYS.digestSent(`monthly:${currentMonthKey}`, email, personId);
+                    await kv.set(monthlyKey, 1, 35 * 86400);
                   }
 
                   // Mark deduplication keys with TTL

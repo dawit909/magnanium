@@ -109,3 +109,27 @@ export function formatSubscribedDate(timestamp: number | string | Date): string 
   } catch {}
   return "";
 }
+
+/**
+ * Check if a date is a Saturday (in UTC).
+ */
+export function isUtcSaturday(date: Date = new Date()): boolean {
+  return date.getUTCDay() === 6;
+}
+
+/**
+ * Check if a date is the first Saturday of the month (in UTC).
+ * A Saturday is the first Saturday of the calendar month if its day of month is <= 7.
+ */
+export function isUtcFirstSaturdayOfMonth(date: Date = new Date()): boolean {
+  return date.getUTCDay() === 6 && date.getUTCDate() <= 7;
+}
+
+/**
+ * Returns the current UTC Year-Month identifier (e.g. "2026-11").
+ */
+export function getUtcYearMonth(date: Date = new Date()): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}

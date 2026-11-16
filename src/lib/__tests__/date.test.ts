@@ -5,6 +5,9 @@ import {
   formatEmailPubDate,
   formatRssPubDate,
   formatSubscribedDate,
+  isUtcSaturday,
+  isUtcFirstSaturdayOfMonth,
+  getUtcYearMonth,
 } from "../date";
 
 describe("date utilities", () => {
@@ -84,6 +87,48 @@ describe("date utilities", () => {
       const formatted = formatSubscribedDate(ts);
       expect(formatted).toContain("2026");
       expect(formatted).toContain("Jun");
+    });
+  });
+
+  describe("digest calendar timing helpers", () => {
+    it("correctly identifies UTC Saturdays", () => {
+      // 2026-11-07 is Saturday
+      const sat = new Date("2026-11-07T08:00:00Z");
+      expect(isUtcSaturday(sat)).toBe(true);
+
+      // 2026-11-08 is Sunday
+      const sun = new Date("2026-11-08T08:00:00Z");
+      expect(isUtcSaturday(sun)).toBe(false);
+
+      // 2026-11-16 is Monday
+      const mon = new Date("2026-11-16T08:00:00Z");
+      expect(isUtcSaturday(mon)).toBe(false);
+    });
+
+    it("correctly identifies the first Saturday of each month", () => {
+      // 2026-11-07 is 1st Saturday of Nov 2026 (day 7 <= 7)
+      const novFirstSat = new Date("2026-11-07T08:00:00Z");
+      expect(isUtcFirstSaturdayOfMonth(novFirstSat)).toBe(true);
+
+      // 2026-11-14 is 2nd Saturday of Nov 2026 (day 14 > 7)
+      const novSecondSat = new Date("2026-11-14T08:00:00Z");
+      expect(isUtcFirstSaturdayOfMonth(novSecondSat)).toBe(false);
+
+      // 2026-12-05 is 1st Saturday of Dec 2026 (day 5 <= 7)
+      const decFirstSat = new Date("2026-12-05T08:00:00Z");
+      expect(isUtcFirstSaturdayOfMonth(decFirstSat)).toBe(true);
+
+      // 2026-12-12 is 2nd Saturday of Dec 2026
+      const decSecondSat = new Date("2026-12-12T08:00:00Z");
+      expect(isUtcFirstSaturdayOfMonth(decSecondSat)).toBe(false);
+    });
+
+    it("formats UTC year-month string", () => {
+      const d1 = new Date("2026-11-07T08:00:00Z");
+      expect(getUtcYearMonth(d1)).toBe("2026-11");
+
+      const d2 = new Date("2027-01-02T08:00:00Z");
+      expect(getUtcYearMonth(d2)).toBe("2027-01");
     });
   });
 });

@@ -28,8 +28,8 @@ export const DEFAULT_FEED_OPTIONS: FeedOptionsSettings = {
 
 export const DIGEST_FREQUENCIES: Array<{ value: DigestFrequency; label: string; description: string }> = [
   { value: "instant", label: "Instant", description: "Real-time alerts on release detection" },
-  { value: "weekly", label: "Weekly Digest", description: "Weekly roundup of upcoming releases" },
-  { value: "monthly", label: "Monthly Digest", description: "Monthly preview of upcoming releases" },
+  { value: "weekly", label: "Weekly Digest", description: "Weekly roundup every Saturday" },
+  { value: "monthly", label: "Monthly Digest", description: "Monthly preview on the 1st Saturday of the month" },
 ];
 
 // Global in-memory cache for instant client-side SPA navigation
