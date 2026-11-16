@@ -29,25 +29,6 @@ function FollowedPersonItem({
   onUnfollow,
   onUpdateOptions,
 }: FollowedPersonItemProps) {
-  const { sendTestAlert } = useSubscription();
-  const [isSendingTest, setIsSendingTest] = useState(false);
-  const [testSuccess, setTestSuccess] = useState(false);
-
-  const handleSendTestAlert = async () => {
-    if (isSendingTest) return;
-    setIsSendingTest(true);
-    setTestSuccess(false);
-    try {
-      await sendTestAlert(artist.personId, artist.personName);
-      setTestSuccess(true);
-      setTimeout(() => setTestSuccess(false), 3000);
-    } catch (err: any) {
-      console.error("Test alert error:", err);
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
-
   // Fallbacks to default feed options if not customized
   const currentRoles = artist.roles || DEFAULT_FEED_OPTIONS.roles;
   const rawTypes = artist.types || DEFAULT_FEED_OPTIONS.types;
@@ -215,24 +196,6 @@ function FollowedPersonItem({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             type="button"
-            onClick={handleSendTestAlert}
-            disabled={isSendingTest}
-            title={`Send mock release alert email for ${artist.personName}`}
-            aria-label={`Send test alert for ${artist.personName}`}
-            className="h-7 px-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-          >
-            {isSendingTest ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : testSuccess ? (
-              <Check className="w-3 h-3 text-emerald-500" />
-            ) : (
-              <Mail className="w-3 h-3 text-amber-500" />
-            )}
-            <span>{testSuccess ? "Alert sent!" : "Send test alert"}</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => onUnfollow(artist.personId)}
             title="Unfollow"
             aria-label={`Unfollow ${artist.personName}`}
@@ -283,30 +246,12 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
     unfollowArtist,
     updateArtistOptions,
     sendMagicLink,
-    sendTestAlert,
   } = useSubscription();
 
   const [emailInput, setEmailInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSendingTopTest, setIsSendingTopTest] = useState(false);
-  const [topTestSuccess, setTopTestSuccess] = useState(false);
-
-  const handleSendTopTestAlert = async () => {
-    if (isSendingTopTest) return;
-    setIsSendingTopTest(true);
-    setTopTestSuccess(false);
-    try {
-      await sendTestAlert();
-      setTopTestSuccess(true);
-      setTimeout(() => setTopTestSuccess(false), 3000);
-    } catch (err: any) {
-      console.error("Test alert error:", err);
-    } finally {
-      setIsSendingTopTest(false);
-    }
-  };
 
   const artistList = Object.values(artists).sort((a, b) =>
     a.personName.localeCompare(b.personName)
@@ -420,38 +365,11 @@ export default function MyFeedsView({ onSelectArtist }: MyFeedsViewProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          {userEmail && (
-            <p className="text-xs text-neutral-400 dark:text-neutral-500 font-mono truncate hidden sm:inline">
-              {userEmail}
-            </p>
-          )}
-
-          <button
-            type="button"
-            onClick={handleSendTopTestAlert}
-            disabled={isSendingTopTest}
-            title="Send a mock release alert email to your address"
-            className="px-2.5 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-          >
-            {isSendingTopTest ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Sending...</span>
-              </>
-            ) : topTestSuccess ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-emerald-600 dark:text-emerald-400">Mock alert sent!</span>
-              </>
-            ) : (
-              <>
-                <Mail className="w-3.5 h-3.5 text-amber-500" />
-                <span>Send test alert</span>
-              </>
-            )}
-          </button>
-        </div>
+        {userEmail && (
+          <p className="text-xs text-neutral-400 dark:text-neutral-500 font-mono truncate">
+            {userEmail}
+          </p>
+        )}
       </div>
 
       {/* Artists List */}

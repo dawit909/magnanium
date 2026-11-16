@@ -44,8 +44,6 @@ const FeedUrlCard = memo(function FeedUrlCard({
   const [isQuickSubscribing, setIsQuickSubscribing] = useState(false);
   const [isUpdatingOptions, setIsUpdatingOptions] = useState(false);
   const [isUnfollowing, setIsUnfollowing] = useState(false);
-  const [isSendingTest, setIsSendingTest] = useState(false);
-  const [testSuccess, setTestSuccess] = useState(false);
 
   const {
     isAuthenticated,
@@ -54,7 +52,6 @@ const FeedUrlCard = memo(function FeedUrlCard({
     followArtist,
     unfollowArtist,
     updateArtistOptions,
-    sendTestAlert,
   } = useSubscription();
 
   const following = person ? isFollowing(person.id) : false;
@@ -210,21 +207,6 @@ const FeedUrlCard = memo(function FeedUrlCard({
     }
   };
 
-  const handleSendTestAlert = async () => {
-    if (!person || isSendingTest) return;
-    setIsSendingTest(true);
-    setTestSuccess(false);
-    try {
-      await sendTestAlert(person.id, person.name);
-      setTestSuccess(true);
-      setTimeout(() => setTestSuccess(false), 3000);
-    } catch (err: any) {
-      console.error("Test alert error:", err);
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
-
   const handleUnfollowArtist = async () => {
     if (!person) return;
     setIsUnfollowing(true);
@@ -321,30 +303,6 @@ const FeedUrlCard = memo(function FeedUrlCard({
                     )}
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={handleSendTestAlert}
-                  disabled={isSendingTest}
-                  title={`Send a mock release alert email for ${person.name}`}
-                  className="px-2.5 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {isSendingTest ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Sending...</span>
-                    </>
-                  ) : testSuccess ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-emerald-600 dark:text-emerald-400">Alert sent!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Send test alert</span>
-                    </>
-                  )}
-                </button>
                 <button
                   type="button"
                   onClick={handleUnfollowArtist}
