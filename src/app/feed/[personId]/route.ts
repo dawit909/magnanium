@@ -5,6 +5,7 @@ import {
   guardRateLimit,
   validatePersonId,
   buildCachedResponse,
+  getRequestSiteUrl,
 } from "@/lib/api-response";
 import { kv } from "@/lib/kv";
 import { isEtagMatch, generateEtag } from "@/lib/etag";
@@ -77,15 +78,7 @@ export async function GET(
       return new NextResponse("Person not found", { status: 404 });
     }
 
-    const host =
-      request.headers.get("x-forwarded-host") ||
-      request.headers.get("host") ||
-      "localhost:3000";
-    const forwardedProto = request.headers.get("x-forwarded-proto");
-    const protocol =
-      forwardedProto ||
-      (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
-    const siteUrl = `${protocol}://${host}`;
+    const siteUrl = getRequestSiteUrl(request, "http://localhost:3000");
     const feedUrl = request.url;
     const avatarUrl = profilePath
       ? `${siteUrl}/avatar/${personId}${clientKey ? `?api_key=${encodeURIComponent(clientKey)}` : ""}`

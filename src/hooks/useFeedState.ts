@@ -9,6 +9,7 @@ import {
   resetFeedOptions,
   DEFAULT_FEED_OPTIONS,
   FeedOptionsSettings,
+  isDefaultFeedOptions,
 } from "@/lib/feed-options";
 import { detectBrowserCountry, CACHE_TTL, STORAGE_KEYS } from "@/lib/constants";
 import { filterReleases } from "@/lib/feed-filter";
@@ -158,26 +159,9 @@ export function useFeedState(selectedPerson: TMDBPersonSearchResult | null) {
   }, []);
 
   const isCustomized = useMemo(() => {
-    const rolesMatch =
-      roles.length === DEFAULT_FEED_OPTIONS.roles.length &&
-      roles.every((r) => DEFAULT_FEED_OPTIONS.roles.includes(r));
-    const typesMatch =
-      types.length === DEFAULT_FEED_OPTIONS.types.length &&
-      types.every((t) => DEFAULT_FEED_OPTIONS.types.includes(t));
-    const countryMatch = country === defaultCountryRef.current;
-    const alertMatch = alert === DEFAULT_FEED_OPTIONS.alert;
-    const shortsMatch = excludeShorts === DEFAULT_FEED_OPTIONS.excludeShorts;
-    const reReleasesMatch = excludeReReleases === DEFAULT_FEED_OPTIONS.excludeReReleases;
-    const uncreditedMatch = excludeUncredited === DEFAULT_FEED_OPTIONS.excludeUncredited;
-
-    return !(
-      rolesMatch &&
-      typesMatch &&
-      countryMatch &&
-      alertMatch &&
-      shortsMatch &&
-      reReleasesMatch &&
-      uncreditedMatch
+    return !isDefaultFeedOptions(
+      { roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited },
+      defaultCountryRef.current
     );
   }, [roles, types, country, alert, excludeShorts, excludeReReleases, excludeUncredited]);
 

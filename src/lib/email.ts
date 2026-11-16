@@ -3,6 +3,7 @@ import type { Transporter } from "nodemailer";
 import { FormattedRelease } from "@/types/tmdb";
 import { getTmdbImageUrl, getTmdbPosterUrl } from "./media";
 import { getInformativeNote } from "./tmdb/releases";
+import { formatEmailPubDate, formatDisplayDate } from "./date";
 
 export function getEmailCredentials() {
   const user = (process.env.GMAIL_USER || "").replace(/^["']|["']$/g, "").trim();
@@ -189,35 +190,6 @@ function escapeHtml(unsafe?: string | null): string {
     .replace(/'/g, "&#039;");
 }
 
-function formatEmailPubDate(releaseDate?: string | null): string {
-  if (!releaseDate) return "DATE TBD";
-  try {
-    const d = new Date(releaseDate);
-    if (!isNaN(d.getTime())) {
-      const monthStr = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
-      const day = d.getDate();
-      const year = d.getFullYear();
-      return `${monthStr} ${day}, ${year}`;
-    }
-  } catch {}
-  return releaseDate.toUpperCase();
-}
-
-function formatReleaseDate(releaseDate?: string | null): string {
-  if (!releaseDate) return "TBD";
-  try {
-    const d = new Date(releaseDate);
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    }
-  } catch {}
-  return releaseDate;
-}
-
 function renderEmailMetadataLines(release: FormattedRelease): string {
   const lines: string[] = [];
   if (release.role) {
@@ -232,7 +204,7 @@ function renderEmailMetadataLines(release: FormattedRelease): string {
   if (release.stars && release.stars.length > 0) {
     lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Stars:</strong> ${release.stars.map(escapeHtml).join(", ")}</div>`);
   }
-  const dateFormatted = formatReleaseDate(release.releaseDate);
+  const dateFormatted = formatDisplayDate(release.releaseDate);
   const country = release.country || "US";
   lines.push(`<div><strong style="color: #ffffff; font-weight: 600;">Release:</strong> ${dateFormatted} (${escapeHtml(country)})</div>`);
 

@@ -120,7 +120,7 @@ const ReleaseItemCard = memo(function ReleaseItemCard({
           {item.releaseTypeLabel}
         </span>
         <div className="font-mono text-xs text-neutral-500 dark:text-neutral-400">
-          {item.releaseDate}
+          {item.releaseDate || "TBD"}
         </div>
       </div>
     </div>

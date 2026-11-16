@@ -1,31 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { useClipboard } from "@/hooks/useClipboard";
+import { APP_CONFIG } from "@/lib/constants";
 
 export default function Footer() {
-  const [copied, setCopied] = useState(false);
-  const email = "apps.hydrant673@passinbox.com";
+  const { copied, copy } = useClipboard({ timeoutMs: 2000 });
+  const email = APP_CONFIG.FEEDBACK_EMAIL;
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(email);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      try {
-        const textarea = document.createElement("textarea");
-        textarea.value = email;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {}
-    }
+  const handleCopy = () => {
+    copy(email);
   };
 
   return (

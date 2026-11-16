@@ -4,7 +4,8 @@ import { useState, useMemo, memo } from "react";
 import { Rss, Copy, Check, ExternalLink, Mail, Loader2, RefreshCw } from "lucide-react";
 import { TMDBPersonSearchResult, AlertTimingWindow } from "@/types/tmdb";
 import { useSubscription } from "@/hooks/useSubscription";
-import { DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
+import { areFeedOptionsEqual } from "@/lib/feed-options";
+import { useClipboard } from "@/hooks/useClipboard";
 import EmailAlertModal from "./EmailAlertModal";
 
 interface FeedUrlCardProps {
@@ -39,7 +40,7 @@ const FeedUrlCard = memo(function FeedUrlCard({
   excludeReReleases,
   excludeUncredited,
 }: FeedUrlCardProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useClipboard({ timeoutMs: 1500 });
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isQuickSubscribing, setIsQuickSubscribing] = useState(false);
   const [isUpdatingOptions, setIsUpdatingOptions] = useState(false);
@@ -62,70 +63,15 @@ const FeedUrlCard = memo(function FeedUrlCard({
 
   const hasOptionsChanged = useMemo(() => {
     if (!existingSub) return false;
-
-    const subRoles = existingSub.roles || DEFAULT_FEED_OPTIONS.roles;
-    const pageRoles = roles || DEFAULT_FEED_OPTIONS.roles;
-    const rolesChanged =
-      subRoles.length !== pageRoles.length ||
-      !subRoles.every((r) => pageRoles.includes(r));
-
-    const subTypesRaw = existingSub.types || DEFAULT_FEED_OPTIONS.types;
-    const subTypes =
-      subTypesRaw.includes("earliest") && subTypesRaw.length > 1
-        ? ["earliest"]
-        : subTypesRaw;
-    const pageTypesRaw = types || DEFAULT_FEED_OPTIONS.types;
-    const pageTypes =
-      pageTypesRaw.includes("earliest") && pageTypesRaw.length > 1
-        ? ["earliest"]
-        : pageTypesRaw;
-    const typesChanged =
-      subTypes.length !== pageTypes.length ||
-      !subTypes.every((t) => pageTypes.includes(t));
-
-    const subCountry = (existingSub.country || "US").toUpperCase();
-    const pageCountry = (country || "US").toUpperCase();
-    const countryChanged = subCountry !== pageCountry;
-
-    const alertChanged = (existingSub.alert || "announced") !== (alert || "announced");
-
-    const subExcludeShorts =
-      existingSub.excludeShorts !== undefined
-        ? existingSub.excludeShorts
-        : DEFAULT_FEED_OPTIONS.excludeShorts;
-    const pageExcludeShorts =
-      excludeShorts !== undefined ? excludeShorts : DEFAULT_FEED_OPTIONS.excludeShorts;
-    const shortsChanged = subExcludeShorts !== pageExcludeShorts;
-
-    const subExcludeReReleases =
-      existingSub.excludeReReleases !== undefined
-        ? existingSub.excludeReReleases
-        : DEFAULT_FEED_OPTIONS.excludeReReleases;
-    const pageExcludeReReleases =
-      excludeReReleases !== undefined
-        ? excludeReReleases
-        : DEFAULT_FEED_OPTIONS.excludeReReleases;
-    const reReleasesChanged = subExcludeReReleases !== pageExcludeReReleases;
-
-    const subExcludeUncredited =
-      existingSub.excludeUncredited !== undefined
-        ? existingSub.excludeUncredited
-        : DEFAULT_FEED_OPTIONS.excludeUncredited;
-    const pageExcludeUncredited =
-      excludeUncredited !== undefined
-        ? excludeUncredited
-        : DEFAULT_FEED_OPTIONS.excludeUncredited;
-    const uncreditedChanged = subExcludeUncredited !== pageExcludeUncredited;
-
-    return (
-      rolesChanged ||
-      typesChanged ||
-      countryChanged ||
-      alertChanged ||
-      shortsChanged ||
-      reReleasesChanged ||
-      uncreditedChanged
-    );
+    return !areFeedOptionsEqual(existingSub, {
+      roles,
+      types,
+      country,
+      alert,
+      excludeShorts,
+      excludeReReleases,
+      excludeUncredited,
+    });
   }, [
     existingSub,
     roles,
@@ -140,26 +86,9 @@ const FeedUrlCard = memo(function FeedUrlCard({
   const resolvedFeedProtocol =
     feedProtocolUrl || (feedUrl ? feedUrl.replace(/^https?:\/\//, "feed://") : "");
 
-  const handleCopy = async () => {
-    if (!feedUrl) return;
-    try {
-      await navigator.clipboard.writeText(feedUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Fallback for restricted clipboard contexts
-      try {
-        const textarea = document.createElement("textarea");
-        textarea.value = feedUrl;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      } catch {}
+  const handleCopy = () => {
+    if (feedUrl) {
+      copy(feedUrl);
     }
   };
 

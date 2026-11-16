@@ -36,6 +36,25 @@ export const COUNTRIES: CountryOption[] = [
 ];
 
 /**
+ * Global Application Configuration
+ */
+export const APP_CONFIG = {
+  SITE_NAME: "Magnanium",
+  DEFAULT_SITE_URL: "https://magnanium.vercel.app",
+  FEEDBACK_EMAIL: "apps.hydrant673@passinbox.com",
+} as const;
+
+/**
+ * Authentication and Session Configuration
+ */
+export const AUTH_CONFIG = {
+  COOKIE_NAME: "mg_session",
+  MAGIC_TOKEN_TTL_SECONDS: 15 * 60, // 15 minutes
+  SESSION_TTL_SECONDS: 30 * 24 * 60 * 60, // 30 days
+  ALERT_DEDUP_TTL_SECONDS: 60 * 86400, // 60 days
+} as const;
+
+/**
  * Standard time durations in milliseconds
  */
 export const TIME_MS = {

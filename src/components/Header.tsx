@@ -9,7 +9,7 @@ import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
 import { useSubscription } from "@/hooks/useSubscription";
-import { DEFAULT_FEED_OPTIONS, getSavedFeedOptions } from "@/lib/feed-options";
+import { getSavedFeedOptions } from "@/lib/feed-options";
 import Logo from "./Logo";
 import SignInModal from "./SignInModal";
 
@@ -103,24 +103,9 @@ export default function Header({
         const defaults = getSavedFeedOptions();
         await followArtist(
           { id: person.id, name: person.name, profile_path: person.profile_path },
-          defaults.alert || DEFAULT_FEED_OPTIONS.alert,
-          defaults.country || DEFAULT_FEED_OPTIONS.country,
-          {
-            roles: defaults.roles || DEFAULT_FEED_OPTIONS.roles,
-            types: defaults.types || DEFAULT_FEED_OPTIONS.types,
-            excludeShorts:
-              defaults.excludeShorts !== undefined
-                ? defaults.excludeShorts
-                : DEFAULT_FEED_OPTIONS.excludeShorts,
-            excludeReReleases:
-              defaults.excludeReReleases !== undefined
-                ? defaults.excludeReReleases
-                : DEFAULT_FEED_OPTIONS.excludeReReleases,
-            excludeUncredited:
-              defaults.excludeUncredited !== undefined
-                ? defaults.excludeUncredited
-                : DEFAULT_FEED_OPTIONS.excludeUncredited,
-          }
+          defaults.alert,
+          defaults.country,
+          defaults
         );
       }
     } finally {

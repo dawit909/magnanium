@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  getSession,
   subscribeArtist,
   unsubscribeArtist,
   updateArtistSubscription,
   getUser,
 } from "@/lib/subscriptions";
+import { authenticateRequest } from "@/lib/api-response";
+import { normalizeTypes } from "@/lib/feed-options";
 import { AlertTimingWindow } from "@/types/tmdb";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const sessionToken = request.cookies.get("mg_session")?.value;
-  if (!sessionToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await authenticateRequest(request);
+  if (!auth.authenticated || !auth.session) {
+    return auth.errorResponse!;
   }
-
-  const session = await getSession(sessionToken);
-  if (!session) {
-    return NextResponse.json({ error: "Session expired" }, { status: 401 });
-  }
+  const session = auth.session;
 
   const body = await request.json().catch(() => null);
   if (!body || !body.action) {
@@ -45,11 +42,7 @@ export async function POST(request: NextRequest) {
       excludeReReleases,
       excludeUncredited,
     } = body;
-    const sanitizedTypes = Array.isArray(types)
-      ? types.includes("earliest") && types.length > 1
-        ? ["earliest"]
-        : types
-      : undefined;
+    const sanitizedTypes = Array.isArray(types) ? normalizeTypes(types) : undefined;
     updatedUser = await subscribeArtist(session.email, {
       personId,
       personName: String(personName || "Artist"),
@@ -74,11 +67,7 @@ export async function POST(request: NextRequest) {
       excludeReReleases,
       excludeUncredited,
     } = body;
-    const sanitizedTypes = Array.isArray(types)
-      ? types.includes("earliest") && types.length > 1
-        ? ["earliest"]
-        : types
-      : undefined;
+    const sanitizedTypes = Array.isArray(types) ? normalizeTypes(types) : undefined;
     updatedUser = await updateArtistSubscription(session.email, personId, {
       alert: alert as AlertTimingWindow,
       country,

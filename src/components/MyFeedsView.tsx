@@ -13,7 +13,8 @@ import {
 import { useSubscription } from "@/hooks/useSubscription";
 import { AlertTimingWindow, TMDBPersonSearchResult } from "@/types/tmdb";
 import { SubscribedArtist } from "@/lib/subscriptions";
-import { DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
+import { extractFeedOptions, isDefaultFeedOptions, DEFAULT_FEED_OPTIONS } from "@/lib/feed-options";
+import { formatSubscribedDate } from "@/lib/date";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
 import FeedFilters from "./FeedFilters";
@@ -29,56 +30,18 @@ function FollowedPersonItem({
   onUnfollow,
   onUpdateOptions,
 }: FollowedPersonItemProps) {
-  // Fallbacks to default feed options if not customized
-  const currentRoles = artist.roles || DEFAULT_FEED_OPTIONS.roles;
-  const rawTypes = artist.types || DEFAULT_FEED_OPTIONS.types;
-  // If types contains both earliest and other formats (e.g. from prior state), normalize to ["earliest"]
-  const currentTypes =
-    rawTypes.includes("earliest") && rawTypes.length > 1 ? ["earliest"] : rawTypes;
-  const currentCountry = artist.country || DEFAULT_FEED_OPTIONS.country;
-  const currentAlert = artist.alert || DEFAULT_FEED_OPTIONS.alert;
-  const currentExcludeShorts =
-    artist.excludeShorts !== undefined ? artist.excludeShorts : DEFAULT_FEED_OPTIONS.excludeShorts;
-  const currentExcludeReReleases =
-    artist.excludeReReleases !== undefined
-      ? artist.excludeReReleases
-      : DEFAULT_FEED_OPTIONS.excludeReReleases;
-  const currentExcludeUncredited =
-    artist.excludeUncredited !== undefined
-      ? artist.excludeUncredited
-      : DEFAULT_FEED_OPTIONS.excludeUncredited;
+  const options = extractFeedOptions(artist);
+  const currentRoles = options.roles;
+  const currentTypes = options.types;
+  const currentCountry = options.country;
+  const currentAlert = options.alert;
+  const currentExcludeShorts = options.excludeShorts;
+  const currentExcludeReReleases = options.excludeReReleases;
+  const currentExcludeUncredited = options.excludeUncredited;
 
   const isCustomized = useMemo(() => {
-    const rolesMatch =
-      currentRoles.length === DEFAULT_FEED_OPTIONS.roles.length &&
-      currentRoles.every((r) => DEFAULT_FEED_OPTIONS.roles.includes(r));
-    const typesMatch =
-      currentTypes.length === DEFAULT_FEED_OPTIONS.types.length &&
-      currentTypes.every((t) => DEFAULT_FEED_OPTIONS.types.includes(t));
-    const countryMatch = currentCountry === DEFAULT_FEED_OPTIONS.country;
-    const alertMatch = currentAlert === DEFAULT_FEED_OPTIONS.alert;
-    const shortsMatch = currentExcludeShorts === DEFAULT_FEED_OPTIONS.excludeShorts;
-    const reReleasesMatch = currentExcludeReReleases === DEFAULT_FEED_OPTIONS.excludeReReleases;
-    const uncreditedMatch = currentExcludeUncredited === DEFAULT_FEED_OPTIONS.excludeUncredited;
-
-    return !(
-      rolesMatch &&
-      typesMatch &&
-      countryMatch &&
-      alertMatch &&
-      shortsMatch &&
-      reReleasesMatch &&
-      uncreditedMatch
-    );
-  }, [
-    currentRoles,
-    currentTypes,
-    currentCountry,
-    currentAlert,
-    currentExcludeShorts,
-    currentExcludeReReleases,
-    currentExcludeUncredited,
-  ]);
+    return !isDefaultFeedOptions(artist);
+  }, [artist]);
 
   const handleToggleRole = useCallback(
     (roleId: string) => {
@@ -143,15 +106,7 @@ function FollowedPersonItem({
   );
 
   const handleResetOptions = useCallback(() => {
-    onUpdateOptions(artist.personId, {
-      roles: DEFAULT_FEED_OPTIONS.roles,
-      types: DEFAULT_FEED_OPTIONS.types,
-      country: DEFAULT_FEED_OPTIONS.country,
-      alert: DEFAULT_FEED_OPTIONS.alert,
-      excludeShorts: DEFAULT_FEED_OPTIONS.excludeShorts,
-      excludeReReleases: DEFAULT_FEED_OPTIONS.excludeReReleases,
-      excludeUncredited: DEFAULT_FEED_OPTIONS.excludeUncredited,
-    });
+    onUpdateOptions(artist.personId, { ...DEFAULT_FEED_OPTIONS });
   }, [artist.personId, onUpdateOptions]);
 
   const slug = createPersonSlug(artist.personId, artist.personName);
@@ -182,12 +137,7 @@ function FollowedPersonItem({
               <ChevronRight className="w-3.5 h-3.5 text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <div className="text-[11px] text-neutral-400 dark:text-neutral-500">
-              Following since{" "}
-              {new Date(artist.subscribedAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              Following since {formatSubscribedDate(artist.subscribedAt)}
             </div>
           </div>
         </Link>

@@ -79,6 +79,11 @@ export const kv = {
    * Pass ttlSeconds = 0 or negative for persistent keys without expiration.
    */
   async set<T>(key: string, value: T, ttlSeconds: number = 86400): Promise<void> {
+    if (value === undefined) {
+      await this.del(key);
+      return;
+    }
+
     // 1. Always set L1 in-memory cache
     const memTtl = ttlSeconds > 0 ? ttlSeconds * 1000 : 365 * 24 * 60 * 60 * 1000;
     l1Cache.set(key, value, memTtl);
@@ -124,7 +129,10 @@ export const kv = {
           Authorization: `Bearer ${token}`,
         },
         cache: "no-store",
+        signal: AbortSignal.timeout(3000),
       });
-    } catch {}
+    } catch (err) {
+      console.warn(`L2 Redis DEL error for key ${key}:`, err);
+    }
   },
 };

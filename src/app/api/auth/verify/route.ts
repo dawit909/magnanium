@@ -5,6 +5,7 @@ import {
   createSession,
 } from "@/lib/subscriptions";
 import { createPersonSlug } from "@/lib/slug";
+import { AUTH_CONFIG } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
@@ -42,12 +43,12 @@ export async function GET(request: NextRequest) {
       !request.nextUrl.hostname.includes("127.0.0.1"));
 
   // Set 30-day session cookie
-  response.cookies.set("mg_session", sessionToken, {
+  response.cookies.set(AUTH_CONFIG.COOKIE_NAME, sessionToken, {
     httpOnly: true,
     secure: isSecure,
     sameSite: "lax",
     path: "/",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: AUTH_CONFIG.SESSION_TTL_SECONDS,
   });
 
   return response;

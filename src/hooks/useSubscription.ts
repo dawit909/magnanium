@@ -110,6 +110,48 @@ export function useSubscription() {
     []
   );
 
+  const sendSubscriptionUpdate = useCallback(
+    async (payload: Record<string, unknown>): Promise<boolean> => {
+      if (!state.isAuthenticated) return false;
+
+      try {
+        const res = await fetch("/api/subscriptions/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 401) {
+          // Session expired on server -> reset local auth state
+          cachedState = {
+            isAuthenticated: false,
+            userEmail: null,
+            artists: {},
+            isLoading: false,
+          };
+          notifyListeners();
+          return false;
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            cachedState = {
+              ...cachedState,
+              artists: data.user.artists || {},
+            };
+            notifyListeners();
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error("Subscription update error:", err);
+      }
+      return false;
+    },
+    [state.isAuthenticated]
+  );
+
   const followArtist = useCallback(
     async (
       person: { id: number; name: string; profile_path: string | null },
@@ -123,111 +165,42 @@ export function useSubscription() {
         excludeUncredited?: boolean;
       }
     ) => {
-      if (!state.isAuthenticated) return false;
-
-      try {
-        const res = await fetch("/api/subscriptions/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "subscribe",
-            personId: person.id,
-            personName: person.name,
-            profilePath: person.profile_path,
-            alert,
-            country,
-            ...(options?.roles ? { roles: options.roles } : {}),
-            ...(options?.types ? { types: options.types } : {}),
-            ...(options?.excludeShorts !== undefined ? { excludeShorts: options.excludeShorts } : {}),
-            ...(options?.excludeReReleases !== undefined ? { excludeReReleases: options.excludeReReleases } : {}),
-            ...(options?.excludeUncredited !== undefined ? { excludeUncredited: options.excludeUncredited } : {}),
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user) {
-            cachedState = {
-              ...cachedState,
-              artists: data.user.artists || {},
-            };
-            notifyListeners();
-            return true;
-          }
-        }
-      } catch (err) {
-        console.error("Error following artist:", err);
-      }
-      return false;
+      return sendSubscriptionUpdate({
+        action: "subscribe",
+        personId: person.id,
+        personName: person.name,
+        profilePath: person.profile_path,
+        alert,
+        country,
+        ...(options?.roles ? { roles: options.roles } : {}),
+        ...(options?.types ? { types: options.types } : {}),
+        ...(options?.excludeShorts !== undefined ? { excludeShorts: options.excludeShorts } : {}),
+        ...(options?.excludeReReleases !== undefined ? { excludeReReleases: options.excludeReReleases } : {}),
+        ...(options?.excludeUncredited !== undefined ? { excludeUncredited: options.excludeUncredited } : {}),
+      });
     },
-    [state.isAuthenticated]
+    [sendSubscriptionUpdate]
   );
 
   const unfollowArtist = useCallback(
     async (personId: number) => {
-      if (!state.isAuthenticated) return false;
-
-      try {
-        const res = await fetch("/api/subscriptions/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "unsubscribe",
-            personId,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user) {
-            cachedState = {
-              ...cachedState,
-              artists: data.user.artists || {},
-            };
-            notifyListeners();
-            return true;
-          }
-        }
-      } catch (err) {
-        console.error("Error unfollowing artist:", err);
-      }
-      return false;
+      return sendSubscriptionUpdate({
+        action: "unsubscribe",
+        personId,
+      });
     },
-    [state.isAuthenticated]
+    [sendSubscriptionUpdate]
   );
 
   const updateArtistAlert = useCallback(
     async (personId: number, alert: AlertTimingWindow) => {
-      if (!state.isAuthenticated) return false;
-
-      try {
-        const res = await fetch("/api/subscriptions/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "update_alert",
-            personId,
-            alert,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user) {
-            cachedState = {
-              ...cachedState,
-              artists: data.user.artists || {},
-            };
-            notifyListeners();
-            return true;
-          }
-        }
-      } catch (err) {
-        console.error("Error updating artist alert:", err);
-      }
-      return false;
+      return sendSubscriptionUpdate({
+        action: "update_alert",
+        personId,
+        alert,
+      });
     },
-    [state.isAuthenticated]
+    [sendSubscriptionUpdate]
   );
 
   const updateArtistOptions = useCallback(
@@ -243,8 +216,6 @@ export function useSubscription() {
         excludeUncredited?: boolean;
       }
     ) => {
-      if (!state.isAuthenticated) return false;
-
       // Optimistically update cachedState so the UI responds with zero delay
       if (cachedState.artists[String(personId)]) {
         cachedState = {
@@ -260,34 +231,13 @@ export function useSubscription() {
         notifyListeners();
       }
 
-      try {
-        const res = await fetch("/api/subscriptions/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "update_options",
-            personId,
-            ...options,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user) {
-            cachedState = {
-              ...cachedState,
-              artists: data.user.artists || {},
-            };
-            notifyListeners();
-            return true;
-          }
-        }
-      } catch (err) {
-        console.error("Error updating artist options:", err);
-      }
-      return false;
+      return sendSubscriptionUpdate({
+        action: "update_options",
+        personId,
+        ...options,
+      });
     },
-    [state.isAuthenticated]
+    [sendSubscriptionUpdate]
   );
 
   const deleteAccount = useCallback(async (): Promise<boolean> => {

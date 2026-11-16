@@ -1,6 +1,7 @@
 import { FormattedRelease } from "@/types/tmdb";
 import { getInformativeNote } from "@/lib/tmdb/releases";
 import { getTmdbImageUrl, getTmdbPosterUrl } from "@/lib/media";
+import { formatRssPubDate, formatDisplayDate } from "@/lib/date";
 
 const XML_ENTITIES: Record<string, string> = {
   "<": "&lt;",
@@ -22,16 +23,6 @@ function escapeCdata(unsafe: string): string {
   return unsafe
     .replace(INVALID_XML_CONTROL_REGEX, "")
     .replace(/]]>/g, "]]]]><![CDATA[>");
-}
-
-function formatPubDate(releaseDate: string, fallbackDate: string): string {
-  try {
-    const d = new Date(releaseDate);
-    if (!isNaN(d.getTime())) {
-      return d.toUTCString();
-    }
-  } catch {}
-  return fallbackDate;
 }
 
 function renderWatchProvidersHtml(item: FormattedRelease): string {
@@ -83,7 +74,7 @@ function renderMetadataLines(item: FormattedRelease): string {
   if (item.stars && item.stars.length > 0) {
     lines.push(`<strong>Stars:</strong> ${item.stars.map(escapeXml).join(", ")}`);
   }
-  lines.push(`<strong>Release:</strong> ${item.releaseDate} (${escapeXml(item.country)})`);
+  lines.push(`<strong>Release:</strong> ${formatDisplayDate(item.releaseDate)} (${escapeXml(item.country)})`);
   if (item.mediaType === "tv" && typeof item.episodeCount === "number" && item.episodeCount > 0) {
     lines.push(
       `<strong>Episodes:</strong> ${item.episodeCount} ${
@@ -127,7 +118,7 @@ ${watchHtml}
 }
 
 function renderRssItem(item: FormattedRelease, buildDate: string): string {
-  const pubDate = formatPubDate(item.releaseDate, buildDate);
+  const pubDate = formatRssPubDate(item.releaseDate, buildDate);
   const mediumLabel = item.mediaType === "tv" ? "TV" : "Movie";
   const descriptionContent = renderItemDescription(item);
   const languageCategory = item.language ? `\n      <category>${escapeXml(item.language)}</category>` : "";

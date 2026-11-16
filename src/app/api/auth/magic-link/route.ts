@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createMagicToken, normalizeEmail } from "@/lib/subscriptions";
 import { sendMagicLinkEmail } from "@/lib/email";
-import { guardRateLimit } from "@/lib/api-response";
+import { guardRateLimit, getRequestSiteUrl } from "@/lib/api-response";
 import { RATE_LIMITS } from "@/lib/constants";
 
 export const runtime = "nodejs";
@@ -49,17 +49,7 @@ export async function POST(request: NextRequest) {
       : undefined;
 
     const token = await createMagicToken(email, artist);
-
-    // Resolve site URL
-    const host =
-      request.headers.get("x-forwarded-host") ||
-      request.headers.get("host") ||
-      "magnanium.vercel.app";
-    const forwardedProto = request.headers.get("x-forwarded-proto");
-    const protocol =
-      forwardedProto ||
-      (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || `${protocol}://${host}`;
+    const siteUrl = getRequestSiteUrl(request);
     const verifyUrl = `${siteUrl}/api/auth/verify?token=${encodeURIComponent(token)}`;
 
     const emailResult = await sendMagicLinkEmail({

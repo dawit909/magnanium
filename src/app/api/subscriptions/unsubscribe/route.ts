@@ -25,15 +25,25 @@ export async function GET(request: NextRequest) {
 
   await unsubscribeArtist(payload.email, payload.personId);
   const person = await getPersonDetails(payload.personId).catch(() => null);
-  const artistName = person?.name || "the artist";
+  const artistName = escapeHtml(person?.name || "the artist");
+  const safeEmail = escapeHtml(payload.email);
 
   return new NextResponse(
     renderHtml(
       "Unsubscribed Successfully",
-      `You have been unsubscribed from email alerts for <strong>${artistName}</strong> (${payload.email}). You will no longer receive release notifications for this artist.`
+      `You have been unsubscribed from email alerts for <strong>${artistName}</strong> (${safeEmail}). You will no longer receive release notifications for this artist.`
     ),
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
+}
+
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function renderHtml(title: string, message: string): string {

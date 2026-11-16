@@ -35,8 +35,10 @@ export function getDateWindowBoundaries(nowMs: number = Date.now()): DateWindowB
  * Fast ISO 8601 release date sorting (direct byte/string comparison, ~10x faster than localeCompare).
  */
 export function compareReleasesDescending(a: FormattedRelease, b: FormattedRelease): number {
-  if (b.releaseDate !== a.releaseDate) {
-    return b.releaseDate > a.releaseDate ? 1 : -1;
+  const dateA = a.releaseDate || "";
+  const dateB = b.releaseDate || "";
+  if (dateB !== dateA) {
+    return dateB > dateA ? 1 : -1;
   }
   if (a.releaseType !== b.releaseType) {
     return a.releaseType === "cinema" ? -1 : 1;
@@ -45,8 +47,10 @@ export function compareReleasesDescending(a: FormattedRelease, b: FormattedRelea
 }
 
 export function compareReleasesAscending(a: FormattedRelease, b: FormattedRelease): number {
-  if (a.releaseDate !== b.releaseDate) {
-    return a.releaseDate > b.releaseDate ? 1 : -1;
+  const dateA = a.releaseDate || "";
+  const dateB = b.releaseDate || "";
+  if (dateA !== dateB) {
+    return dateA > dateB ? 1 : -1;
   }
   if (a.releaseType !== b.releaseType) {
     return a.releaseType === "cinema" ? -1 : 1;

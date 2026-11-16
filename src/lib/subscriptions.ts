@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { kv } from "./kv";
 import { AlertTimingWindow } from "@/types/tmdb";
-import { TIME_SECONDS } from "./constants";
+import { AUTH_CONFIG } from "./constants";
 
 export interface SubscribedArtist {
   personId: number;
@@ -46,12 +46,12 @@ export interface SessionPayload {
   expiresAt: number;
 }
 
-const MAGIC_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutes
-const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+const MAGIC_TOKEN_TTL_SECONDS = AUTH_CONFIG.MAGIC_TOKEN_TTL_SECONDS;
+const SESSION_TTL_SECONDS = AUTH_CONFIG.SESSION_TTL_SECONDS;
 const SIGNING_SECRET = process.env.CRON_SECRET || process.env.UPSTASH_REDIS_REST_TOKEN || "magnanium-default-secret-salt";
 
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+export function normalizeEmail(email?: string | null): string {
+  return email ? email.trim().toLowerCase() : "";
 }
 
 /**
@@ -73,6 +73,29 @@ export const SUB_KEYS = {
   alertSent: (email: string, releaseId: string, alert: string) =>
     `sub:sent:${normalizeEmail(email)}:${releaseId}:${alert}`,
 };
+
+/**
+ * Safely removes a subscriber from an artist's reverse index and updates the global tracked list.
+ */
+async function removeSubscriberFromArtistIndex(
+  personId: number,
+  normalizedEmail: string
+): Promise<void> {
+  const artistSubscribersKey = SUB_KEYS.artistSubscribers(personId);
+  const existingSubscribers = (await kv.get<string[]>(artistSubscribersKey)) || [];
+  const updatedSubscribers = existingSubscribers.filter((e) => e !== normalizedEmail);
+
+  if (updatedSubscribers.length > 0) {
+    await kv.set(artistSubscribersKey, updatedSubscribers, 0);
+  } else {
+    await kv.del(artistSubscribersKey);
+
+    // Remove from global tracked artist IDs list if no subscribers remain
+    const allArtists = (await kv.get<number[]>(SUB_KEYS.allArtists)) || [];
+    const updatedAllArtists = allArtists.filter((id) => id !== personId);
+    await kv.set(SUB_KEYS.allArtists, updatedAllArtists, 0);
+  }
+}
 
 /**
  * Create a magic link token for email confirmation / login.
@@ -247,21 +270,8 @@ export async function unsubscribeArtist(
   delete user.artists[String(personId)];
   await saveUser(user);
 
-  // Update reverse index
-  const artistSubscribersKey = SUB_KEYS.artistSubscribers(personId);
-  const existingSubscribers = (await kv.get<string[]>(artistSubscribersKey)) || [];
-  const updatedSubscribers = existingSubscribers.filter((e) => e !== normalized);
-
-  if (updatedSubscribers.length > 0) {
-    await kv.set(artistSubscribersKey, updatedSubscribers, 0);
-  } else {
-    await kv.del(artistSubscribersKey);
-
-    // Remove from global tracked artist IDs list if no subscribers remain
-    const allArtists = (await kv.get<number[]>(SUB_KEYS.allArtists)) || [];
-    const updatedAllArtists = allArtists.filter((id) => id !== personId);
-    await kv.set(SUB_KEYS.allArtists, updatedAllArtists, 0);
-  }
+  // Update reverse index and global tracked list
+  await removeSubscriberFromArtistIndex(personId, normalized);
 
   return user;
 }
@@ -315,20 +325,7 @@ export async function deleteUserAccount(
   if (user && user.artists) {
     const artistIds = Object.keys(user.artists).map(Number);
     for (const personId of artistIds) {
-      const artistSubscribersKey = SUB_KEYS.artistSubscribers(personId);
-      const existingSubscribers = (await kv.get<string[]>(artistSubscribersKey)) || [];
-      const updatedSubscribers = existingSubscribers.filter((e) => e !== normalized);
-
-      if (updatedSubscribers.length > 0) {
-        await kv.set(artistSubscribersKey, updatedSubscribers, 0);
-      } else {
-        await kv.del(artistSubscribersKey);
-
-        // Remove from global tracked artist IDs list if no subscribers remain
-        const allArtists = (await kv.get<number[]>(SUB_KEYS.allArtists)) || [];
-        const updatedAllArtists = allArtists.filter((id) => id !== personId);
-        await kv.set(SUB_KEYS.allArtists, updatedAllArtists, 0);
-      }
+      await removeSubscriberFromArtistIndex(personId, normalized);
     }
   }
 
