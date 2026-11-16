@@ -3,7 +3,7 @@
 import { RefObject, useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Search, Sun, Moon, User, Loader2, LogIn, ChevronDown, Mail, Check } from "lucide-react";
+import { Search, Sun, Moon, User, Loader2, LogIn, ChevronDown, Check } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
 import { createPersonSlug } from "@/lib/slug";
@@ -334,10 +334,7 @@ export default function Header({
                             <span className="hidden group-hover:inline">Unfollow</span>
                           </>
                         ) : (
-                          <>
-                            <Mail className="w-3 h-3 text-amber-500" />
-                            <span>+ Email</span>
-                          </>
+                          <span>+ Email</span>
                         )}
                       </button>
                     )}
