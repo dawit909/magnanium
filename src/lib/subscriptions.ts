@@ -303,6 +303,47 @@ export async function updateArtistSubscription(
 }
 
 /**
+ * Permanently delete a user account and all associated subscriptions and index references.
+ */
+export async function deleteUserAccount(
+  email: string,
+  sessionToken?: string
+): Promise<boolean> {
+  const normalized = normalizeEmail(email);
+  const user = await getUser(normalized);
+
+  if (user && user.artists) {
+    const artistIds = Object.keys(user.artists).map(Number);
+    for (const personId of artistIds) {
+      const artistSubscribersKey = SUB_KEYS.artistSubscribers(personId);
+      const existingSubscribers = (await kv.get<string[]>(artistSubscribersKey)) || [];
+      const updatedSubscribers = existingSubscribers.filter((e) => e !== normalized);
+
+      if (updatedSubscribers.length > 0) {
+        await kv.set(artistSubscribersKey, updatedSubscribers, 0);
+      } else {
+        await kv.del(artistSubscribersKey);
+
+        // Remove from global tracked artist IDs list if no subscribers remain
+        const allArtists = (await kv.get<number[]>(SUB_KEYS.allArtists)) || [];
+        const updatedAllArtists = allArtists.filter((id) => id !== personId);
+        await kv.set(SUB_KEYS.allArtists, updatedAllArtists, 0);
+      }
+    }
+  }
+
+  // Delete user profile from KV
+  await kv.del(SUB_KEYS.user(normalized));
+
+  // Invalidate session if provided
+  if (sessionToken) {
+    await deleteSession(sessionToken);
+  }
+
+  return true;
+}
+
+/**
  * Get all subscriber emails for a specific artist.
  */
 export async function getArtistSubscribers(personId: number): Promise<string[]> {

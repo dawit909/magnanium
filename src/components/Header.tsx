@@ -3,6 +3,7 @@
 import { RefObject, useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Sun, Moon, User, Loader2, LogIn, ChevronDown, Check } from "lucide-react";
 import { TMDBPersonSearchResult } from "@/types/tmdb";
 import { getTmdbImageUrl } from "@/lib/media";
@@ -56,6 +57,7 @@ export default function Header({
   const userMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const router = useRouter();
   const {
     isAuthenticated,
     userEmail,
@@ -63,10 +65,25 @@ export default function Header({
     isFollowing,
     followArtist,
     unfollowArtist,
+    deleteAccount,
     logout,
   } = useSubscription();
   const alertCount = Object.keys(artists).length;
   const [subscribingId, setSubscribingId] = useState<number | null>(null);
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete your account? All your followed feeds and alert preferences will be permanently deleted."
+    );
+    if (!confirmed) return;
+
+    const ok = await deleteAccount();
+    if (ok) {
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/feeds")) {
+        router.push("/");
+      }
+    }
+  };
 
   const handleToggleEmailFeed = async (
     e: React.MouseEvent,
@@ -452,9 +469,23 @@ export default function Header({
                           setIsUserMenuOpen(false);
                           logout();
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors cursor-pointer"
                       >
                         <span>Log out</span>
+                      </button>
+                    </div>
+
+                    <div className="p-1">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          handleDeleteAccount();
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                      >
+                        <span>Delete account</span>
                       </button>
                     </div>
                   </div>,

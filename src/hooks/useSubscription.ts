@@ -290,6 +290,25 @@ export function useSubscription() {
     [state.isAuthenticated]
   );
 
+  const deleteAccount = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/auth/delete-account", { method: "POST" });
+      if (res.ok) {
+        cachedState = {
+          isAuthenticated: false,
+          userEmail: null,
+          artists: {},
+          isLoading: false,
+        };
+        notifyListeners();
+        return true;
+      }
+    } catch (err) {
+      console.error("Failed to delete account:", err);
+    }
+    return false;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await fetch("/api/auth/session", { method: "POST" });
@@ -313,6 +332,7 @@ export function useSubscription() {
     updateArtistAlert,
     updateArtistOptions,
     sendMagicLink,
+    deleteAccount,
     logout,
     refreshSession,
   };
