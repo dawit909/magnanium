@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
       excludeReReleases,
       excludeUncredited,
     } = body;
+    const sanitizedTypes = Array.isArray(types)
+      ? types.includes("earliest") && types.length > 1
+        ? ["earliest"]
+        : types
+      : undefined;
     updatedUser = await subscribeArtist(session.email, {
       personId,
       personName: String(personName || "Artist"),
@@ -52,7 +57,7 @@ export async function POST(request: NextRequest) {
       alert: (alert as AlertTimingWindow) || "announced",
       country: String(country || "US"),
       ...(Array.isArray(roles) ? { roles } : {}),
-      ...(Array.isArray(types) ? { types } : {}),
+      ...(sanitizedTypes ? { types: sanitizedTypes } : {}),
       ...(typeof excludeShorts === "boolean" ? { excludeShorts } : {}),
       ...(typeof excludeReReleases === "boolean" ? { excludeReReleases } : {}),
       ...(typeof excludeUncredited === "boolean" ? { excludeUncredited } : {}),
@@ -69,11 +74,16 @@ export async function POST(request: NextRequest) {
       excludeReReleases,
       excludeUncredited,
     } = body;
+    const sanitizedTypes = Array.isArray(types)
+      ? types.includes("earliest") && types.length > 1
+        ? ["earliest"]
+        : types
+      : undefined;
     updatedUser = await updateArtistSubscription(session.email, personId, {
       alert: alert as AlertTimingWindow,
       country,
       roles,
-      types,
+      ...(sanitizedTypes !== undefined ? { types: sanitizedTypes } : {}),
       excludeShorts,
       excludeReReleases,
       excludeUncredited,

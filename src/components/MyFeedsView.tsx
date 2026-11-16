@@ -31,7 +31,10 @@ function FollowedPersonItem({
 }: FollowedPersonItemProps) {
   // Fallbacks to default feed options if not customized
   const currentRoles = artist.roles || DEFAULT_FEED_OPTIONS.roles;
-  const currentTypes = artist.types || DEFAULT_FEED_OPTIONS.types;
+  const rawTypes = artist.types || DEFAULT_FEED_OPTIONS.types;
+  // If types contains both earliest and other formats (e.g. from prior state), normalize to ["earliest"]
+  const currentTypes =
+    rawTypes.includes("earliest") && rawTypes.length > 1 ? ["earliest"] : rawTypes;
   const currentCountry = artist.country || DEFAULT_FEED_OPTIONS.country;
   const currentAlert = artist.alert || DEFAULT_FEED_OPTIONS.alert;
   const currentExcludeShorts =
@@ -82,7 +85,6 @@ function FollowedPersonItem({
       const nextRoles = currentRoles.includes(roleId)
         ? currentRoles.filter((r) => r !== roleId)
         : [...currentRoles, roleId];
-      if (nextRoles.length === 0) return;
       onUpdateOptions(artist.personId, { roles: nextRoles });
     },
     [currentRoles, artist.personId, onUpdateOptions]
@@ -90,10 +92,16 @@ function FollowedPersonItem({
 
   const handleToggleType = useCallback(
     (typeId: string) => {
-      const nextTypes = currentTypes.includes(typeId)
-        ? currentTypes.filter((t) => t !== typeId)
-        : [...currentTypes, typeId];
-      if (nextTypes.length === 0) return;
+      let nextTypes: string[];
+      if (typeId === "earliest") {
+        nextTypes = currentTypes.includes("earliest") ? [] : ["earliest"];
+      } else if (currentTypes.includes("earliest")) {
+        nextTypes = [typeId];
+      } else {
+        nextTypes = currentTypes.includes(typeId)
+          ? currentTypes.filter((x) => x !== typeId)
+          : [...currentTypes, typeId];
+      }
       onUpdateOptions(artist.personId, { types: nextTypes });
     },
     [currentTypes, artist.personId, onUpdateOptions]

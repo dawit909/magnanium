@@ -47,6 +47,9 @@ export function validateFeedOptions(parsed: any): FeedOptionsSettings {
     validTypes = parsed.types.filter((t: string) =>
       ["cinema", "home", "tv", "premiere", "earliest"].includes(t.toLowerCase())
     );
+    if (validTypes.includes("earliest") && validTypes.length > 1) {
+      validTypes = ["earliest"];
+    }
   }
 
   const validCountry =
