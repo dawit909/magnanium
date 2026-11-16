@@ -36,7 +36,7 @@ export function useSubscription() {
 
   const refreshSession = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/session", { cache: "no-store" });
+      const res = await fetch(`/api/auth/session?_t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {

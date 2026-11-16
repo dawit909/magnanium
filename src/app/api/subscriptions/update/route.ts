@@ -10,6 +10,13 @@ import { normalizeTypes } from "@/lib/feed-options";
 import { AlertTimingWindow } from "@/types/tmdb";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+  Pragma: "no-cache",
+};
 
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request);
@@ -87,12 +94,15 @@ export async function POST(request: NextRequest) {
 
   const user = updatedUser || (await getUser(session.email));
 
-  return NextResponse.json({
-    success: true,
-    user: {
-      email: session.email,
-      verified: true,
-      artists: user?.artists || {},
+  return NextResponse.json(
+    {
+      success: true,
+      user: {
+        email: session.email,
+        verified: true,
+        artists: user?.artists || {},
+      },
     },
-  });
+    { headers: NO_CACHE_HEADERS }
+  );
 }
