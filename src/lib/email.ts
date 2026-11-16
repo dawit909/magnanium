@@ -66,9 +66,7 @@ export async function sendMagicLinkEmail({
     return { success: false, error: "Email transporter not available" };
   }
 
-  const subject = artistName
-    ? `Confirm alerts for ${artistName} on Magnanium`
-    : `Sign in to your Magnanium alerts`;
+  const subject = "Sign in to your Magnanium";
 
   const html = `
 <!DOCTYPE html>
@@ -78,72 +76,54 @@ export async function sendMagicLinkEmail({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${subject}</title>
 </head>
-<body style="margin: 0; padding: 32px 16px; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4f4f5;">
-  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; background-color: #18181b; border: 1px solid #27272a; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+<body style="margin: 0; padding: 40px 16px; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4f4f5;">
+  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 480px; margin: 0 auto; background-color: #18181b; border: 1px solid #27272a; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
     <!-- Header -->
     <tr>
-      <td style="padding: 32px 32px 20px 32px; border-bottom: 1px solid #27272a;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-          <tr>
-            <td>
-              <span style="font-size: 19px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
-                Magnanium
-              </span>
-            </td>
-            <td align="right">
-              <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #a1a1aa; background-color: #27272a; padding: 4px 10px; border-radius: 9999px;">
-                Alerts
-              </span>
-            </td>
-          </tr>
-        </table>
+      <td style="padding: 28px 32px 20px 32px; border-bottom: 1px solid #27272a;">
+        <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">
+          Magnanium
+        </span>
       </td>
     </tr>
 
     <!-- Body Content -->
     <tr>
       <td style="padding: 32px;">
-        <h1 style="margin: 0 0 12px 0; font-size: 21px; font-weight: 600; color: #ffffff; letter-spacing: -0.02em;">
-          ${artistName ? `Activate alerts for ${artistName}` : "Sign in to Magnanium"}
+        <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600; color: #ffffff; letter-spacing: -0.02em;">
+          Sign in to your Magnanium
         </h1>
-        <p style="margin: 0 0 28px 0; font-size: 14px; line-height: 1.6; color: #a1a1aa;">
+        <p style="margin: 0 0 28px 0; font-size: 14px; line-height: 1.5; color: #a1a1aa;">
           ${
             artistName
-              ? `You requested email alerts whenever <strong>${artistName}</strong> has new release dates announced or updated. Click the button below to confirm your subscription.`
-              : `Click the button below to access and manage your followed artist feeds on Magnanium.`
+              ? `Click the button below to sign in and confirm alerts for <strong>${artistName}</strong>.`
+              : `Click the button below to sign in to your Magnanium account.`
           }
         </p>
 
         <!-- CTA Button -->
         <table border="0" cellpadding="0" cellspacing="0" width="100%">
           <tr>
-            <td align="center" style="padding: 4px 0 28px 0;">
-              <a href="${verifyUrl}" target="_blank" style="display: inline-block; background-color: #ffffff; color: #09090b; font-size: 14px; font-weight: 600; text-decoration: none; padding: 13px 28px; border-radius: 12px; box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);">
-                ${artistName ? "Confirm Subscription" : "Sign In to Magnanium"}
+            <td align="center" style="padding: 0 0 28px 0;">
+              <a href="${verifyUrl}" target="_blank" style="display: inline-block; background-color: #ffffff; color: #09090b; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 32px; border-radius: 12px; box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);">
+                Sign in to Magnanium
               </a>
             </td>
           </tr>
         </table>
 
         <!-- Security Notice -->
-        <div style="background-color: #27272a; border-radius: 10px; padding: 14px 16px; margin-bottom: 24px;">
-          <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #71717a;">
-            🔒 This confirmation link is valid for <strong>15 minutes</strong>. If you didn't request this email, you can safely ignore it.
-          </p>
-        </div>
-
-        <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #52525b; word-break: break-all;">
-          Or copy and paste this URL into your browser:<br>
-          <a href="${verifyUrl}" style="color: #71717a; text-decoration: underline;">${verifyUrl}</a>
+        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #71717a; text-align: center;">
+          This link will expire in 15 minutes. If you didn&apos;t request this, you can safely ignore this email.
         </p>
       </td>
     </tr>
 
     <!-- Footer -->
     <tr>
-      <td style="padding: 20px 32px; background-color: #121214; border-top: 1px solid #27272a; text-align: center;">
+      <td style="padding: 16px 32px; background-color: #121214; border-top: 1px solid #27272a; text-align: center;">
         <p style="margin: 0; font-size: 11px; color: #52525b;">
-          Magnanium • Zero-noise release dates for film & television
+          Magnanium
         </p>
       </td>
     </tr>
